@@ -1,0 +1,63 @@
+Register a new user
+curl -X POST http://localhost:3000/api/auth/register \
+-H "Content-Type: application/json" \
+-d '{"username": "testuser", "email": "test@example.com", "password": "password123"}'
+
+Login to get a token
+curl -X POST http://localhost:3000/api/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username": "testuser", "password": "password123"}'
+
+Set token as a shell variable
+TOKEN="your_jwt_token_here"
+
+to get user's profile /me 
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/auth/me
+
+User Routes:
+Get all users
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/users
+
+Get sepecific user
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/users/1
+
+Update profile i.e. ID 1
+curl -X PUT http://localhost:3000/api/users/1 \
+-H "Authorization: Bearer $TOKEN" \
+-H "Content-Type: application/json" \
+-d '{"first_name": "Test", "last_name": "UserUpdated"}'
+
+Devices
+
+Create an new device
+curl -X POST http://localhost:3000/api/devices \
+-H "Authorization: Bearer $TOKEN" \
+-H "Content-Type: application/json" \
+-d '{"name": "Pacemaker 5000", "manufacturer": "MedTech", "model": "PM5K", "is_mri": false, "type": "Cardiac"}'
+
+Get all devices
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/devices
+
+Get a specific device i.e. ID 1
+curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/devices
+
+Delete a specific device i.e. ID 1
+curl -X DELETE -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/devices/1
+
+Admin Routes
+
+Register an admin user
+curl -X POST http://localhost:3000/api/auth/register \
+-H "Content-Type: application/json" \
+-d '{"username": "adminuser", "email": "admin@example.com", "password": "password123", "role": "ADMIN"}'
+
+Login as admin user
+curl -X POST http://localhost:3000/api/auth/login \
+-H "Content-Type: application/json" \
+-d '{"username": "adminuser", "password": "password123"}'
+
+Set shell variable
+ADMIN_TOKEN="your_admin_jwt_token_here"
+
+Access an admin only route
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3000/api/admin

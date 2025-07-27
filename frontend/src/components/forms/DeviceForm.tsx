@@ -1,0 +1,122 @@
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useDeviceStore } from '@/stores/deviceStore'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+
+interface DeviceFormData {
+  name: string
+  manufacturer: string
+  model: string
+  type: string
+  isMri: boolean
+}
+
+export default function DeviceForm() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const isEdit = id !== undefined
+  
+  const { currentDevice, loading, error, fetchDevice, createDevice, updateDevice, clearError } = useDeviceStore()
+  
+  const [formData, setFormData] = useState<DeviceFormData>({
+    name: '',
+    manufacturer: '',
+    model: '',
+    type: '',
+    isMri: false
+  })
+
+  useEffect(() => {
+    if (isEdit && id) {
+      fetchDevice(parseInt(id))
+    }
+  }, [isEdit, id, fetchDevice])
+
+  useEffect(() => {
+    if (isEdit && currentDevice) {
+      setFormData({
+        name: currentDevice.name,
+        manufacturer: currentDevice.manufacturer,
+        model: currentDevice.model,
+        type: currentDevice.type,
+        isMri: currentDevice.isMri
+      })
+    }
+  }, [currentDevice, isEdit])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    clearError()
+    try {
+      if (isEdit && id) {
+        await updateDevice(parseInt(id), formData)
+        toast.success('Device updated successfully')
+      } else {
+        await createDevice(formData)
+        toast.success('Device created successfully')
+      }
+      navigate('/devices')
+    } catch (err) {
+      toast.error('Failed to save device')
+      console.error('Error saving device:', err)
+      // error is handled in the store
+    }
+  }
+
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Devices', href: '/devices' },
+    { label: isEdit ? `Edit ${currentDevice?.name || 'Device'}` : 'New Device', current: true }
+  ]
+
+  return (
+    <div className="container mx-auto py-6">
+      <BreadcrumbNav items={breadcrumbItems} />
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="outline" size="icon" onClick={() => navigate('/devices')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-3xl font-bold">{isEdit ? 'Edit Device' : 'Create New Device'}</h1>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><Label htmlFor="name">Device Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="model">Model</Label><Input id="model" name="model" value={formData.model} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="manufacturer">Manufacturer</Label><Input id="manufacturer" name="manufacturer" value={formData.manufacturer} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="type">Type</Label><Input id="type" name="type" value={formData.type} onChange={handleInputChange} required /></div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="isMri" name="isMri" checked={formData.isMri} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isMri: !!checked }))} />
+              <Label htmlFor="isMri">MRI Safe</Label>
+            </div>
+            <div className="flex gap-4">
+              <Button type="submit" disabled={loading}>{loading ? 'Saving...' : (isEdit ? 'Update Device' : 'Create Device')}</Button>
+              <Button type="button" variant="outline" onClick={() => navigate('/devices')}>Cancel</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

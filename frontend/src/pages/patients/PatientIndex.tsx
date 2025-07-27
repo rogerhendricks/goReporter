@@ -1,0 +1,169 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { usePatientStore } from '@/stores/patientStore'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Trash2, Edit, Plus, Search, User } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+export default function PatientIndex() {
+  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
+  const { 
+    patients, 
+    loading, 
+    error, 
+    fetchPatients, 
+    deletePatient, 
+    searchPatients,
+    clearError 
+  } = usePatientStore()
+
+  useEffect(() => {
+    fetchPatients()
+  }, [])
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      await searchPatients(searchQuery)
+    } else {
+      await fetchPatients()
+    }
+  }
+
+  const handleDelete = async (id: number, name: string) => {
+    if (window.confirm(`Are you sure you want to delete patient ${name}?`)) {
+      await deletePatient(id)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString()
+  }
+
+    const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Patients', current: true }
+  ]
+  return (
+    <div className="container mx-auto py-6">
+      <BreadcrumbNav items={breadcrumbItems} />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Patients</h1>
+        <Button onClick={() => navigate('/patients/new')} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Patient
+        </Button>
+      </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="outline" size="sm" onClick={clearError} className="mt-2">
+            Dismiss
+          </Button>
+        </Alert>
+      )}
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Search Patients</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <Input
+              placeholder="Search by name or MRN..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="submit" variant="outline">
+              <Search className="h-4 w-4" />
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Patients ({patients.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : patients.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No patients found
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>MRN</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Date of Birth</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Doctors</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {patients.map((patient) => (
+                  <TableRow key={patient.id}>
+                    <TableCell className="font-medium">{patient.mrn}</TableCell>
+                    <TableCell>
+                      <Link 
+                        to={`/patients/${patient.id}`}
+                        className="flex items-center gap-2 hover:underline"
+                      >
+                        <User className="h-4 w-4" />
+                        {patient.fname} {patient.lname}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatDate(patient.dob)}</TableCell>
+                    <TableCell>{patient.phone}</TableCell>
+                    <TableCell>
+                      {patient.doctors?.length > 0 
+                        ? `${patient.doctors.length} doctor(s)`
+                        : 'No doctors assigned'
+                      }
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/patients/${patient.id}/edit`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(patient.id, `${patient.fname} ${patient.lname}`)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
