@@ -10,7 +10,7 @@ type Device struct {
     Name        string            `json:"name" gorm:"type:varchar(255);not null"`
     Manufacturer string            `json:"manufacturer" gorm:"type:text"`
     DevModel      string            `json:"model" gorm:"type:varchar(100)"`
-    IsMri         bool              `json:"is_mri" gorm:"default:false"`
+    IsMri         bool              `json:"isMri" gorm:"default:false"`
     Type         string            `json:"type" gorm:"type:varchar(100)"`
     Implanted   []ImplantedDevice `json:"implanted"`
 }
@@ -19,7 +19,10 @@ type Device struct {
 func GetAllDevices() ([]Device, error) {
     var devices []Device
     err := config.DB.Find(&devices).Error
-    return devices, err
+    if err != nil {
+        return []Device{}, err // Return empty slice instead of nil
+    }
+    return devices, nil
 }
 
 // GetDeviceByID retrieves a device by ID

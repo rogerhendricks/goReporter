@@ -28,6 +28,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Post("/api/users", handlers.CreateUser)
 
 	// Device routes
+	app.Get("/api/devices/all", handlers.GetDevicesBasic)
 	app.Get("/api/devices", handlers.GetDevices)
 	app.Post("/api/devices", handlers.CreateDevice)
 	app.Get("/api/devices/:id", handlers.GetDevice)

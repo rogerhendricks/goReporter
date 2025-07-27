@@ -36,8 +36,10 @@ export const useDeviceStore = create<DeviceState>((set) => ({
     set({ loading: true, error: null })
     try {
       const response = await api.get('/devices/all')
+      console.log('Devices fetched:', response.data)
       set({ devices: response.data, loading: false })
     } catch (error: any) {
+      console.error('Error fetching devices:', error)
       set({ error: error.response?.data?.error || 'Failed to fetch devices', loading: false, devices: [] })
     }
   },
@@ -45,9 +47,17 @@ export const useDeviceStore = create<DeviceState>((set) => ({
   fetchDevice: async (id: number) => {
     set({ loading: true, error: null, currentDevice: null })
     try {
+      console.log('Fetching device with ID:', id)
       const response = await api.get(`/devices/${id}`)
+      console.log('Device fetched:', response.data)
+
+      if (!response.data) {
+        throw new Error('Device not found')
+      }
+
       set({ currentDevice: response.data, loading: false })
     } catch (error: any) {
+      console.error('Error fetching device:', error)
       set({ error: error.response?.data?.error || 'Failed to fetch device', loading: false })
     }
   },
