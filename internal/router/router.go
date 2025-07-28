@@ -29,6 +29,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// Device routes
 	app.Get("/api/devices/all", handlers.GetDevicesBasic)
+	app.Get("/api/devices/search", handlers.SearchDevices)
 	app.Get("/api/devices", handlers.GetDevices)
 	app.Post("/api/devices", handlers.CreateDevice)
 	app.Get("/api/devices/:id", handlers.GetDevice)

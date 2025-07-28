@@ -3,6 +3,7 @@ package models
 import (
     "github.com/rogerhendricks/goReporter/internal/config"
     "gorm.io/gorm"
+    "strings"
 )
 
 type Device struct {
@@ -25,6 +26,22 @@ func GetAllDevices() ([]Device, error) {
     return devices, nil
 }
 
+// Get all devices matching search
+func GetAllDevicesBySearch(query string) ([]Device, error) {
+    var devices []Device
+    tx := config.DB
+
+    if query != "" {
+        searchQuery := "%" + strings.ToLower(query) + "%"
+        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?", searchQuery, searchQuery, searchQuery)
+    }
+
+    err := tx.Find(&devices).Error
+    if err != nil {
+        return []Device{}, err // Return empty slice instead of nil
+    }
+    return devices, nil
+}
 // GetDeviceByID retrieves a device by ID
 func GetDeviceByID(deviceID uint) (*Device, error) {
     var device Device

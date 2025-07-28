@@ -89,6 +89,65 @@ func GetDevicesBasic(c *fiber.Ctx) error {
     return c.JSON(basicDevices)
 }
 
+
+// GetDevicesBasic retrieves basic device information (name, manufacturer, type, model)
+func SearchDevices(c *fiber.Ctx) error {
+    // The AuthenticateJWT middleware has already run and verified the user.
+    userID := c.Locals("userID").(string)
+
+    // Get the search query from the URL, if it exists.
+    searchQuery := c.Query("search")
+    searchQuery = html.EscapeString(strings.TrimSpace(searchQuery))
+
+    _, err := models.GetUserByID(userID)
+    if err != nil {
+        log.Printf("User authentication failed: %v", err) // Add this debug line
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+    }
+
+
+    // Pass the query to the model function. It will be empty if no search is performed.
+    devices, err := models.GetAllDevicesBySearch(searchQuery)
+    if err != nil {
+        log.Printf("Error fetching devices: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+    }
+
+    if devices == nil {
+        log.Printf("Devices is nil, returning empty array") // Add this debug line
+        return c.JSON([]interface{}{})
+    }
+
+    if len(devices) == 0 {
+        return c.JSON([]interface{}{})
+    }
+
+    // Create a simplified response with consistent field names
+    type DeviceBasic struct {
+        ID           uint   `json:"id"`
+        Name         string `json:"name"`
+        Manufacturer string `json:"manufacturer"`
+        Type         string `json:"type"`
+        Model        string `json:"model"`
+        IsMri        bool   `json:"isMri"`
+    }
+
+    var basicDevices []DeviceBasic
+    for _, device := range devices {
+        basicDevices = append(basicDevices, DeviceBasic{
+            ID:           device.ID,
+            Name:         device.Name,
+            Manufacturer: device.Manufacturer,
+            Type:         device.Type,
+            Model:        device.DevModel,
+            IsMri:        device.IsMri,
+        })
+    }
+
+    return c.JSON(basicDevices)
+}
+
+
 // GetDevice retrieves a specific device by ID
 func GetDevice(c *fiber.Ctx) error {
     deviceID := c.Params("id")

@@ -112,7 +112,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
   searchDevices: async (query) => {
     set({ loading: true, error: null })
     try {
-      const response = await api.get('/devices', { params: { search: query } })
+      const response = await api.get('/devices/search', { params: { search: query } })
       set({ devices: response.data, loading: false })
     } catch (error: any) {
       set({ error: error.response?.data?.error || 'No devices found', loading: false, devices: [] })
