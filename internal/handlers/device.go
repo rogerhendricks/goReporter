@@ -32,34 +32,26 @@ func GetDevices(c *fiber.Ctx) error {
 
 // GetDevicesBasic retrieves basic device information (name, manufacturer, type, model)
 func GetDevicesBasic(c *fiber.Ctx) error {
-    log.Printf("GetDevicesBasic handler called") // Add this debug line
-    
+
     // Check if user is authenticated (no admin requirement)
     userID := c.Locals("userID").(string)
-    log.Printf("User ID from context: %s", userID) // Add this debug line
     
     _, err := models.GetUserByID(userID)
     if err != nil {
-        log.Printf("User authentication failed: %v", err) // Add this debug line
         return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
     }
 
     devices, err := models.GetAllDevices()
     if err != nil {
-        log.Printf("Error fetching devices: %v", err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
     }
 
-    log.Printf("Found %d devices in database", len(devices)) // Add this debug line
-
     // Ensure we return an empty array if no devices
     if devices == nil {
-        log.Printf("Devices is nil, returning empty array") // Add this debug line
         return c.JSON([]interface{}{})
     }
 
     if len(devices) == 0 {
-        log.Printf("No devices found, returning empty array") // Add this debug line
         return c.JSON([]interface{}{})
     }
 
@@ -114,7 +106,7 @@ func SearchDevices(c *fiber.Ctx) error {
     }
 
     if devices == nil {
-        log.Printf("Devices is nil, returning empty array") // Add this debug line
+        log.Printf("Devices is ni") // Add this debug line
         return c.JSON([]interface{}{})
     }
 

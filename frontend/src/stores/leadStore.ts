@@ -102,7 +102,7 @@ export const useLeadStore = create<LeadState>((set) => ({
   searchLeads: async (query) => {
     set({ loading: true, error: null })
     try {
-      const response = await api.get('/leads', { params: { search: query } })
+      const response = await api.get('/leads/search', { params: { search: query } })
       set({ leads: response.data, loading: false })
     } catch (error: any) {
       set({ error: error.response?.data?.error || 'No leads found', loading: false, leads: [] })

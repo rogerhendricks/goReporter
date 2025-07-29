@@ -3,6 +3,7 @@ package models
 import (
     "github.com/rogerhendricks/goReporter/internal/config"
     "gorm.io/gorm"
+    "strings"
 )
 
 type Lead struct {
@@ -19,8 +20,28 @@ type Lead struct {
 func GetAllLeads() ([]Lead, error) {
     var leads []Lead
     err := config.DB.Find(&leads).Error
+    if err != nil {
+        return []Lead{}, err // Return empty slice instead of nil
+    }
     return leads, err
 }
+
+func GetAllLeadsBySearch(query string) ([]Lead, error) {
+    var leads []Lead
+    tx := config.DB
+
+    if query != "" {
+        searchQuery := "%" + strings.ToLower(query) + "%"
+        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?", searchQuery, searchQuery, searchQuery)
+    }
+
+    err := tx.Find(&leads).Error
+    if err != nil {
+        return []Lead{}, err // Return empty slice instead of nil
+    }
+    return leads, nil
+}
+
 
 // GetLeadByID retrieves a lead by ID
 func GetLeadByID(leadID uint) (*Lead, error) {

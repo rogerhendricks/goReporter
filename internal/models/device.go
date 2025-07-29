@@ -42,6 +42,7 @@ func GetAllDevicesBySearch(query string) ([]Device, error) {
     }
     return devices, nil
 }
+
 // GetDeviceByID retrieves a device by ID
 func GetDeviceByID(deviceID uint) (*Device, error) {
     var device Device

@@ -52,7 +52,8 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/patients/:id", handlers.DeletePatient)
 
 	// Lead routes
-	app.Get("/api/leads", handlers.GetLeads)
+	app.Get("/api/leads/all", handlers.GetleadsBasic)
+	app.Get("/api/leads/search", handlers.SearchLeads)
 	app.Get("/api/leads/:id", handlers.GetLead)
 	app.Post("/api/leads", handlers.CreateLead)
 	app.Put("/api/leads/:id", handlers.UpdateLead)
