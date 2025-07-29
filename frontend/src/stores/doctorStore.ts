@@ -14,8 +14,7 @@ export interface Doctor {
   id: number
   name: string
   email: string
-  phone1: string
-  phone2?: string
+  phone: string
   addresses: Address[]
   patients?: any[]
 }
@@ -30,7 +29,7 @@ interface DoctorState {
   createDoctor: (data: Partial<Doctor>) => Promise<Doctor | undefined>
   updateDoctor: (id: number, data: Partial<Doctor>) => Promise<Doctor | undefined>
   deleteDoctor: (id: number) => Promise<void>
-  searchDoctors: (query: string) => Promise<Doctor[]>
+  searchDoctors: (query: string) => Promise<void>
   clearError: () => void
 }
 
@@ -93,7 +92,7 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
   updateDoctor: async (id: number, data: Partial<Doctor>) => {
     set({ loading: true, error: null })
     try {
-      const response = await api.patch(`/doctors/${id}`, data)
+      const response = await api.put(`/doctors/${id}`, data)
       const updatedDoctor = response.data
       set(state => ({
         doctors: state.doctors.map(d => d.id === id ? updatedDoctor : d),
@@ -131,19 +130,24 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
   //   }
   // }
   
-  searchDoctors: async (query: string): Promise<Doctor[]> => {
+  searchDoctors: async (query) => {
+    set({ loading: true, error: null })
     try {
       console.log(`Searching doctors with query: ${query}`)
-      const response = await api.get('/doctors', { 
+      const response = await api.get('/doctors/search', { 
         params: { search: query } 
       })
       console.log('Search doctors response:', response.data)
       
       const doctorsData = Array.isArray(response.data) ? response.data : []
-      return doctorsData
+      set({ doctors: doctorsData , loading:false})
     } catch (error: any) {
       console.error('Error searching doctors:', error)
-      return []
+      set({
+        error: error.response?.data?.error || 'Failed to search doctors',
+        loading: false,
+        doctors: []
+      })
     }
   },
 }))

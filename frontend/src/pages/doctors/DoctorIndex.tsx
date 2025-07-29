@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Trash2, Edit, Plus, Search, User } from 'lucide-react'
+import { Trash2, Edit, Plus, Search } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -122,7 +122,7 @@ export default function DoctorIndex() {
                       </Link>
                     </TableCell>
                     <TableCell>{doctor.email}</TableCell>
-                    <TableCell>{doctor.phone1}</TableCell>
+                    <TableCell>{doctor.phone}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => navigate(`/doctors/${doctor.id}/edit`)}>

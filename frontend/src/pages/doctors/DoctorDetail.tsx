@@ -62,8 +62,8 @@ export default function DoctorDetail() {
             <CardHeader><CardTitle>Contact Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2"><Mail className="h-4 w-4" /><span>{currentDoctor.email}</span></div>
-              <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><span>{currentDoctor.phone1} (Primary)</span></div>
-              {currentDoctor.phone2 && <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><span>{currentDoctor.phone2} (Secondary)</span></div>}
+              <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><span>{currentDoctor.phone} (Primary)</span></div>
+              {currentDoctor.phone && <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><span>{currentDoctor.phone} (Secondary)</span></div>}
             </CardContent>
           </Card>
         </div>

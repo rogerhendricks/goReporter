@@ -21,8 +21,7 @@ interface Address {
 interface DoctorFormData {
   name: string
   email: string
-  phone1: string
-  phone2: string
+  phone: string
   addresses: Address[]
 }
 
@@ -36,8 +35,7 @@ export default function DoctorForm() {
   const [formData, setFormData] = useState<DoctorFormData>({
     name: '',
     email: '',
-    phone1: '',
-    phone2: '',
+    phone: '',
     addresses: [{ street: '', city: '', state: '', country: '', zip: '' }]
   })
 
@@ -52,8 +50,7 @@ export default function DoctorForm() {
       setFormData({
         name: currentDoctor.name,
         email: currentDoctor.email,
-        phone1: currentDoctor.phone1,
-        phone2: currentDoctor.phone2 || '',
+        phone: currentDoctor.phone,
         addresses: currentDoctor.addresses.length > 0 ? currentDoctor.addresses : [{ street: '', city: '', state: '', country: '', zip: '' }]
       })
     }
@@ -130,8 +127,7 @@ export default function DoctorForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><Label htmlFor="name">Full Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="phone1">Primary Phone</Label><Input id="phone1" name="phone1" value={formData.phone1} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="phone2">Secondary Phone</Label><Input id="phone2" name="phone2" value={formData.phone2} onChange={handleInputChange} /></div>
+              <div><Label htmlFor="phone">Primary Phone</Label><Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required /></div>
             </div>
 
             <div className="space-y-4">

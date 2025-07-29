@@ -14,14 +14,26 @@ import (
     "regexp"
 )
 
+// DoctorResponse defines the structure for doctor API responses
+type DoctorResponse struct {
+    ID        uint              `json:"id"`
+    Name      string            `json:"name"`
+    Email     string            `json:"email"`
+    Phone     string            `json:"phone"`
+    Specialty string            `json:"specialty"`
+    Addresses []models.Address  `json:"addresses"`
+}
+
+
 // GetDoctors retrieves all doctors
 func GetDoctors(c *fiber.Ctx) error {
     // Check if user has appropriate permissions
-    userID := c.Locals("userID").(string)
-    _, err := models.GetUserByID(userID)
-    if err != nil {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
+    // userID := c.Locals("userID").(string)
+
+    // _, err := models.GetUserByID(userID)
+    // if err != nil {
+    //     return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+    // }
 
     doctors, err := models.GetAllDoctors()
     if err != nil {
@@ -29,7 +41,68 @@ func GetDoctors(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch doctors"})
     }
 
-    return c.JSON(doctors)
+    // Map models.Doctor to DoctorResponse
+    var doctorResponses []DoctorResponse
+    for _, doctor := range doctors {
+        doctorResponses = append(doctorResponses, DoctorResponse{
+            ID:        doctor.ID,
+            Name:      doctor.Name,
+            Email:     doctor.Email,
+            Phone:     doctor.Phone,
+            Specialty: doctor.Specialty,
+            Addresses: doctor.Addresses,
+        })
+    }
+
+    return c.JSON(doctorResponses)
+}
+
+func GetDoctorsBasic(c *fiber.Ctx) error {
+
+    // Check if user is authenticated (no admin requirement)
+    userID := c.Locals("userID").(string)
+    
+    _, err := models.GetUserByID(userID)
+    if err != nil {
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+    }
+
+    doctors, err := models.GetAllDoctors()
+    if err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+    }
+
+    // Ensure we return an empty array if no devices
+    if doctors == nil {
+        return c.JSON([]interface{}{})
+    }
+
+    if len(doctors) == 0 {
+        return c.JSON([]interface{}{})
+    }
+
+    // Create a simplified response with consistent field names
+    type DoctorBasic struct {
+        ID        uint   `json:"id"`
+        Name      string `json:"name"`
+        Email     string `json:"email"`
+        Phone     string `json:"phone"`
+        Specialty string `json:"specialty"`
+    }
+
+    var basicDoctors []DoctorBasic
+    for _, doctor := range doctors {
+        basicDoctors = append(basicDoctors, DoctorBasic{
+            ID:        doctor.ID,
+            Name:      doctor.Name,
+            Email:     doctor.Email,
+            Phone:     doctor.Phone,
+            Specialty: doctor.Specialty,
+        })
+    }
+
+    log.Printf("Returning %d basic doctors", len(basicDoctors)) // Add this debug line
+    return c.JSON(basicDoctors)
 }
 
 // GetDoctor retrieves a specific doctor by ID
@@ -52,6 +125,56 @@ func GetDoctor(c *fiber.Ctx) error {
     }
 
     return c.JSON(doctor)
+}
+
+// SearchDoctors retrieves doctors matching the search query
+func SearchDoctors(c *fiber.Ctx) error {
+    
+    // Check if user has appropriate permissions
+    userID := c.Locals("userID").(string)
+    _, err := models.GetUserByID(userID)
+    if err != nil {
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+    }
+    
+    searchQuery := c.Query("search")
+    searchQuery = html.EscapeString(strings.TrimSpace(searchQuery))
+    doctors, err := models.GetAllDoctorsBySearch(searchQuery)
+    if err != nil {
+        log.Printf("Error searching doctors: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to search doctors"})
+    }
+
+    if doctors == nil {
+        return c.JSON([]models.Doctor{}) // Return empty slice if no doctors found
+    }
+
+    if len(doctors) == 0 {
+        return c.JSON([]models.Doctor{}) // Return empty slice if no doctors found
+    }
+
+    type DoctorResponse struct {
+        ID        uint      `json:"id"`
+        Name      string    `json:"name"`
+        Email     string    `json:"email"`
+        Phone     string    `json:"phone"`
+        Specialty string    `json:"specialty"`
+        Addresses []models.Address `json:"addresses"`
+    }
+
+    var doctorResponses []DoctorResponse
+    for _, doctor := range doctors {
+        doctorResponses = append(doctorResponses , DoctorResponse{
+            ID:        doctor.ID,
+            Name:      doctor.Name,
+            Email:     doctor.Email,
+            Phone:     doctor.Phone,
+            Specialty: doctor.Specialty,
+            Addresses: doctor.Addresses,
+        })
+    }
+    return c.JSON(doctorResponses)
+
 }
 
 // CreateDoctor creates a new doctor with addresses
@@ -86,7 +209,7 @@ func CreateDoctor(c *fiber.Ctx) error {
     if err := models.CreateDoctor(&newDoctor); err != nil {
         log.Printf("Error creating doctor: %v", err)
         if strings.Contains(err.Error(), "duplicate") {
-            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Doctor with this email or license number already exists"})
+            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Doctor with this email already exists"})
         }
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor"})
     }
@@ -138,7 +261,7 @@ func UpdateDoctor(c *fiber.Ctx) error {
     if err := models.UpdateDoctor(existingDoctor); err != nil {
         log.Printf("Error updating doctor %d: %v", id, err)
         if strings.Contains(err.Error(), "duplicate") {
-            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Email or license number already exists"})
+            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Email already exists"})
         }
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update doctor"})
     }
@@ -214,20 +337,14 @@ func DeleteDoctor(c *fiber.Ctx) error {
 
 // Validation functions
 func validateDoctor(doctor *models.Doctor) error {
-    if strings.TrimSpace(doctor.FirstName) == "" {
-        return errors.New("first name is required")
-    }
-    if strings.TrimSpace(doctor.LastName) == "" {
-        return errors.New("last name is required")
+    if strings.TrimSpace(doctor.Name) == "" {
+        return errors.New("name is required")
     }
     if doctor.Email != "" && !utils.IsValidEmail(doctor.Email) {
         return errors.New("invalid email format")
     }
     if doctor.Phone != "" && !isValidPhone(doctor.Phone) {
         return errors.New("invalid phone number format")
-    }
-    if strings.TrimSpace(doctor.LicenseNum) == "" {
-        return errors.New("license number is required")
     }
     return nil
 }
@@ -265,12 +382,10 @@ func validateAddresses(addresses []models.Address) error {
 
 // Sanitization functions
 func sanitizeDoctor(doctor *models.Doctor) {
-    doctor.FirstName = html.EscapeString(strings.TrimSpace(doctor.FirstName))
-    doctor.LastName = html.EscapeString(strings.TrimSpace(doctor.LastName))
+    doctor.Name = html.EscapeString(strings.TrimSpace(doctor.Name))
     doctor.Email = html.EscapeString(strings.TrimSpace(doctor.Email))
     doctor.Phone = html.EscapeString(strings.TrimSpace(doctor.Phone))
     doctor.Specialty = html.EscapeString(strings.TrimSpace(doctor.Specialty))
-    doctor.LicenseNum = html.EscapeString(strings.TrimSpace(doctor.LicenseNum))
 }
 
 func sanitizeAddresses(addresses []models.Address) {
@@ -283,11 +398,8 @@ func sanitizeAddresses(addresses []models.Address) {
 }
 
 func updateDoctorFields(existing *models.Doctor, update *models.Doctor) {
-    if update.FirstName != "" {
-        existing.FirstName = html.EscapeString(strings.TrimSpace(update.FirstName))
-    }
-    if update.LastName != "" {
-        existing.LastName = html.EscapeString(strings.TrimSpace(update.LastName))
+    if update.Name != "" {
+        existing.Name = html.EscapeString(strings.TrimSpace(update.Name))
     }
     if update.Email != "" {
         existing.Email = html.EscapeString(strings.TrimSpace(update.Email))
@@ -298,18 +410,16 @@ func updateDoctorFields(existing *models.Doctor, update *models.Doctor) {
     if update.Specialty != "" {
         existing.Specialty = html.EscapeString(strings.TrimSpace(update.Specialty))
     }
-    if update.LicenseNum != "" {
-        existing.LicenseNum = html.EscapeString(strings.TrimSpace(update.LicenseNum))
-    }
 }
 
 // Helper validation functions
 func isValidPhone(phone string) bool {
-    phoneRegex := regexp.MustCompile(`^\+?[\d\s\-\(\)]{10,20}$`)
+    phoneRegex := regexp.MustCompile(`^\+?[\d\s\-\(\)]{8,20}$`)
     return phoneRegex.MatchString(phone)
 }
 
 func isValidZip(zip string) bool {
-    zipRegex := regexp.MustCompile(`^\d{5}(-\d{4})?$`)
+    // zipRegex := regexp.MustCompile(`^\d{5}(-\d{4})?$`)
+    zipRegex := regexp.MustCompile(`^\d{1,7}$`)
     return zipRegex.MatchString(zip)
 }

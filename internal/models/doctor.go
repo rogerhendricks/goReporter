@@ -7,12 +7,10 @@ import (
 
 type Doctor struct {
     gorm.Model
-    FirstName   string    `json:"first_name" gorm:"type:varchar(100);not null"`
-    LastName    string    `json:"last_name" gorm:"type:varchar(100);not null"`
+    Name   string    `json:"name" gorm:"type:varchar(100);not null"`
     Email       string    `json:"email" gorm:"type:varchar(255);uniqueIndex"`
     Phone       string    `json:"phone" gorm:"type:varchar(20)"`
     Specialty   string    `json:"specialty" gorm:"type:varchar(100)"`
-    LicenseNum  string    `json:"license_number" gorm:"type:varchar(50);uniqueIndex"`
     Addresses   []Address `json:"addresses" gorm:"foreignKey:DoctorID;constraint:OnDelete:CASCADE"`
     Reports     []Report  `json:"reports"`
 }
@@ -21,9 +19,28 @@ type Doctor struct {
 func GetAllDoctors() ([]Doctor, error) {
     var doctors []Doctor
     err := config.DB.Preload("Addresses").Find(&doctors).Error
+    if err != nil {
+        return []Doctor{}, err // Return empty slice instead of nil
+    }
     return doctors, err
 }
 
+// GetAllDoctorsBySearch retrieves doctors matching search criteria
+func GetAllDoctorsBySearch(query string) ([]Doctor, error) {
+    var doctors []Doctor
+    tx := config.DB.Preload("Addresses")
+
+    if query != "" {
+        searchQuery := "%" + query + "%"
+        tx = tx.Where("name LIKE ? OR email LIKE ? OR specialty LIKE ?", searchQuery, searchQuery, searchQuery)
+    }
+
+    err := tx.Find(&doctors).Error
+    if err != nil {
+        return []Doctor{}, err // Return empty slice instead of nil
+    }
+    return doctors, nil
+}
 // GetDoctorByID retrieves a doctor by ID with addresses
 func GetDoctorByID(doctorID uint) (*Doctor, error) {
     var doctor Doctor
