@@ -37,6 +37,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/devices/:id", handlers.DeleteDevice)
 
 	// Doctor routes
+	app.Get("/api/doctors/all", handlers.GetDoctors)
 	app.Get("/api/doctors", handlers.GetDoctorsBasic)
 	app.Get("/api/doctors/search", handlers.SearchDoctors)
 	app.Post("/api/doctors", handlers.CreateDoctor)

@@ -63,7 +63,21 @@ func UpdateDoctor(doctor *Doctor) error {
 
 // DeleteDoctor deletes a doctor by ID
 func DeleteDoctor(doctorID uint) error {
-    return config.DB.Delete(&Doctor{}, doctorID).Error
+    tx := config.DB.Begin()
+
+    // First, soft delete all addresses associated with this doctor
+    if err := tx.Where("doctor_id = ?", doctorID).Delete(&Address{}).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // Then soft delete the doctor
+    if err := tx.Delete(&Doctor{}, doctorID).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    return tx.Commit().Error
 }
 
 // DoctorHasReports checks if doctor has any reports
@@ -79,7 +93,7 @@ func UpdateDoctorAddresses(doctorID uint, addresses []Address) error {
     tx := config.DB.Begin()
     
     // Delete existing addresses
-    if err := tx.Where("doctor_id = ?", doctorID).Delete(&Address{}).Error; err != nil {
+    if err := tx.Unscoped().Where("doctor_id = ?", doctorID).Delete(&Address{}).Error; err != nil {
         tx.Rollback()
         return err
     }

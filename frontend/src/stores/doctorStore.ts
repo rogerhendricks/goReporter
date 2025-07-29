@@ -45,7 +45,7 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       console.log('Fetching doctors with addresses...')
-      const response = await api.get('/doctors')
+      const response = await api.get('/doctors/all')
       console.log('Doctors response:', response.data)
       
       const doctorsData = Array.isArray(response.data) ? response.data : []
