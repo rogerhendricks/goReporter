@@ -85,13 +85,29 @@ func UpdateDoctorAddresses(doctorID uint, addresses []Address) error {
     }
     
     // Add new addresses
-    for i := range addresses {
-        addresses[i].DoctorID = doctorID
-        if err := tx.Create(&addresses[i]).Error; err != nil {
+    // for i := range addresses {
+    //     addresses[i].DoctorID = doctorID
+    //     if err := tx.Create(&addresses[i]).Error; err != nil {
+    //         tx.Rollback()
+    //         return err
+    //     }
+    // }
+    
+    // Create clean address objects without IDs
+    for _, addr := range addresses {
+        newAddress := Address{
+            Street:   addr.Street,
+            City:     addr.City,
+            State:    addr.State,
+            Zip:      addr.Zip,
+            DoctorID: doctorID,
+        }
+        
+        if err := tx.Create(&newAddress).Error; err != nil {
             tx.Rollback()
             return err
         }
     }
-    
+
     return tx.Commit().Error
 }
