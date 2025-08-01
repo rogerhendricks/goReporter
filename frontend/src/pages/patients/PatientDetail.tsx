@@ -84,7 +84,7 @@ export default function PatientDetail() {
     )
   }
 
-  const lastReportDate = getLastReportDate()
+  // const lastReportDate = getLastReportDate()
 
   return (
     <div className="container mx-auto py-6">
@@ -106,7 +106,7 @@ export default function PatientDetail() {
             <Link to={`/patients/${currentPatient.id}/reports`} className="flex items-center gap-2">
               View All
               <Badge variant="outline" className="bg-background">
-                {currentPatient.report?.length || 0}
+                {currentPatient.reportCount || 0}
               </Badge>
             </Link>
           </Button>
@@ -151,35 +151,6 @@ export default function PatientDetail() {
             </div>
           </CardContent>
         </Card>
-
-        {/* <Card>
-          <CardHeader>
-            <CardTitle>Assigned Doctors ({currentPatient.doctors?.length || 0})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {currentPatient.doctors && currentPatient.doctors.length > 0 ? (
-              <div className="relative">
-                <div className="max-h-[240px] overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-muted/10">
-                  {currentPatient.doctors.map((doctor) => (
-                    <div key={doctor.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <div className="font-semibold">{doctor.name}</div>
-                        <div className="text-sm text-muted-foreground">{doctor.email}</div>
-                        <div className="text-sm text-muted-foreground">{doctor.phone1}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {currentPatient.doctors.length > 3 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-                )}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No doctors assigned</p>
-            )}
-          </CardContent>
-        </Card> */}
-
         <Card>
           <CardHeader>
             <CardTitle>Assigned Doctors ({currentPatient.patientDoctors?.length || 0})</CardTitle>
@@ -197,12 +168,12 @@ export default function PatientDetail() {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">{patientDoctor.doctor.email}</div>
-<div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone1}</div>
-{patientDoctor.address && (
-  <div className="text-xs text-muted-foreground">
-    {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}
-  </div>
-)}
+                      <div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone1}</div>
+                      {patientDoctor.address && (
+                        <div className="text-xs text-muted-foreground">
+                          {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

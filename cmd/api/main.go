@@ -34,6 +34,7 @@ func main() {
         &models.User{}, &models.Token{}, &models.Patient{}, &models.Doctor{},
         &models.Address{}, &models.Report{}, &models.Device{}, &models.Lead{},
         &models.ImplantedDevice{}, &models.ImplantedLead{}, &models.Medication{},
+        &models.PatientDoctor{}, &models.Report{}, &models.Arrhythmia{},
     )
     if err != nil {
         log.Fatalf("failed to migrate database: %v", err)

@@ -87,6 +87,7 @@ export interface Patient {
   leads: ImplantedLead[]
   medications: any[]
   report: Report[]
+  reportCount: number
   createdAt: string
   updatedAt: string
 }

@@ -13,7 +13,160 @@ import (
     "gorm.io/gorm"
     "strconv"
     "time"
+    "regexp"
 )
+
+// --- DTOs for API Responses ---
+
+type PatientResponse struct {
+    ID             uint                      `json:"id"`
+    MRN            int                       `json:"mrn"`
+    Fname          string                    `json:"fname"`
+    Lname          string                    `json:"lname"`
+    Dob            string                    `json:"dob"`
+    Phone          string                    `json:"phone"`
+    Email          string                    `json:"email"`
+    Street         string                    `json:"street"`
+    City           string                    `json:"city"`
+    State          string                    `json:"state"`
+    Country        string                    `json:"country"`
+    Postal         string                    `json:"postal"`
+    PatientDoctors []PatientDoctorResponse   `json:"patientDoctors"`
+    Devices        []ImplantedDeviceResponse `json:"devices"`
+    Leads          []ImplantedLeadResponse   `json:"leads"`
+    Reports        []ReportResponse          `json:"reports"`
+    ReportCount    int                       `json:"reportCount"`
+    CreatedAt      time.Time                 `json:"createdAt"`
+    UpdatedAt      time.Time                 `json:"updatedAt"`
+}
+
+type PatientDoctorResponse struct {
+    ID        uint            `json:"id"`
+    DoctorID  uint            `json:"doctorId"`
+    AddressID *uint           `json:"addressId"`
+    IsPrimary bool            `json:"isPrimary"`
+    Doctor    DoctorResponse  `json:"doctor"`
+    Address   *models.Address `json:"address"`
+}
+
+type ImplantedDeviceResponse struct {
+    ID          uint           `json:"id"`
+    DeviceID    uint           `json:"deviceId"`
+    Serial      string         `json:"serial"`
+    ImplantedAt time.Time      `json:"implantedAt"`
+    ExplantedAt *time.Time     `json:"explantedAt"`
+    Device      DeviceResponse `json:"device"`
+}
+
+type ImplantedLeadResponse struct {
+    ID          uint         `json:"id"`
+    LeadID      uint         `json:"leadId"`
+    Serial      string       `json:"serial"`
+    Chamber     string       `json:"chamber"`
+    Status      string       `json:"status"`
+    ImplantedAt time.Time    `json:"implantedAt"`
+    ExplantedAt *time.Time   `json:"explantedAt"`
+    Lead        LeadResponse `json:"lead"`
+}
+
+
+
+// --- Helper to convert model to DTO ---
+func toDoctorResponse(doctor models.Doctor) DoctorResponse {
+    return DoctorResponse{
+        ID:        doctor.ID,
+        Name:      doctor.Name,
+        Email:     doctor.Email,
+        Phone:     doctor.Phone,
+        Specialty: doctor.Specialty,
+        Addresses: doctor.Addresses,
+    }
+}
+
+func toDeviceResponse(device models.Device) DeviceResponse {
+    return DeviceResponse{
+        ID:           device.ID,
+        Name:         device.Name,
+        Manufacturer: device.Manufacturer,
+        Model:        device.DevModel,
+        Type:         device.Type,
+        IsMri:        device.IsMri,
+    }
+}
+
+func toLeadResponse(lead models.Lead) LeadResponse {
+    return LeadResponse{
+        ID:           lead.ID,
+        Name:         lead.Name,
+        Manufacturer: lead.Manufacturer,
+        Model:        lead.LeadModel,
+        Type:         lead.Type,
+        IsMri:        lead.IsMri,
+    }
+}
+
+func toPatientResponse(patient models.Patient) PatientResponse {
+    // This function maps the GORM model to the API response struct.
+    // You can create similar helpers for other models.
+    resp := PatientResponse{
+        ID:        patient.ID,
+        MRN:       patient.MRN,
+        Fname:     patient.FirstName,
+        Lname:     patient.LastName,
+        Dob:       patient.DOB,
+        Phone:     patient.Phone,
+        Email:     patient.Email,
+        Street:    patient.Street,
+        City:      patient.City,
+        State:     patient.State,
+        Country:   patient.Country,
+        Postal:    patient.Postal,
+        ReportCount: len(patient.Reports),
+        CreatedAt: patient.CreatedAt,
+        UpdatedAt: patient.UpdatedAt,
+    }
+
+    // Map nested slices
+    for _, pd := range patient.PatientDoctors {
+        resp.PatientDoctors = append(resp.PatientDoctors, PatientDoctorResponse{
+            ID:        pd.ID,
+            DoctorID:  pd.DoctorID,
+            AddressID: pd.AddressID,
+            IsPrimary: pd.IsPrimary,
+            Doctor:    toDoctorResponse(pd.Doctor),
+            Address:   pd.Address,
+        })
+    }
+    for _, d := range patient.ImplantedDevices {
+        resp.Devices = append(resp.Devices, ImplantedDeviceResponse{
+            ID:          d.ID,
+            DeviceID:    d.DeviceID,
+            Serial:      d.Serial,
+            ImplantedAt: d.ImplantedAt,
+            ExplantedAt: d.ExplantedAt,
+            Device:      toDeviceResponse(d.Device),
+        })
+    }
+    for _, l := range patient.ImplantedLeads {
+        resp.Leads = append(resp.Leads, ImplantedLeadResponse{
+            ID:          l.ID,
+            LeadID:      l.LeadID,
+            Serial:      l.Serial,
+            Chamber:     l.Chamber,
+            Status:      l.Status,
+            ImplantedAt: l.ImplantedAt,
+            ExplantedAt: l.ExplantedAt,
+            Lead:        toLeadResponse(l.Lead),
+        })
+    }
+    // Map reports if needed, assuming a toReportResponse exists
+    // for _, r := range patient.Reports {
+    // 	resp.Report = append(resp.Report, toReportResponse(r))
+    // }
+
+    return resp
+}
+
 
 // GetPatients retrieves all patients with optional search
 func GetPatients(c *fiber.Ctx) error {
@@ -44,8 +197,15 @@ func GetAllPatients(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
     }
     
-    return c.JSON(patients)
+    var patientResponses []PatientResponse
+    for _, p := range patients {
+        patientResponses = append(patientResponses, toPatientResponse(p))
+    }
+
+    return c.JSON(patientResponses)
 }
+
+
 
 // GetPatient retrieves a specific patient by ID
 func GetPatient(c *fiber.Ctx) error {
@@ -65,35 +225,69 @@ func GetPatient(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
     }
     
-    return c.JSON(patient)
+    return c.JSON(toPatientResponse(*patient))
 }
 
-// CreatePatient creates a new patient
+
 func CreatePatient(c *fiber.Ctx) error {
-    var newPatient models.Patient
-    if err := c.BodyParser(&newPatient); err != nil {
+    // 1. Define a temporary struct (DTO) to match the incoming JSON exactly
+    var input struct {
+        MRN              int    `json:"mrn"`
+        Fname            string `json:"fname"`
+        Lname            string `json:"lname"`
+        Dob              string `json:"dob"` // Accept date as string
+        Phone            string `json:"phone"`
+        Email            string `json:"email"`
+        Street           string `json:"street"`
+        City             string `json:"city"`
+        State            string `json:"state"`
+        Country          string `json:"country"`
+        Postal           string `json:"postal"`
+        PatientDoctors   []models.PatientDoctor `json:"patientDoctors"`
+        Devices          []struct {
+            DeviceID    uint   `json:"deviceId"`
+            Serial      string `json:"serial"`
+            ImplantedAt string `json:"implantedAt"` // Accept date as string
+        } `json:"devices"`
+        Leads            []struct {
+            LeadID      uint   `json:"leadId"`
+            Serial      string `json:"serial"`
+            Chamber     string `json:"chamber"`
+            Status      string `json:"status"`
+            ImplantedAt string `json:"implantedAt"` // Accept date as string
+        } `json:"leads"`
+        Medications []interface{} `json:"medications"`
+    }
+
+    // 2. Parse the request body into the temporary struct
+    if err := c.BodyParser(&input); err != nil {
+        log.Printf("Error parsing patient creation request: %v", err)
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
     }
-    
-    // Validate input
+
+    // 3. Map the DTO to your GORM models
+    newPatient := models.Patient{
+        MRN:       input.MRN,
+        FirstName: input.Fname,
+        LastName:  input.Lname,
+        DOB:       input.Dob,
+        Phone:     input.Phone,
+        Email:     input.Email,
+        Street:    input.Street,
+        City:      input.City,
+        State:     input.State,
+        Country:   input.Country,
+        Postal:    input.Postal,
+    }
+
+    // Validate and sanitize the main patient data
     if err := validatePatient(&newPatient); err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
     }
-    
-    // Sanitize input
+
     sanitizePatient(&newPatient)
-    
-    // Handle relationships separately to avoid GORM issues
-    patientDoctors := newPatient.PatientDoctors
-    implantedDevices := newPatient.ImplantedDevices
-    implantedLeads := newPatient.ImplantedLeads
-    
-    // Clear relationships for initial creation
-    newPatient.PatientDoctors = nil
-    newPatient.ImplantedDevices = nil
-    newPatient.ImplantedLeads = nil
-    
-    // Create patient first
+
+    // Create patient first to get an ID
     if err := models.CreatePatient(&newPatient); err != nil {
         log.Printf("Error creating patient: %v", err)
         if strings.Contains(err.Error(), "duplicate") {
@@ -101,22 +295,72 @@ func CreatePatient(c *fiber.Ctx) error {
         }
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create patient"})
     }
-    
-    // Add relationships after patient creation
-    if err := createPatientRelationships(newPatient.ID, patientDoctors, implantedDevices, implantedLeads); err != nil {
-        log.Printf("Error creating patient relationships: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Patient created but failed to add relationships"})
+
+    // 4. Now handle the relationships, converting dates as you go
+    for _, d := range input.Devices {
+        var implantDate time.Time
+        var err error
+        if d.ImplantedAt == "" {
+            implantDate = time.Now() // Default to today's date if not provided
+        } else {
+            implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
+            if err != nil {
+                log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
+                implantDate = time.Now()
+            }
+        }
+        implantedDevice := models.ImplantedDevice{
+            PatientID:   newPatient.ID,
+            DeviceID:    d.DeviceID,
+            Serial:      d.Serial,
+            ImplantedAt: implantDate,
+        }
+        config.DB.Create(&implantedDevice)
     }
-    
-    // Fetch the complete patient with all relationships
+
+    for _, l := range input.Leads {
+        var implantDate time.Time
+        var err error
+        if l.ImplantedAt == "" {
+            implantDate = time.Now() // Default to today's date if not provided
+        } else {
+            implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
+            if err != nil {
+                log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
+                implantDate = time.Now()
+            }
+        }
+        implantedLead := models.ImplantedLead{
+            PatientID:   newPatient.ID,
+            LeadID:      l.LeadID,
+            Serial:      l.Serial,
+            Chamber:     l.Chamber,
+            Status:      l.Status,
+            ImplantedAt: implantDate,
+        }
+        config.DB.Create(&implantedLead)
+    }
+
+    for _, pd := range input.PatientDoctors {
+        patientDoctor := models.PatientDoctor{
+            PatientID: newPatient.ID,
+            DoctorID:  pd.DoctorID,
+            AddressID: pd.AddressID,
+            IsPrimary: pd.IsPrimary,
+        }
+        config.DB.Create(&patientDoctor)
+    }
+
+    // Fetch the complete patient with all relationships to return
     createdPatient, err := models.GetPatientByID(newPatient.ID)
     if err != nil {
         log.Printf("Error fetching created patient: %v", err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Patient created but failed to fetch complete data"})
     }
-    
-    return c.Status(http.StatusCreated).JSON(fiber.Map{"patient": createdPatient})
+
+    return c.Status(http.StatusCreated).JSON(toPatientResponse(*createdPatient))
 }
+
 
 // UpdatePatient updates an existing patient
 func UpdatePatient(c *fiber.Ctx) error {
@@ -127,11 +371,44 @@ func UpdatePatient(c *fiber.Ctx) error {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
     }
     
-    var updateData models.Patient
-    if err := c.BodyParser(&updateData); err != nil {
+    // var updateData models.Patient
+    // if err := c.BodyParser(&updateData); err != nil {
+    //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+    // }
+    
+    var input struct {
+        MRN            int                    `json:"mrn"`
+        Fname          string                 `json:"fname"`
+        Lname          string                 `json:"lname"`
+        Dob            string                 `json:"dob"`
+        Phone          string                 `json:"phone"`
+        Email          string                 `json:"email"`
+        Street         string                 `json:"street"`
+        City           string                 `json:"city"`
+        State          string                 `json:"state"`
+        Country        string                 `json:"country"`
+        Postal         string                 `json:"postal"`
+        PatientDoctors []models.PatientDoctor `json:"patientDoctors"`
+        Devices        []struct {
+            DeviceID    uint   `json:"deviceId"`
+            Serial      string `json:"serial"`
+            ImplantedAt string `json:"implantedAt"`
+        } `json:"devices"`
+        Leads []struct {
+            LeadID      uint   `json:"leadId"`
+            Serial      string `json:"serial"`
+            Chamber     string `json:"chamber"`
+            Status      string `json:"status"`
+            ImplantedAt string `json:"implantedAt"`
+        } `json:"leads"`
+        Medications []interface{} `json:"medications"`
+    }
+
+    if err := c.BodyParser(&input); err != nil {
+        log.Printf("Error parsing patient update request: %v", err)
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
     }
-    
+
     // Get existing patient
     existingPatient, err := models.GetPatientByID(uint(id))
     if err != nil {
@@ -143,37 +420,120 @@ func UpdatePatient(c *fiber.Ctx) error {
     }
     
     // Validate input
-    if err := validatePatientUpdate(&updateData); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+    // if err := validatePatientUpdate(&updateData); err != nil {
+    //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+    // }
+
+    if err := validatePatientInput(input.Fname, input.Lname, input.Email, input.MRN); err != nil {
+    return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
     }
-    
-    // Update basic fields
-    updatePatientFields(existingPatient, &updateData)
-    
-    if err := models.UpdatePatient(existingPatient); err != nil {
-        log.Printf("Error updating patient %d: %v", id, err)
-        if strings.Contains(err.Error(), "duplicate") {
-            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "MRN already exists"})
+
+    tx := config.DB.Begin()
+    if tx.Error != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to start transaction"})
+    }
+
+    // 5. Update the main patient fields
+    existingPatient.MRN = input.MRN
+    existingPatient.FirstName = input.Fname
+    existingPatient.LastName = input.Lname
+    existingPatient.DOB = input.Dob
+    existingPatient.Phone = input.Phone
+    existingPatient.Email = input.Email
+    existingPatient.Street = input.Street
+    existingPatient.City = input.City
+    existingPatient.State = input.State
+    existingPatient.Country = input.Country
+    existingPatient.Postal = input.Postal
+
+    if err := tx.Save(&existingPatient).Error; err != nil {
+        tx.Rollback()
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
+    }
+
+    // 6. Replace associated records (the PUT method approach)
+    // Delete old associations
+    tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
+    tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
+    tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
+
+    // Create new associations from the payload
+    for _, d := range input.Devices {
+        var implantDate time.Time
+        var err error
+        if d.ImplantedAt == "" {
+            implantDate = time.Now() // Default to today's date if not provided
+        } else {
+            implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
+            if err != nil {
+                log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
+                implantDate = time.Now()
+            }
         }
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient"})
-    }
-    
-    // Update relationships if provided
-    if updateData.PatientDoctors != nil || updateData.ImplantedDevices != nil || updateData.ImplantedLeads != nil {
-        if err := updatePatientRelationships(uint(id), updateData.PatientDoctors, updateData.ImplantedDevices, updateData.ImplantedLeads); err != nil {
-            log.Printf("Error updating patient relationships: %v", err)
-            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Patient updated but failed to update relationships"})
+        implantedDevice := models.ImplantedDevice{
+            PatientID:   existingPatient.ID,
+            DeviceID:    d.DeviceID,
+            Serial:      d.Serial,
+            ImplantedAt: implantDate,
+        }
+        if err := tx.Create(&implantedDevice).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted devices"})
         }
     }
-    
-    // Fetch updated patient
-    updatedPatient, err := models.GetPatientByID(uint(id))
+
+    for _, l := range input.Leads {
+        var implantDate time.Time
+        var err error
+        if l.ImplantedAt == "" {
+            implantDate = time.Now() // Default to today's date if not provided
+        } else {
+            implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
+            if err != nil {
+                log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
+                implantDate = time.Now()
+            }
+        }
+        implantedLead := models.ImplantedLead{
+            PatientID:   existingPatient.ID,
+            LeadID:      l.LeadID,
+            Serial:      l.Serial,
+            Chamber:     l.Chamber,
+            Status:      l.Status,
+            ImplantedAt: implantDate,
+        }
+        if err := tx.Create(&implantedLead).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted leads"})
+        }
+    }
+
+    for _, pd := range input.PatientDoctors {
+        patientDoctor := models.PatientDoctor{
+            PatientID: existingPatient.ID,
+            DoctorID:  pd.DoctorID,
+            AddressID: pd.AddressID,
+            IsPrimary: pd.IsPrimary,
+        }
+        if err := tx.Create(&patientDoctor).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update doctor associations"})
+        }
+    }
+
+    // 7. Commit the transaction
+    if err := tx.Commit().Error; err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit transaction"})
+    }
+
+    // 8. Fetch the fully updated patient to return in the response
+    updatedPatient, err := models.GetPatientByID(existingPatient.ID)
     if err != nil {
-        log.Printf("Error fetching updated patient %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated patient data"})
     }
-    
-    return c.JSON(updatedPatient)
+
+    // 9. Convert to the response DTO and send back to the client
+    return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
 }
 
 // DeletePatient removes a patient
@@ -234,6 +594,30 @@ func validatePatient(patient *models.Patient) error {
 func validatePatientUpdate(patient *models.Patient) error {
     if patient.Email != "" && !utils.IsValidEmail(patient.Email) {
         return errors.New("invalid email format")
+    }
+    return nil
+}
+
+// 
+
+func validatePatientInput(fname, lname, email string, mrn int) error {
+    if strings.TrimSpace(fname) == "" {
+        return errors.New("first name is required")
+    }
+    if strings.TrimSpace(lname) == "" {
+        return errors.New("last name is required")
+    }
+    if mrn == 0 {
+        return errors.New("MRN is required and cannot be zero")
+    }
+
+    // Example email validation
+    if email != "" {
+        // A simple regex for email validation
+        emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+        if !emailRegex.MatchString(email) {
+            return errors.New("invalid email format")
+        }
     }
     return nil
 }

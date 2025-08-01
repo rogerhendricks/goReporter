@@ -3,11 +3,69 @@ package handlers
 import (
     "net/http"
     "github.com/gofiber/fiber/v2"
-    // "github.com/gofiber/contrib/jwt"
+    "time"
     "os"
     "path/filepath"
     "strings"
+    "fmt"
+    "log"
 )
+
+// UploadFile handles saving an uploaded file.
+// It expects the patient ID to create a structured directory path.
+func UploadFile(c *fiber.Ctx) error {
+    // Get patientId from form value to create a sub-directory
+    patientID := c.FormValue("patientId")
+    if patientID == "" {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Patient ID is required for file upload"})
+    }
+
+    // Get the file from the form
+    file, err := c.FormFile("file")
+    if err != nil {
+        // If no file is present, it might not be an error, just return no path.
+        // The frontend might submit the form without a file.
+        if err == http.ErrMissingFile {
+            return c.Next() // Let the next handler continue
+        }
+        log.Printf("Error retrieving file from form: %v", err)
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to retrieve file"})
+    }
+
+    // Create a safe and unique filename
+    // e.g., 1701388800-report.pdf
+    uniqueFilename := fmt.Sprintf("%d-%s", time.Now().Unix(), filepath.Base(file.Filename))
+
+    // Define the directory path: uploads/reports/{patientId}
+    uploadDir := filepath.Join("uploads", "reports", patientID)
+    if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+        log.Printf("Error creating upload directory: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create upload directory"})
+    }
+
+    // Define the full save path for the file
+    savePath := filepath.Join(uploadDir, uniqueFilename)
+
+    // Save the file to the server
+    if err := c.SaveFile(file, savePath); err != nil {
+        log.Printf("Error saving file: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save file"})
+    }
+
+    // The file path to be stored in the database (relative path)
+    // On Windows, paths use '\', replace with '/' for URL consistency
+    dbPath := strings.ReplaceAll(savePath, "\\", "/")
+
+    // The URL the frontend will use to access the file
+    fileURL := fmt.Sprintf("/files/%s", strings.TrimPrefix(dbPath, "uploads/"))
+
+    // Store the paths in locals to be used by the next handler (CreateReport/UpdateReport)
+    c.Locals("filePath", dbPath)
+    c.Locals("fileUrl", fileURL)
+
+    return c.Next()
+}
+
 
 // ServeFile serves a file securely from the uploads directory
 func ServeFile(c *fiber.Ctx) error {

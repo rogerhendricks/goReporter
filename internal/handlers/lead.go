@@ -12,6 +12,17 @@ import (
     "strconv"
 )
 
+// --- DTO for API Responses ---
+type LeadResponse struct {
+    ID           uint   `json:"id"`
+    Name         string `json:"name"`
+    Manufacturer string `json:"manufacturer"`
+    Model        string `json:"model"`
+    Type         string `json:"type"`
+    IsMri        bool   `json:"isMri"`
+}
+
+
 // GetLeads retrieves all leads
 func GetLeads(c *fiber.Ctx) error {
     // Check if user has admin role for full access

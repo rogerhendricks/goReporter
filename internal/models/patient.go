@@ -47,7 +47,7 @@ func GetAllPatients() ([]Patient, error) {
     var patients []Patient
     err := config.DB.Preload("ImplantedDevices.Device").
         Preload("ImplantedLeads.Lead").
-        Preload("PatientDoctors.Doctor").
+        Preload("PatientDoctors.Doctor.Addresses").
         Preload("PatientDoctors.Address").
         Preload("Reports").
         Preload("Medications").
@@ -59,7 +59,7 @@ func GetPatientByID(patientID uint) (*Patient, error) {
     var patient Patient
     err := config.DB.Preload("ImplantedDevices.Device").
         Preload("ImplantedLeads.Lead").
-        Preload("PatientDoctors.Doctor").
+        Preload("PatientDoctors.Doctor.Addresses").
         Preload("PatientDoctors.Address").
         Preload("Reports").
         Preload("Medications").

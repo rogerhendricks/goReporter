@@ -68,8 +68,11 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/medications/:id", handlers.DeleteMedication)
 
 	// Report routes
-	// app.Get("/api/reports", handlers.GetReports)
-	// app.Post("/api/reports", handlers.CreateReport)
+    app.Post("/api/reports", middleware.AuthenticateJWT, handlers.UploadFile, handlers.CreateReport)
+    app.Get("/api/patients/:patientId/reports", middleware.AuthenticateJWT, handlers.GetReportsByPatient)
+    app.Get("/api/reports/:id", middleware.AuthenticateJWT, handlers.GetReport)
+    app.Put("/api/reports/:id", middleware.AuthenticateJWT, handlers.UploadFile, handlers.UpdateReport)
+    app.Delete("/api/reports/:id", middleware.AuthenticateJWT, handlers.DeleteReport)
 
 	// File routes
 	app.Get("/api/files/*", middleware.AuthenticateJWT, handlers.ServeFile)

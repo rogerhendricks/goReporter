@@ -97,7 +97,7 @@ export const useReportStore = create<ReportState>((set) => ({
     set({ loading: true, error: null })
     try {
       console.log(`Fetching reports for patient ID: ${patientId}`)
-      const response = await api.get(`/reports/patient/${patientId}`)
+      const response = await api.get(`/patients/${patientId}/reports`)
       console.log('Reports fetched:', response.data)
       set({ reports: response.data, loading: false })
     } catch (err: any) {
