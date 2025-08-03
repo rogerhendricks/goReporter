@@ -15,6 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from "@/components/ui/badge"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+
 
 export default function PatientIndex() {
   const navigate = useNavigate()
@@ -134,10 +141,34 @@ export default function PatientIndex() {
                     <TableCell>{formatDate(patient.dob)}</TableCell>
                     <TableCell>{patient.phone}</TableCell>
                     <TableCell>
-                      {patient.doctors?.length > 0 
-                        ? `${patient.doctors.length} doctor(s)`
-                        : 'No doctors assigned'
-                      }
+                    {patient.patientDoctors && patient.patientDoctors.length > 0 ? (
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
+                              {patient.patientDoctors.length} doctor(s)
+                            </Badge>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="flex flex-col space-y-4">
+                              {patient.patientDoctors.map((pd, index) => (
+                                <div key={pd.id}>
+                                  <div>
+                                    <h4 className="text-sm font-semibold">{pd.doctor.name}</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {`${pd.address.street}, ${pd.address.city}, ${pd.address.state} ${pd.address.zip}`}
+                                    </p>
+                                  </div>
+                                  {index < patient.patientDoctors.length - 1 && (
+                                    <hr className="mt-2" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No doctors assigned</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
