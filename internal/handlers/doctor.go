@@ -14,16 +14,53 @@ import (
     "regexp"
 )
 
-// DoctorResponse defines the structure for doctor API responses
+// --- DTOs for API Responses ---
+
+type AddressResponse struct {
+    ID      uint   `json:"id"`
+    Street  string `json:"street"`
+    City    string `json:"city"`
+    State   string `json:"state"`
+    Country string `json:"country"`
+    Zip     string `json:"zip"`
+}
+
 type DoctorResponse struct {
     ID        uint              `json:"id"`
     Name      string            `json:"name"`
     Email     string            `json:"email"`
     Phone     string            `json:"phone"`
     Specialty string            `json:"specialty"`
-    Addresses []models.Address  `json:"addresses"`
+    Addresses []AddressResponse `json:"addresses"`
 }
 
+// --- Mappers ---
+
+func toAddressResponse(address models.Address) AddressResponse {
+    return AddressResponse{
+        ID:      address.ID,
+        Street:  address.Street,
+        City:    address.City,
+        State:   address.State,
+        Country: address.Country,
+        Zip:     address.Zip,
+    }
+}
+
+func toDoctorResponse(doctor models.Doctor) DoctorResponse {
+    var addresses []AddressResponse
+    for _, addr := range doctor.Addresses {
+        addresses = append(addresses, toAddressResponse(addr))
+    }
+    return DoctorResponse{
+        ID:        doctor.ID,
+        Name:      doctor.Name,
+        Email:     doctor.Email,
+        Phone:     doctor.Phone,
+        Specialty: doctor.Specialty,
+        Addresses: addresses,
+    }
+}
 
 // GetDoctors retrieves all doctors
 func GetDoctors(c *fiber.Ctx) error {
@@ -43,15 +80,8 @@ func GetDoctors(c *fiber.Ctx) error {
 
     // Map models.Doctor to DoctorResponse
     var doctorResponses []DoctorResponse
-    for _, doctor := range doctors {
-        doctorResponses = append(doctorResponses, DoctorResponse{
-            ID:        doctor.ID,
-            Name:      doctor.Name,
-            Email:     doctor.Email,
-            Phone:     doctor.Phone,
-            Specialty: doctor.Specialty,
-            Addresses: doctor.Addresses,
-        })
+    for _, d := range doctors {
+        doctorResponses = append(doctorResponses, toDoctorResponse(d))
     }
 
     return c.JSON(doctorResponses)
@@ -107,25 +137,42 @@ func GetDoctorsBasic(c *fiber.Ctx) error {
 
 // GetDoctor retrieves a specific doctor by ID
 func GetDoctor(c *fiber.Ctx) error {
-    doctorID := c.Params("id")
-    
-    // Validate ID format
-    id, err := strconv.ParseUint(doctorID, 10, 32)
+    doctorID, err := strconv.ParseUint(c.Params("id"), 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid doctor ID format"})
     }
 
-    doctor, err := models.GetDoctorByID(uint(id))
+    doctor, err := models.GetDoctorByID(uint(doctorID))
     if err != nil {
         if errors.Is(err, gorm.ErrRecordNotFound) {
             return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Doctor not found"})
         }
-        log.Printf("Error fetching doctor %d: %v", id, err)
+        log.Printf("Error fetching doctor %d: %v", doctorID, err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
     }
 
-    return c.JSON(doctor)
+    return c.JSON(toDoctorResponse(*doctor))
 }
+// func GetDoctor(c *fiber.Ctx) error {
+//     doctorID := c.Params("id")
+    
+//     // Validate ID format
+//     id, err := strconv.ParseUint(doctorID, 10, 32)
+//     if err != nil {
+//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid doctor ID format"})
+//     }
+
+//     doctor, err := models.GetDoctorByID(uint(id))
+//     if err != nil {
+//         if errors.Is(err, gorm.ErrRecordNotFound) {
+//             return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Doctor not found"})
+//         }
+//         log.Printf("Error fetching doctor %d: %v", id, err)
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+//     }
+
+//     return c.JSON(doctor)
+// }
 
 // SearchDoctors retrieves doctors matching the search query
 func SearchDoctors(c *fiber.Ctx) error {
@@ -370,6 +417,9 @@ func validateAddresses(addresses []models.Address) error {
         if strings.TrimSpace(addr.State) == "" {
             return errors.New("state is required for address " + strconv.Itoa(i+1))
         }
+        if strings.TrimSpace(addr.Country) == "" {
+            return errors.New("country is required for address " + strconv.Itoa(i+1))
+        }
         if strings.TrimSpace(addr.Zip) == "" {
             return errors.New("zip code is required for address " + strconv.Itoa(i+1))
         }
@@ -393,6 +443,7 @@ func sanitizeAddresses(addresses []models.Address) {
         addresses[i].Street = html.EscapeString(strings.TrimSpace(addresses[i].Street))
         addresses[i].City = html.EscapeString(strings.TrimSpace(addresses[i].City))
         addresses[i].State = html.EscapeString(strings.TrimSpace(addresses[i].State))
+        addresses[i].Country = html.EscapeString(strings.TrimSpace(addresses[i].Country))
         addresses[i].Zip = html.EscapeString(strings.TrimSpace(addresses[i].Zip))
     }
 }

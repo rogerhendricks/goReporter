@@ -9,6 +9,7 @@ type Address struct {
     Street   string `json:"street" gorm:"type:varchar(255);not null"`
     City     string `json:"city" gorm:"type:varchar(100);not null"`
     State    string `json:"state" gorm:"type:varchar(100);not null"`
+    Country  string `json:"country" gorm:"type:varchar(100);not null"`
     Zip      string `json:"zip" gorm:"type:varchar(20);not null"`
     DoctorID uint   `json:"doctor_id"`
 }

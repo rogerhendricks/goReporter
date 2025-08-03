@@ -14,6 +14,7 @@ import (
     "strconv"
     "time"
     "regexp"
+    "encoding/json"
 )
 
 // --- DTOs for API Responses ---
@@ -67,20 +68,6 @@ type ImplantedLeadResponse struct {
     ImplantedAt time.Time    `json:"implantedAt"`
     ExplantedAt *time.Time   `json:"explantedAt"`
     Lead        LeadResponse `json:"lead"`
-}
-
-
-
-// --- Helper to convert model to DTO ---
-func toDoctorResponse(doctor models.Doctor) DoctorResponse {
-    return DoctorResponse{
-        ID:        doctor.ID,
-        Name:      doctor.Name,
-        Email:     doctor.Email,
-        Phone:     doctor.Phone,
-        Specialty: doctor.Specialty,
-        Addresses: doctor.Addresses,
-    }
 }
 
 func toDeviceResponse(device models.Device) DeviceResponse {
@@ -243,7 +230,11 @@ func CreatePatient(c *fiber.Ctx) error {
         State            string `json:"state"`
         Country          string `json:"country"`
         Postal           string `json:"postal"`
-        PatientDoctors   []models.PatientDoctor `json:"patientDoctors"`
+        PatientDoctors []struct {
+            DoctorID  uint  `json:"doctorId"`
+            AddressID *uint `json:"addressId"`
+            IsPrimary bool  `json:"isPrimary"`
+        } `json:"patientDoctors"`
         Devices          []struct {
             DeviceID    uint   `json:"deviceId"`
             Serial      string `json:"serial"`
@@ -288,67 +279,102 @@ func CreatePatient(c *fiber.Ctx) error {
     sanitizePatient(&newPatient)
 
     // Create patient first to get an ID
-    if err := models.CreatePatient(&newPatient); err != nil {
-        log.Printf("Error creating patient: %v", err)
-        if strings.Contains(err.Error(), "duplicate") {
-            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Patient with this MRN already exists"})
-        }
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create patient"})
-    }
+    // if err := models.CreatePatient(&newPatient); err != nil {
+    //     log.Printf("Error creating patient: %v", err)
+    //     if strings.Contains(err.Error(), "duplicate") {
+    //         return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Patient with this MRN already exists"})
+    //     }
+    //     return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create patient"})
+    // }
 
-    // 4. Now handle the relationships, converting dates as you go
+    // // 4. Now handle the relationships, converting dates as you go
+    // for _, d := range input.Devices {
+    //     var implantDate time.Time
+    //     var err error
+    //     if d.ImplantedAt == "" {
+    //         implantDate = time.Now() // Default to today's date if not provided
+    //     } else {
+    //         implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
+    //         if err != nil {
+    //             log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
+    //             implantDate = time.Now()
+    //         }
+    //     }
+    //     implantedDevice := models.ImplantedDevice{
+    //         PatientID:   newPatient.ID,
+    //         DeviceID:    d.DeviceID,
+    //         Serial:      d.Serial,
+    //         ImplantedAt: implantDate,
+    //     }
+    //     config.DB.Create(&implantedDevice)
+    // }
+
+    // for _, l := range input.Leads {
+    //     var implantDate time.Time
+    //     var err error
+    //     if l.ImplantedAt == "" {
+    //         implantDate = time.Now() // Default to today's date if not provided
+    //     } else {
+    //         implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
+    //         if err != nil {
+    //             log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
+    //             implantDate = time.Now()
+    //         }
+    //     }
+    //     implantedLead := models.ImplantedLead{
+    //         PatientID:   newPatient.ID,
+    //         LeadID:      l.LeadID,
+    //         Serial:      l.Serial,
+    //         Chamber:     l.Chamber,
+    //         Status:      l.Status,
+    //         ImplantedAt: implantDate,
+    //     }
+    //     config.DB.Create(&implantedLead)
+    // }
+
+    // for _, pd := range input.PatientDoctors {
+    //     patientDoctor := models.PatientDoctor{
+    //         PatientID: newPatient.ID,
+    //         DoctorID:  pd.DoctorID,
+    //         AddressID: pd.AddressID,
+    //         IsPrimary: pd.IsPrimary,
+    //     }
+    //     config.DB.Create(&patientDoctor)
+    // }
+
+    for _, pd := range input.PatientDoctors {
+        newPatient.PatientDoctors = append(newPatient.PatientDoctors, models.PatientDoctor{
+            DoctorID:  pd.DoctorID,
+            AddressID: pd.AddressID,
+            IsPrimary: pd.IsPrimary,
+        })
+    }
     for _, d := range input.Devices {
-        var implantDate time.Time
-        var err error
-        if d.ImplantedAt == "" {
-            implantDate = time.Now() // Default to today's date if not provided
-        } else {
-            implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
-            if err != nil {
-                log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
-                implantDate = time.Now()
-            }
-        }
-        implantedDevice := models.ImplantedDevice{
-            PatientID:   newPatient.ID,
+        implantDate, _ := time.Parse("2006-01-02", d.ImplantedAt)
+        newPatient.ImplantedDevices = append(newPatient.ImplantedDevices, models.ImplantedDevice{
             DeviceID:    d.DeviceID,
             Serial:      d.Serial,
             ImplantedAt: implantDate,
-        }
-        config.DB.Create(&implantedDevice)
+        })
     }
-
     for _, l := range input.Leads {
-        var implantDate time.Time
-        var err error
-        if l.ImplantedAt == "" {
-            implantDate = time.Now() // Default to today's date if not provided
-        } else {
-            implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
-            if err != nil {
-                log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
-                implantDate = time.Now()
-            }
-        }
-        implantedLead := models.ImplantedLead{
-            PatientID:   newPatient.ID,
+        implantDate, _ := time.Parse("2006-01-02", l.ImplantedAt)
+        newPatient.ImplantedLeads = append(newPatient.ImplantedLeads, models.ImplantedLead{
             LeadID:      l.LeadID,
             Serial:      l.Serial,
             Chamber:     l.Chamber,
             Status:      l.Status,
             ImplantedAt: implantDate,
-        }
-        config.DB.Create(&implantedLead)
+        })
     }
 
-    for _, pd := range input.PatientDoctors {
-        patientDoctor := models.PatientDoctor{
-            PatientID: newPatient.ID,
-            DoctorID:  pd.DoctorID,
-            AddressID: pd.AddressID,
-            IsPrimary: pd.IsPrimary,
+    // Create patient and all associations in one transaction
+    if err := config.DB.Session(&gorm.Session{FullSaveAssociations: true}).Create(&newPatient).Error; err != nil {
+        log.Printf("Error creating patient with associations: %v", err)
+        if strings.Contains(err.Error(), "duplicate") {
+            return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Patient with this MRN already exists"})
         }
-        config.DB.Create(&patientDoctor)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create patient"})
     }
 
     // Fetch the complete patient with all relationships to return
@@ -365,31 +391,31 @@ func CreatePatient(c *fiber.Ctx) error {
 // UpdatePatient updates an existing patient
 func UpdatePatient(c *fiber.Ctx) error {
     patientID := c.Params("id")
-    
+
     id, err := strconv.ParseUint(patientID, 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
     }
-    
-    // var updateData models.Patient
-    // if err := c.BodyParser(&updateData); err != nil {
-    //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-    // }
-    
+
+    // Define an input struct that captures addressId as raw JSON
     var input struct {
-        MRN            int                    `json:"mrn"`
-        Fname          string                 `json:"fname"`
-        Lname          string                 `json:"lname"`
-        Dob            string                 `json:"dob"`
-        Phone          string                 `json:"phone"`
-        Email          string                 `json:"email"`
-        Street         string                 `json:"street"`
-        City           string                 `json:"city"`
-        State          string                 `json:"state"`
-        Country        string                 `json:"country"`
-        Postal         string                 `json:"postal"`
-        PatientDoctors []models.PatientDoctor `json:"patientDoctors"`
-        Devices        []struct {
+        MRN            int    `json:"mrn"`
+        Fname          string `json:"fname"`
+        Lname          string `json:"lname"`
+        Dob            string `json:"dob"`
+        Phone          string `json:"phone"`
+        Email          string `json:"email"`
+        Street         string `json:"street"`
+        City           string `json:"city"`
+        State          string `json:"state"`
+        Country        string `json:"country"`
+        Postal         string `json:"postal"`
+        PatientDoctors []struct {
+            DoctorID  uint               `json:"doctorId"`
+            AddressID *json.RawMessage   `json:"addressId"` // Capture as raw JSON
+            IsPrimary bool               `json:"isPrimary"`
+        } `json:"patientDoctors"`
+        Devices []struct {
             DeviceID    uint   `json:"deviceId"`
             Serial      string `json:"serial"`
             ImplantedAt string `json:"implantedAt"`
@@ -401,31 +427,10 @@ func UpdatePatient(c *fiber.Ctx) error {
             Status      string `json:"status"`
             ImplantedAt string `json:"implantedAt"`
         } `json:"leads"`
-        Medications []interface{} `json:"medications"`
     }
 
-    if err := c.BodyParser(&input); err != nil {
-        log.Printf("Error parsing patient update request: %v", err)
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-    }
-
-    // Get existing patient
-    existingPatient, err := models.GetPatientByID(uint(id))
-    if err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Patient not found"})
-        }
-        log.Printf("Error fetching patient %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-    }
-    
-    // Validate input
-    // if err := validatePatientUpdate(&updateData); err != nil {
-    //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-    // }
-
-    if err := validatePatientInput(input.Fname, input.Lname, input.Email, input.MRN); err != nil {
-    return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+    if err := json.Unmarshal(c.Body(), &input); err != nil {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format: " + err.Error()})
     }
 
     tx := config.DB.Begin()
@@ -433,7 +438,16 @@ func UpdatePatient(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to start transaction"})
     }
 
-    // 5. Update the main patient fields
+    existingPatient, err := models.GetPatientByIDForUpdate(uint(id), tx)
+    if err != nil {
+        tx.Rollback()
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Patient not found"})
+        }
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve patient for update"})
+    }
+
+    // Update main patient fields
     existingPatient.MRN = input.MRN
     existingPatient.FirstName = input.Fname
     existingPatient.LastName = input.Lname
@@ -451,50 +465,51 @@ func UpdatePatient(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
     }
 
-    // 6. Replace associated records (the PUT method approach)
-    // Delete old associations
+    // Clear existing associations
+    tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
-    tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
 
     // Create new associations from the payload
-    for _, d := range input.Devices {
-        var implantDate time.Time
-        var err error
-        if d.ImplantedAt == "" {
-            implantDate = time.Now() // Default to today's date if not provided
-        } else {
-            implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
-            if err != nil {
-                log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
-                implantDate = time.Now()
+    for _, pd := range input.PatientDoctors {
+        // Manually parse the addressId from the raw JSON
+        var addrID *uint
+        if pd.AddressID != nil && string(*pd.AddressID) != "null" {
+            var id uint
+            if err := json.Unmarshal(*pd.AddressID, &id); err == nil {
+                addrID = &id
             }
         }
-        implantedDevice := models.ImplantedDevice{
+
+        newPatientDoctor := models.PatientDoctor{
+            PatientID: existingPatient.ID,
+            DoctorID:  pd.DoctorID,
+            AddressID: addrID, // Use the manually parsed ID
+            IsPrimary: pd.IsPrimary,
+        }
+        if err := tx.Create(&newPatientDoctor).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new doctor association"})
+        }
+    }
+
+    for _, d := range input.Devices {
+        implantDate, _ := time.Parse("2006-01-02", d.ImplantedAt)
+        newDevice := models.ImplantedDevice{
             PatientID:   existingPatient.ID,
             DeviceID:    d.DeviceID,
             Serial:      d.Serial,
             ImplantedAt: implantDate,
         }
-        if err := tx.Create(&implantedDevice).Error; err != nil {
+        if err := tx.Create(&newDevice).Error; err != nil {
             tx.Rollback()
-            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted devices"})
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
         }
     }
 
     for _, l := range input.Leads {
-        var implantDate time.Time
-        var err error
-        if l.ImplantedAt == "" {
-            implantDate = time.Now() // Default to today's date if not provided
-        } else {
-            implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
-            if err != nil {
-                log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
-                implantDate = time.Now()
-            }
-        }
-        implantedLead := models.ImplantedLead{
+        implantDate, _ := time.Parse("2006-01-02", l.ImplantedAt)
+        newLead := models.ImplantedLead{
             PatientID:   existingPatient.ID,
             LeadID:      l.LeadID,
             Serial:      l.Serial,
@@ -502,39 +517,201 @@ func UpdatePatient(c *fiber.Ctx) error {
             Status:      l.Status,
             ImplantedAt: implantDate,
         }
-        if err := tx.Create(&implantedLead).Error; err != nil {
+        if err := tx.Create(&newLead).Error; err != nil {
             tx.Rollback()
-            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted leads"})
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
         }
     }
 
-    for _, pd := range input.PatientDoctors {
-        patientDoctor := models.PatientDoctor{
-            PatientID: existingPatient.ID,
-            DoctorID:  pd.DoctorID,
-            AddressID: pd.AddressID,
-            IsPrimary: pd.IsPrimary,
-        }
-        if err := tx.Create(&patientDoctor).Error; err != nil {
-            tx.Rollback()
-            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update doctor associations"})
-        }
-    }
-
-    // 7. Commit the transaction
     if err := tx.Commit().Error; err != nil {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit transaction"})
     }
 
-    // 8. Fetch the fully updated patient to return in the response
     updatedPatient, err := models.GetPatientByID(existingPatient.ID)
     if err != nil {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated patient data"})
     }
 
-    // 9. Convert to the response DTO and send back to the client
     return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
 }
+
+// func UpdatePatient(c *fiber.Ctx) error {
+//     patientID := c.Params("id")
+    
+//     id, err := strconv.ParseUint(patientID, 10, 32)
+//     if err != nil {
+//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
+//     }
+    
+//     // var updateData models.Patient
+//     // if err := c.BodyParser(&updateData); err != nil {
+//     //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+//     // }
+    
+//     var input struct {
+//         MRN            int                    `json:"mrn"`
+//         Fname          string                 `json:"fname"`
+//         Lname          string                 `json:"lname"`
+//         Dob            string                 `json:"dob"`
+//         Phone          string                 `json:"phone"`
+//         Email          string                 `json:"email"`
+//         Street         string                 `json:"street"`
+//         City           string                 `json:"city"`
+//         State          string                 `json:"state"`
+//         Country        string                 `json:"country"`
+//         Postal         string                 `json:"postal"`
+//         PatientDoctors []struct {
+//             DoctorID  uint  `json:"doctorId"`
+//             AddressID *uint `json:"addressId"`
+//             IsPrimary bool  `json:"isPrimary"`
+//         } `json:"patientDoctors"`
+//         Devices        []struct {
+//             DeviceID    uint   `json:"deviceId"`
+//             Serial      string `json:"serial"`
+//             ImplantedAt string `json:"implantedAt"`
+//         } `json:"devices"`
+//         Leads []struct {
+//             LeadID      uint   `json:"leadId"`
+//             Serial      string `json:"serial"`
+//             Chamber     string `json:"chamber"`
+//             Status      string `json:"status"`
+//             ImplantedAt string `json:"implantedAt"`
+//         } `json:"leads"`
+//         Medications []interface{} `json:"medications"`
+//     }
+
+//     if err := c.BodyParser(&input); err != nil {
+//         log.Printf("Error parsing patient update request: %v", err)
+//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+//     }
+
+//     // Get existing patient
+//     existingPatient, err := models.GetPatientByID(uint(id))
+//     if err != nil {
+//         if errors.Is(err, gorm.ErrRecordNotFound) {
+//             return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Patient not found"})
+//         }
+//         log.Printf("Error fetching patient %d: %v", id, err)
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+//     }
+    
+//     // Validate input
+//     // if err := validatePatientUpdate(&updateData); err != nil {
+//     //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+//     // }
+
+//     if err := validatePatientInput(input.Fname, input.Lname, input.Email, input.MRN); err != nil {
+//     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+//     }
+
+//     tx := config.DB.Begin()
+//     if tx.Error != nil {
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to start transaction"})
+//     }
+
+//     // 5. Update the main patient fields
+//     existingPatient.MRN = input.MRN
+//     existingPatient.FirstName = input.Fname
+//     existingPatient.LastName = input.Lname
+//     existingPatient.DOB = input.Dob
+//     existingPatient.Phone = input.Phone
+//     existingPatient.Email = input.Email
+//     existingPatient.Street = input.Street
+//     existingPatient.City = input.City
+//     existingPatient.State = input.State
+//     existingPatient.Country = input.Country
+//     existingPatient.Postal = input.Postal
+
+//     if err := tx.Save(&existingPatient).Error; err != nil {
+//         tx.Rollback()
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
+//     }
+
+//     // 6. Replace associated records (the PUT method approach)
+//     // Delete old associations
+//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
+//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
+//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
+
+//     // Create new associations from the payload
+//     for _, d := range input.Devices {
+//         var implantDate time.Time
+//         var err error
+//         if d.ImplantedAt == "" {
+//             implantDate = time.Now() // Default to today's date if not provided
+//         } else {
+//             implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
+//             if err != nil {
+//                 log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
+//                 implantDate = time.Now()
+//             }
+//         }
+//         implantedDevice := models.ImplantedDevice{
+//             PatientID:   existingPatient.ID,
+//             DeviceID:    d.DeviceID,
+//             Serial:      d.Serial,
+//             ImplantedAt: implantDate,
+//         }
+//         if err := tx.Create(&implantedDevice).Error; err != nil {
+//             tx.Rollback()
+//             return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted devices"})
+//         }
+//     }
+
+//     for _, l := range input.Leads {
+//         var implantDate time.Time
+//         var err error
+//         if l.ImplantedAt == "" {
+//             implantDate = time.Now() // Default to today's date if not provided
+//         } else {
+//             implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
+//             if err != nil {
+//                 log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
+//                 implantDate = time.Now()
+//             }
+//         }
+//         implantedLead := models.ImplantedLead{
+//             PatientID:   existingPatient.ID,
+//             LeadID:      l.LeadID,
+//             Serial:      l.Serial,
+//             Chamber:     l.Chamber,
+//             Status:      l.Status,
+//             ImplantedAt: implantDate,
+//         }
+//         if err := tx.Create(&implantedLead).Error; err != nil {
+//             tx.Rollback()
+//             return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted leads"})
+//         }
+//     }
+
+//     var newPatientDoctors []models.PatientDoctor
+//     for _, pd := range input.PatientDoctors {
+//         newPatientDoctors = append(newPatientDoctors, models.PatientDoctor{
+//             DoctorID:  pd.DoctorID,
+//             AddressID: pd.AddressID,
+//             IsPrimary: pd.IsPrimary,
+//         })
+//     }
+//     // Replace the old associations with the new ones
+//     if err := tx.Model(&existingPatient).Association("PatientDoctors").Replace(newPatientDoctors); err != nil {
+//         tx.Rollback()
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update doctor associations"})
+//     }
+
+//     // 7. Commit the transaction
+//     if err := tx.Commit().Error; err != nil {
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit transaction"})
+//     }
+
+//     // 8. Fetch the fully updated patient to return in the response
+//     updatedPatient, err := models.GetPatientByID(existingPatient.ID)
+//     if err != nil {
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated patient data"})
+//     }
+
+//     // 9. Convert to the response DTO and send back to the client
+//     return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
+// }
 
 // DeletePatient removes a patient
 func DeletePatient(c *fiber.Ctx) error {

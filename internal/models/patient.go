@@ -70,6 +70,16 @@ func GetPatientByID(patientID uint) (*Patient, error) {
     return &patient, nil
 }
 
+// GetPatientByIDForUpdate retrieves a patient by ID within a given transaction
+func GetPatientByIDForUpdate(patientID uint, tx *gorm.DB) (*Patient, error) {
+    var patient Patient
+    err := tx.First(&patient, patientID).Error
+    if err != nil {
+        return nil, err
+    }
+    return &patient, nil
+}
+
 func CreatePatient(patient *Patient) error {
     return config.DB.Create(patient).Error
 }
