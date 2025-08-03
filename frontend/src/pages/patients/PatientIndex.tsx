@@ -121,6 +121,7 @@ export default function PatientIndex() {
                   <TableHead>Name</TableHead>
                   <TableHead>Date of Birth</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Device</TableHead>
                   <TableHead>Doctors</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -140,6 +141,61 @@ export default function PatientIndex() {
                     </TableCell>
                     <TableCell>{formatDate(patient.dob)}</TableCell>
                     <TableCell>{patient.phone}</TableCell>
+                    <TableCell>
+                    {((patient.devices && patient.devices.length > 0) || (patient.leads && patient.leads.length > 0)) ? (
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
+                            {(patient.devices?.length || 0) + (patient.leads?.length || 0)} item(s)
+                          </Badge>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="flex flex-col space-y-2">
+                            {/* Devices Section */}
+                            {patient.devices && patient.devices.length > 0 && (
+                              <div>
+                                <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Devices</h4>
+                                <div className="flex flex-col space-y-2">
+                                  {patient.devices.map((device) => (
+                                    <div key={device.id}>
+                                      <p className="text-sm font-semibold">{`${device.device.manufacturer} ${device.device.model}`}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Name: {device.device.name}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Separator */}
+                            {patient.devices && patient.devices.length > 0 && patient.leads && patient.leads.length > 0 && (
+                              <hr className="my-2" />
+                            )}
+
+                            {/* Leads Section */}
+                            {patient.leads && patient.leads.length > 0 && (
+                              <div>
+                                <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Leads</h4>
+                                <div className="flex flex-col space-y-2">
+                                  {patient.leads.map((lead) => (
+                                    <div key={lead.id}>
+                                      <p className="text-sm font-semibold">{`${lead.lead.manufacturer} ${lead.lead.name}`}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Model: {lead.lead.model} {lead.status ? `(${lead.status})` : ''}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No devices or leads</span>
+                    )}
+                    </TableCell>
                     <TableCell>
                     {patient.patientDoctors && patient.patientDoctors.length > 0 ? (
                         <HoverCard>
