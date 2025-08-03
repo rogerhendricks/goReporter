@@ -751,6 +751,39 @@ func DeletePatient(c *fiber.Ctx) error {
     return c.SendStatus(http.StatusNoContent)
 }
 
+func SearchPatients(c *fiber.Ctx) error {
+    searchQuery := c.Query("search")
+    searchQuery = html.EscapeString(strings.TrimSpace(searchQuery))
+
+    if searchQuery == "" {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Search query is required"})
+    }
+    
+    patients, err := models.SearchPatients(searchQuery)
+    if err != nil {
+        // Check for the specific "too many results" error from the model
+        if strings.Contains(err.Error(), "too many results") {
+            return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+        }
+        log.Printf("Error searching patients: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to search patients"})
+    }
+    if patients == nil {
+        return c.JSON([]PatientResponse{}) // Return empty array if no patients found
+    }
+    if len(patients) == 0 {
+        return c.JSON([]models.Patient{})
+    }
+
+
+    var patientResponses []PatientResponse
+    for _, p := range patients {
+        patientResponses = append(patientResponses, toPatientResponse(p))
+    }
+    
+    return c.JSON(patientResponses)
+}
+
 // Helper functions
 func validatePatient(patient *models.Patient) error {
     if patient.MRN <= 0 {

@@ -2,6 +2,7 @@ package models
 
 import (
     
+    "errors"
     "github.com/rogerhendricks/goReporter/internal/config"
     "gorm.io/gorm"
 )
@@ -95,14 +96,29 @@ func DeletePatient(patientID uint) error {
 func SearchPatients(query string) ([]Patient, error) {
     var patients []Patient
     searchTerm := "%" + query + "%"
+    
+    dbQuery := config.DB.Model(&Patient{}).Where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ?", searchTerm, searchTerm, searchTerm)
+
+    // First, count the total matching records
+    var count int64
+    if err := dbQuery.Count(&count).Error; err != nil {
+        return nil, err
+    }
+
+    // If count is over 10, return an error without fetching the data
+    if count > 10 {
+        return nil, errors.New("too many results to display, please refine your search by medical record number")
+    }
+
+    // If count is acceptable, fetch the patient data with all preloads
     err := config.DB.Preload("ImplantedDevices.Device").
         Preload("ImplantedLeads.Lead").
         Preload("PatientDoctors.Doctor").
         Preload("PatientDoctors.Address").
-        Preload("Reports").
         Preload("Medications").
-        Where("first_name ILIKE ? OR last_name ILIKE ? OR CAST(mrn AS TEXT) LIKE ?", 
+        Where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ?", 
               searchTerm, searchTerm, searchTerm).
+        Limit(10). // Add a limit here as a safeguard
         Find(&patients).Error
     return patients, err
 }

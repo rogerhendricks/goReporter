@@ -8,7 +8,7 @@ import (
     "github.com/gofiber/fiber/v2/middleware/limiter"
     "github.com/rogerhendricks/goReporter/internal/router"
     "github.com/rogerhendricks/goReporter/internal/config"
-    "github.com/rogerhendricks/goReporter/internal/models"
+    // "github.com/rogerhendricks/goReporter/internal/models"
     "github.com/rogerhendricks/goReporter/internal/handlers"
     "time"
     "github.com/gofiber/fiber/v2/middleware/helmet"
@@ -22,6 +22,11 @@ import (
 // )
 
 func main() {
+    defer func() {
+        if r := recover(); r != nil {
+            log.Fatalf("Application panicked: %v", r)
+        }
+    }()
 
     // Load config from .env file for port address
     // cfg := config.LoadConfig()
@@ -29,19 +34,25 @@ func main() {
     // Initialize the database connection
     config.ConnectDatabase()
 
-    // Migrate the models
-    err := config.DB.AutoMigrate(
-        &models.User{}, &models.Token{}, &models.Patient{}, &models.Doctor{},
-        &models.Address{}, &models.Report{}, &models.Device{}, &models.Lead{},
-        &models.ImplantedDevice{}, &models.ImplantedLead{}, &models.Medication{},
-        &models.PatientDoctor{}, &models.Report{}, &models.Arrhythmia{},
-    )
-    if err != nil {
-        log.Fatalf("failed to migrate database: %v", err)
-    }
+    // // Migrate the models
+    // err := config.DB.AutoMigrate(
+    //     &models.User{}, &models.Token{}, &models.Patient{}, &models.Doctor{},
+    //     &models.Address{}, &models.Report{}, &models.Device{}, &models.Lead{},
+    //     &models.ImplantedDevice{}, &models.ImplantedLead{}, &models.Medication{},
+    //     &models.PatientDoctor{}, &models.Arrhythmia{},
+    // )
+    // if err != nil {
+    //     log.Fatalf("failed to migrate database: %v", err)
+    // }
+    // log.Println("Database migration completed successfully.")
 
-    app := fiber.New()
+    app := fiber.New(fiber.Config{
+        Prefork: false,
+        AppName: "GoReporter",
+    })
+    log.Println("Fiber app initialized.")
 
+    log.Println("Setting up middleware (CORS, Logger, Limiter)...")
     // Add security headers
     app.Use(helmet.New())
 
@@ -65,17 +76,23 @@ func main() {
             return c.IP()
         },
     }))
-
+    log.Println("Middleware setup complete.")
     // Set up routes
+    log.Println("Setting up API routes...")
     router.SetupRoutes(app)
+    log.Println("API routes setup complete.")
     // fmt.Printf("%s●%s Server is listening on port %s\n", colorGreen, colorReset, cfg.Port)
-
-
+    
+    
     // Serve static files (React app) - this should come AFTER API routes
+    log.Println("Setting up static file routes...")
     handlers.SetupStaticRoutes(app)
+    log.Println("Static file routes setup complete.")
 
-        
+    log.Println("Starting server on port 5000...")
     // Start the server
-    app.Listen(":5000")
-    // log.Fatal(app.Listen(":" + cfg.Port))
+    // Start the server
+    if err := app.Listen(":5000"); err != nil {
+        log.Fatalf("Fiber server failed to start: %v", err)
+    }
 }

@@ -209,7 +209,7 @@ export const usePatientStore = create<PatientState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       console.log(`Searching patients with query: ${query}`)
-      const response = await api.get('/patients', { params: { search: query } })
+      const response = await api.get('/patients/search', { params: { search: query } })
       console.log('Search patients response:', response.data)
       
       // Ensure we always set an array
