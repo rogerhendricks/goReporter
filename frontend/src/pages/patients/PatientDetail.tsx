@@ -196,24 +196,24 @@ export default function PatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Device</TableHead>
-                    <TableHead>Serial</TableHead>
-                    <TableHead>Implanted On</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-left">Device</TableHead>
+                    <TableHead className="text-left">Serial</TableHead>
+                    <TableHead className="text-left">Implanted On</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentPatient.devices.map((implanted) => (
                     <TableRow key={implanted.id}>
-                      <TableCell>
+                      <TableCell className="text-left">
                         <div className="font-medium">{implanted.device.name}</div>
                         <div className="text-sm text-muted-foreground">
                           {implanted.device.manufacturer} {implanted.device.model}
                         </div>
                       </TableCell>
-                      <TableCell>{implanted.serial}</TableCell>
-                      <TableCell>{formatDate(implanted.implantedAt)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-left">{implanted.serial}</TableCell>
+                      <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
+                      <TableCell className="text-left">
                         <Badge variant={implanted.explantedAt ? "destructive" : "default"}>
                           {implanted.explantedAt ? "Explanted" : "Active"}
                         </Badge>
@@ -235,22 +235,24 @@ export default function PatientDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Lead</TableHead>
-                    <TableHead>Serial</TableHead>
-                    <TableHead>Chamber</TableHead>
-                    <TableHead>Implanted On</TableHead>
+                    <TableHead className="text-left">Lead</TableHead>
+                    <TableHead className="text-left">Serial</TableHead>
+                    <TableHead className="text-left">Chamber</TableHead>
+                    <TableHead className="text-left">Implanted On</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentPatient.leads.map((implanted) => (
                     <TableRow key={implanted.id}>
-                      <TableCell>
+                      <TableCell className="text-left">
                         <div className="font-medium">{implanted.lead.name}</div>
                         <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.model}</div>
                       </TableCell>
-                      <TableCell>{implanted.serial}</TableCell>
-                      <TableCell>{implanted.chamber}</TableCell>
-                      <TableCell>{formatDate(implanted.implantedAt)}</TableCell>
+                      <TableCell className="text-left">{implanted.serial}</TableCell>
+                      <TableCell className="text-left">{implanted.chamber}</TableCell>
+                      <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
+                      <TableCell className="text-left">{implanted.status}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
