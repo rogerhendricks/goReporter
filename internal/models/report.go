@@ -94,7 +94,14 @@ type Report struct {
 func GetReportsByPatientID(patientID uint) ([]Report, error) {
     var reports []Report
     // Order by report date descending to show the newest first
-    err := config.DB.Where("patient_id = ?", patientID).Order("report_date desc").Find(&reports).Error
+    err := config.DB.Model(&Report{}).
+        Select("id", "patient_id", 
+        "report_date", "mdc_idc_batt_status", 
+        "report_type", "report_status","file_url",
+        ).
+        Where("patient_id = ?", patientID).
+        Order("report_date desc").
+        Find(&reports).Error   
     return reports, err
 }
 

@@ -105,9 +105,11 @@ export function ReportForm({ patient }: ReportFormProps) {
 
     // Map common fields
     if (data.report_date) {
-      updatedFormData.reportDate = new Date(data.report_date);
+      const datePart = data.report_date.split('T')[0]; 
+      // Create a new date in the local timezone using the UTC year, month, and day
+      // This corrects for the timezone offset that can push the date to the previous day
+      updatedFormData.reportDate = new Date(datePart);
     }
-
     if (data.report_type) {
       updatedFormData.reportType = data.report_type;
     }
