@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import api from '../utils/axios'
+import { toast } from 'sonner'
 
 // const api = axios.create({
 //   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
@@ -94,6 +95,7 @@ export interface Patient {
 
 interface PatientState {
   patients: Patient[]
+  searchResults: Patient[]
   currentPatient: Patient | null
   loading: boolean
   error: string | null
@@ -105,11 +107,13 @@ interface PatientState {
   updatePatient: (id: number, data: Partial<Patient>) => Promise<Patient>
   deletePatient: (id: number) => Promise<void>
   searchPatients: (query: string) => Promise<void>
+  searchPatientsComplex: (params: Record<string, string>) => Promise<void>
   clearError: () => void
 }
 
 export const usePatientStore = create<PatientState>((set, get) => ({
   patients: [],
+  searchResults: [],
   currentPatient: null,
   loading: false,
   error: null,
@@ -224,6 +228,28 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       })
     }
   },
+  searchPatientsComplex: async (params: Record<string, string>) => {
+    set({ loading: true, error: null })
+    try {
+      const response = await api.get('/search/patients', { params })
+      
+      // 1. Defensively ensure searchResults is always an array
+      const results = Array.isArray(response.data) ? response.data : []
+      
+      set({ searchResults: results, loading: false })
 
+      // 2. Show a toast notification if no results are found
+      if (results.length === 0) {
+        toast.info("No patients found matching your criteria.")
+      }
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.error || 'Failed to perform complex search',
+        loading: false,
+        searchResults: [], // Ensure it's an empty array on error too
+      })
+      toast.error(error.response?.data?.error || 'An error occurred during the search.')
+    }
+  },
   clearError: () => set({ error: null })
 }))

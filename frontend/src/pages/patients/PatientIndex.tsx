@@ -211,8 +211,10 @@ export default function PatientIndex() {
                                   <div>
                                     <h4 className="text-sm font-semibold">{pd.doctor.name}</h4>
                                     <p className="text-xs text-muted-foreground">
-                                      {`${pd.address.street}, ${pd.address.city}, ${pd.address.state} ${pd.address.zip}`}
-                                    </p>
+                                    {pd.address
+                                        ? `${pd.address.street}, ${pd.address.city}, ${pd.address.state} ${pd.address.zip}`
+                                        : 'No specific address assigned'
+                                      }                                    </p>
                                   </div>
                                   {index < patient.patientDoctors.length - 1 && (
                                     <hr className="mt-2" />

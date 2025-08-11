@@ -17,6 +17,7 @@ import DeviceForm from '@/components/forms/DeviceForm'
 import LeadIndex from '@/pages/leads/LeadIndex'
 import LeadDetail from '@/pages/leads/LeadDetail'
 import LeadForm from '@/components/forms/LeadForm'
+import PatientSearch from '@/pages/search/PatientSearch'
 
 export interface RouteConfig {
   path: string
@@ -51,7 +52,6 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default'
   },
-  
   // Patient routes
   {
     path: '/patients',
@@ -95,7 +95,11 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default'
   },
-
+  { path: 'search/patients', 
+    element: <PatientSearch />,
+    requiresAuth: true,
+    layout: 'default'
+  },
   // Doctor routes
   {
     path: '/doctors',
