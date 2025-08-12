@@ -47,6 +47,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// Patient routes
 	app.Get("/api/patients/all", handlers.GetAllPatients)
+	app.Get("/api/patients/list", handlers.GetMostRecentPatientList)
 	app.Get("/api/patients", handlers.GetPatients)
 	app.Get("/api/patients/search", handlers.SearchPatients)
 	app.Post("/api/patients", handlers.CreatePatient)

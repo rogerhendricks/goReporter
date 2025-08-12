@@ -101,26 +101,26 @@ export default function LeadIndex() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Manufacturer</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>MRI Safe</TableHead>
+                  <TableHead className="text-left">Name</TableHead>
+                  <TableHead className="text-left">Model</TableHead>
+                  <TableHead className="text-left">Manufacturer</TableHead>
+                  <TableHead className="text-left">Type</TableHead>
+                  <TableHead className="text-left">MRI Safe</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {leads.map((lead) => (
                   <TableRow key={lead.id}>
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Link to={`/leads/${lead.id}`} className="hover:underline font-medium">
                         {lead.name}
                       </Link>
                     </TableCell>
-                    <TableCell>{lead.model}</TableCell>
-                    <TableCell>{lead.manufacturer}</TableCell>
-                    <TableCell>{lead.type}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">{lead.model}</TableCell>
+                    <TableCell className="text-left">{lead.manufacturer}</TableCell>
+                    <TableCell className="text-left">{lead.type}</TableCell>
+                    <TableCell className="text-left"> 
                       <Badge variant={lead.isMri ? 'default' : 'secondary'}>
                         {lead.isMri ? 'Yes' : 'No'}
                       </Badge>

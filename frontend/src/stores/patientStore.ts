@@ -122,7 +122,7 @@ export const usePatientStore = create<PatientState>((set, get) => ({
     set({ loading: true, error: null })
     try {
       console.log('Fetching patients...')
-      const response = await api.get('/patients/all')
+      const response = await api.get('/patients/list')
       console.log('Patients response:', response.data)
       
       // Ensure we always set an array
@@ -228,6 +228,7 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       })
     }
   },
+
   searchPatientsComplex: async (params: Record<string, string>) => {
     set({ loading: true, error: null })
     try {

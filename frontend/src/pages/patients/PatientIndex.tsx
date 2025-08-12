@@ -117,20 +117,20 @@ export default function PatientIndex() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>MRN</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Date of Birth</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Doctors</TableHead>
+                  <TableHead className="text-left">MRN</TableHead>
+                  <TableHead className="text-left">Name</TableHead>
+                  <TableHead className="text-left">Date of Birth</TableHead>
+                  <TableHead className="text-left">Phone</TableHead>
+                  <TableHead className="text-left">Device</TableHead>
+                  <TableHead className="text-left">Doctors</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {patients.map((patient) => (
                   <TableRow key={patient.id}>
-                    <TableCell className="font-medium">{patient.mrn}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium text-left">{patient.mrn}</TableCell>
+                    <TableCell className="text-left">
                       <Link 
                         to={`/patients/${patient.id}`}
                         className="flex items-center gap-2 hover:underline"
@@ -139,9 +139,9 @@ export default function PatientIndex() {
                         {patient.fname} {patient.lname}
                       </Link>
                     </TableCell>
-                    <TableCell>{formatDate(patient.dob)}</TableCell>
-                    <TableCell>{patient.phone}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">{formatDate(patient.dob)}</TableCell>
+                    <TableCell className="text-left">{patient.phone}</TableCell>
+                    <TableCell className="text-left">
                     {((patient.devices && patient.devices.length > 0) || (patient.leads && patient.leads.length > 0)) ? (
                       <HoverCard>
                         <HoverCardTrigger asChild>
@@ -196,7 +196,7 @@ export default function PatientIndex() {
                       <span className="text-xs text-muted-foreground">No devices or leads</span>
                     )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">
                     {patient.patientDoctors && patient.patientDoctors.length > 0 ? (
                         <HoverCard>
                           <HoverCardTrigger asChild>

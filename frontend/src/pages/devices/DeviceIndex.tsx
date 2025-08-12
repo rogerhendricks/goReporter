@@ -101,26 +101,26 @@ export default function DeviceIndex() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Manufacturer</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>MRI Safe</TableHead>
+                  <TableHead className="text-left">Name</TableHead>
+                  <TableHead className="text-left">Model</TableHead>
+                  <TableHead className="text-left">Manufacturer</TableHead>
+                  <TableHead className="text-left">Type</TableHead>
+                  <TableHead className="text-left">MRI Safe</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {devices.map((device) => (
                   <TableRow key={device.id}>
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Link to={`/devices/${device.id}`} className="hover:underline font-medium">
                         {device.name}
                       </Link>
                     </TableCell>
-                    <TableCell>{device.model}</TableCell>
-                    <TableCell>{device.manufacturer}</TableCell>
-                    <TableCell>{device.type}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">{device.model}</TableCell>
+                    <TableCell className="text-left">{device.manufacturer}</TableCell>
+                    <TableCell className="text-left">{device.type}</TableCell>
+                    <TableCell className="text-left">
                       <Badge variant={device.isMri ? 'default' : 'secondary'}>
                         {device.isMri ? 'Yes' : 'No'}
                       </Badge>

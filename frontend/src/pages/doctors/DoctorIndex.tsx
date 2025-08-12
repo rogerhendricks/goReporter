@@ -107,22 +107,22 @@ export default function DoctorIndex() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead className="text-left">Name</TableHead>
+                  <TableHead className="text-left">Email</TableHead>
+                  <TableHead className="text-left">Phone</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {doctors.map((doctor) => (
                   <TableRow key={doctor.id}>
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Link to={`/doctors/${doctor.id}`} className="hover:underline">
                         {doctor.name}
                       </Link>
                     </TableCell>
-                    <TableCell>{doctor.email}</TableCell>
-                    <TableCell>{doctor.phone}</TableCell>
+                    <TableCell className="text-left">{doctor.email}</TableCell>
+                    <TableCell className="text-left">{doctor.phone}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => navigate(`/doctors/${doctor.id}/edit`)}>

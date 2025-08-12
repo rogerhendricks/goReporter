@@ -70,6 +70,21 @@ func GetAllPatients() ([]Patient, error) {
     return patients, err
 }
 
+func GetMostRecentPatientList() ([]Patient, error) {
+    var patients []Patient
+    err := config.DB.Preload("ImplantedDevices.Device").
+        Preload("ImplantedLeads.Lead").
+        Preload("PatientDoctors.Doctor.Addresses").
+        Preload("PatientDoctors.Address").
+        Preload("Reports").
+        Preload("Medications").
+        Order("created_at DESC").
+        Limit(10).
+        Find(&patients).Error
+    return patients, err
+}
+
+
 func GetPatientByID(patientID uint) (*Patient, error) {
     var patient Patient
     err := config.DB.Preload("ImplantedDevices.Device").

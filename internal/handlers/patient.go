@@ -193,6 +193,21 @@ func GetAllPatients(c *fiber.Ctx) error {
 }
 
 
+// GetAllPatients retrieves all patients (alternative endpoint)
+func GetMostRecentPatientList(c *fiber.Ctx) error {
+    patients, err := models.GetMostRecentPatientList()
+    if err != nil {
+        log.Printf("Error fetching all patients: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+    }
+    
+    var patientResponses []PatientResponse
+    for _, p := range patients {
+        patientResponses = append(patientResponses, toPatientResponse(p))
+    }
+
+    return c.JSON(patientResponses)
+}
 
 // GetPatient retrieves a specific patient by ID
 func GetPatient(c *fiber.Ctx) error {
