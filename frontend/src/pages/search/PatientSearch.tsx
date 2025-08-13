@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { User } from 'lucide-react'
+import { User, FileDown } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import { toast } from 'sonner'
 
 // Define an interface for the search form fields
 interface SearchFilters {
@@ -64,6 +66,34 @@ export default function PatientSearch() {
     // usePatientStore.setState({ searchResults: [] }) 
   }
 
+  const handleExport = () => {
+    if (searchResults.length === 0) {
+      toast.info("There are no results to export.");
+      return;
+    }
+
+    // Format the data for the worksheet
+    const dataToExport = searchResults.map(patient => ({
+      'First Name': patient.fname,
+      'Last Name': patient.lname,
+      'MRN': patient.mrn,
+      'DOB': new Date(patient.dob).toLocaleDateString(),
+      'Street': patient.street,
+      'Assigned Doctors': patient.patientDoctors?.map(pd => pd.doctor.name).join(', ') || 'N/A',
+    }));
+
+    // Create a new worksheet from the formatted data
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    // Create a new workbook
+    const workbook = XLSX.utils.book_new();
+    // Append the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'PatientSearchResults');
+
+    // Trigger the file download
+    XLSX.writeFile(workbook, 'patient_search_results.xlsx');
+    toast.success("Data exported successfully!");
+  };
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">Advanced Patient Search</h1>
@@ -71,6 +101,10 @@ export default function PatientSearch() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Search Filters</CardTitle>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={searchResults.length === 0}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Export to Excel
+          </Button>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch}>
