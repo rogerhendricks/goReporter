@@ -160,7 +160,7 @@ export default function PatientIndex() {
                                     <div key={device.id}>
                                       <p className="text-sm font-semibold">{`${device.device.manufacturer} ${device.device.model}`}</p>
                                       <p className="text-xs text-muted-foreground">
-                                        Name: {device.device.name}
+                                        Name: {device.device.name} {device.status ? `(${device.status})` : ''}
                                       </p>
                                     </div>
                                   ))}
@@ -209,12 +209,16 @@ export default function PatientIndex() {
                               {patient.patientDoctors.map((pd, index) => (
                                 <div key={pd.id}>
                                   <div>
-                                    <h4 className="text-sm font-semibold">{pd.doctor.name}</h4>
+                                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                                      {pd.doctor.name}
+                                      {pd.isPrimary && <Badge variant="outline">Primary</Badge>}
+                                    </h4>
                                     <p className="text-xs text-muted-foreground">
                                     {pd.address
                                         ? `${pd.address.street}, ${pd.address.city}, ${pd.address.state} ${pd.address.zip}`
                                         : 'No specific address assigned'
-                                      }                                    </p>
+                                      }
+                                    </p>
                                   </div>
                                   {index < patient.patientDoctors.length - 1 && (
                                     <hr className="mt-2" />
