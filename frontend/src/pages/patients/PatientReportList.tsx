@@ -65,9 +65,11 @@ export default function PatientReportList() {
         </Button>
       </div>
       <Card>
-        <CardHeader><CardTitle>All Reports ({reports.length})</CardTitle></CardHeader>
+        <CardHeader><CardTitle>All Reports ({reports?.length || 0})</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p>Loading...</p> : (
+          {loading ? (
+            <div className="text-center py-8">Loading reports...</div>
+          ) : reports && reports.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -142,6 +144,10 @@ export default function PatientReportList() {
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No reports have been created for this patient.
+            </div>
           )}
         </CardContent>
       </Card>

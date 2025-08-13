@@ -53,6 +53,7 @@ export interface ImplantedDevice {
   patientId?: number;
   deviceId: number;
   serial: string;
+  status: string;
   implantedAt: string;
   explantedAt?: string | null;
   device: Device; // Nested device details

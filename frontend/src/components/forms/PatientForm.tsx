@@ -294,7 +294,7 @@ export default function PatientForm() {
           addressId: pd.addressId,
           isPrimary: pd.isPrimary
         })),
-        devices: formData.devices.map(d => ({ deviceId: d.deviceId, serial: d.serial, implantedAt: d.implantedAt })),
+        devices: formData.devices.map(d => ({ deviceId: d.deviceId, serial: d.serial, status: d.status, implantedAt: d.implantedAt })),
         leads: formData.leads.map(l => ({ leadId: l.leadId, serial: l.serial, chamber: l.chamber, status: l.status, implantedAt: l.implantedAt })),
         medications: []
       }
@@ -704,9 +704,22 @@ export default function PatientForm() {
                       <X className="h-4 w-4" />
                     </Button>
                     <div className="font-semibold">{implanted.device.name} ({implanted.device.manufacturer})</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div><Label htmlFor={`device-serial-${index}`}>Serial Number</Label><Input id={`device-serial-${index}`} name="serial" value={implanted.serial} onChange={e => handleImplantedDataChange('devices', index, e)} required /></div>
                       <div><Label htmlFor={`device-implantedAt-${index}`}>Implanted Date</Label><Input id={`device-implantedAt-${index}`} name="implantedAt" type="date" value={implanted.implantedAt.split('T')[0]} onChange={e => handleImplantedDataChange('devices', index, e)} required /></div>
+                      <div><Label htmlFor={`device-status-${index}`}>Status</Label>
+                        <select
+                          id={`device-status-${index}`}
+                          name="status"
+                          value={implanted.status}
+                          onChange={e => handleImplantedDataChange('devices', index, e)}
+                          className="w-full border rounded-md p-2"
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                          <option value="Explanted">Explanted</option>
+                        </select>
+                        </div>
                     </div>
                   </div>
                 ))}
@@ -748,10 +761,24 @@ export default function PatientForm() {
                       <X className="h-4 w-4" />
                     </Button>
                     <div className="font-semibold">{implanted.lead.name} ({implanted.lead.manufacturer})</div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div><Label htmlFor={`lead-serial-${index}`}>Serial Number</Label><Input id={`lead-serial-${index}`} name="serial" value={implanted.serial} onChange={e => handleImplantedDataChange('leads', index, e)} required /></div>
                       <div><Label htmlFor={`lead-chamber-${index}`}>Chamber</Label><Input id={`lead-chamber-${index}`} name="chamber" value={implanted.chamber} onChange={e => handleImplantedDataChange('leads', index, e)} required /></div>
                       <div><Label htmlFor={`lead-implantedAt-${index}`}>Implanted Date</Label><Input id={`lead-implantedAt-${index}`} name="implantedAt" type="date" value={implanted.implantedAt.split('T')[0]} onChange={e => handleImplantedDataChange('leads', index, e)} required /></div>
+                      <div>
+                          <Label htmlFor={`lead-status-${index}`}>Status</Label>
+                          <select
+                            id={`lead-status-${index}`}
+                            name="status"
+                            value={implanted.status}
+                            onChange={e => handleImplantedDataChange('leads', index, e)}
+                            className="w-full border rounded-md p-2"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Explanted">Explanted</option>
+                          </select>
+                      </div>
                     </div>
                   </div>
                 ))}
