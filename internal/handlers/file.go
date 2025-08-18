@@ -25,9 +25,15 @@ func UploadFile(c *fiber.Ctx) error {
     if err != nil {
         // If no file is present, it might not be an error, just return no path.
         // The frontend might submit the form without a file.
-        if err == http.ErrMissingFile {
-            return c.Next() // Let the next handler continue
+        // if errors.Is(err, http.ErrMissingFile) {
+        //     return c.Next() // Let the next handler continue
+        // }
+        // This is the specific error string from fasthttp when the key is not found.
+        // This is a valid scenario for an update request where no new file is being uploaded.
+        if err.Error() == "there is no uploaded file associated with the given key" {
+            return c.Next() // Continue to the next handler without setting file paths.
         }
+        // For any other error, it's a problem.
         log.Printf("Error retrieving file from form: %v", err)
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to retrieve file"})
     }
