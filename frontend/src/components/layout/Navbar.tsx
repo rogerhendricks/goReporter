@@ -1,13 +1,14 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '../mode-toggle'
 import { cn } from '@/lib/utils'
 
 export function Navbar() {
-  const { isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -100,6 +101,10 @@ export function Navbar() {
                         {link.label}
                       </Link>
                     ))}
+                                      <div className="border-t pt-4 mt-auto">
+                    <div className="font-medium">{user?.username}</div>
+                    <div className="text-xs text-muted-foreground">{user?.email}</div>
+                  </div>
                     <Button variant="outline" onClick={handleLogout} className="mt-4">Logout</Button>
                   </>
                 ) : (

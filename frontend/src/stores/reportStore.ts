@@ -82,6 +82,7 @@ interface ReportState {
   fetchReport: (reportId: number) => Promise<void>
   // createReport: (data: Partial<Report>) => Promise<Report>
   // updateReport: (id: number, data: Partial<Report>) => Promise<Report>
+  setCurrentReport: (report: Report) => void 
   deleteReport: (reportId: number) => Promise<void>
   clearError: () => void
 }
@@ -105,6 +106,8 @@ export const useReportStore = create<ReportState>((set) => ({
     }
   },
 
+  setCurrentReport: (report: Report) => set({ currentReport: report }),
+  
   fetchReport: async (reportId) => {
     set({ loading: true, error: null, currentReport: null })
     try {

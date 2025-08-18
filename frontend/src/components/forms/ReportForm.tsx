@@ -94,7 +94,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   const navigate = useNavigate()
   const isEdit = !!reportId
   const pdfManager = usePdfManager() 
-  const { currentReport, fetchReport } = useReportStore()
+  const { currentReport, fetchReport, setCurrentReport } = useReportStore()
   const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating, error } = usePdfFormFiller()
@@ -395,7 +395,8 @@ export function ReportForm({ patient }: ReportFormProps) {
         headers: { 'Content-Type': 'multipart/form-data' },
       }
       if (isEdit && reportId) {
-        await api.put(`/reports/${reportId}`, submissionData, config)
+        const response = await api.put(`/reports/${reportId}`, submissionData, config)
+        setCurrentReport(response.data) 
         // toast.success("Report updated successfully!")
       } else {
         await api.post('/reports', submissionData, config)

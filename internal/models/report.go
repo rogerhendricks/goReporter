@@ -47,12 +47,13 @@ type Report struct {
     MdcIdcSetBradyMaxSensorRate *int     `json:"mdc_idc_set_brady_max_sensor_rate"`
     MdcIdcDevSav                *string  `json:"mdc_idc_dev_sav" gorm:"type:varchar(50)"`
     MdcIdcDevPav                *string  `json:"mdc_idc_dev_pav" gorm:"type:varchar(50)"`
+    // Tachy Settings
 
     // Pacing Percentages
     MdcIdcStatBradyRaPercentPaced *float64 `json:"mdc_idc_stat_brady_ra_percent_paced"`
     MdcIdcStatBradyRvPercentPaced *float64 `json:"mdc_idc_stat_brady_rv_percent_paced"`
     MdcIdcStatBradyLvPercentPaced *float64 `json:"mdc_idc_stat_brady_lv_percent_paced"`
-    MdcIdcStatTachyBivPercentPaced*float64 `json:"mdc_idc_stat_tachy_biv_percent_paced"`
+    MdcIdcStatTachyBivPercentPaced *float64 `json:"mdc_idc_stat_tachy_biv_percent_paced"`
 
     // Battery/Device Diagnostics
     MdcIdcBattVolt        *float64 `json:"mdc_idc_batt_volt"`
