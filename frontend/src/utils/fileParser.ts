@@ -54,6 +54,39 @@ export interface ParsedData {
   mdc_idc_msmt_lv_sensing_mean?: string;
   mdc_idc_msmt_lv_pacing_threshold?: string;
   mdc_idc_msmt_lv_pw?: string;
+  // Tachy Settings
+  VT1_detection_interval?: string;
+  VT1_therapy_1_atp?: string;
+  VT1_therapy_1_no_bursts?: string;
+  VT1_therapy_2_atp?: string;
+  VT1_therapt_2_no_bursts?: string;
+  VT1_therapy_3_cvrt?: string;
+  VT1_therapy_3_energy?: string;
+  VT1_therapy_4_cvrt?: string;
+  VT1_therapy_4_energy?: string;
+  VT1_therapy_5_cvrt?: string;
+  VT1_therapy_5_energy?: string;
+  VT1_therapy_5_max_num_shocks?: string;
+  // VT2 Settings
+  VT2_detection_interval?: string;
+  VT2_therapy_1_atp?: string;
+  VT2_therapy_1_no_bursts?: string;
+  VT2_therapy_2_atp?: string;
+  VT2_therapy_2_no_bursts?: string;
+  VT2_therapy_3_cvrt?: string;
+  VT2_therapy_3_energy?: string;
+  VT2_therapy_4_cvrt?: string;
+  VT2_therapy_4_energy?: string;
+  VT2_therapy_5_cvrt?: string;
+  VT2_therapy_5_energy?: string;
+  VT2_therapy_5_max_num_shocks?: string;
+  //  VF Settings
+  VF_detection_interval?: string;
+  VF_therapy_1_atp?: string;
+  VF_therapy_2_energy?: string;
+  VF_therapy_3_energy?: string;
+  VF_therapy_4_energy?: string;
+  VF_therapy_4_max_num_shocks?: string;
   [key: string]: any;
 }
 
@@ -176,6 +209,34 @@ function parseLogFile(data: string): ParsedData {
     '1616': 'mdc_idc_msmt_lv_pacing_threshold',
     '3009': 'mdc_idc_msmt_lv_pacing_threshold',
     '1617': 'mdc_idc_msmt_lv_pw',
+    // Tachy Settings
+    // VT1
+    '2103': 'VT1_detection_interval',
+    '2320': 'VT1_therapy_1_atp',
+    '2291': 'VT1_no_bursts',
+    '2321': 'VT1_therapy_2_cvrt',
+    '2327': 'VT1_therapy_2_energy',
+    '2322': 'VT1_therapy_3_cvrt',
+    '2329': 'VT1_therapy_3_energy',
+    '2323': 'VT1_therapy_4_cvrt',
+    '2331': 'VT1_therapy_4_energy',
+    // VT2
+    '2102': 'VT2_detection_interval',
+    '2354': 'VT2_therapy_1_atp',
+    '2341': 'VT2_no_bursts',
+    '2355': 'VT2_therapy_2_cvrt',
+    '2361': 'VT2_therapy_2_energy',
+    '2356': 'VT2_therapy_3_cvrt',
+    '2363': 'VT2_therapy_3_energy',
+    '2357': 'VT2_therapy_4_cvrt',
+    '2365': 'VT2_therapy_4_energy',
+    //VF
+    '2101': 'VF_detection_interval',
+    '2392': 'VF_therapy_1_atp',
+    '2382': 'VF_therapy_1_energy',
+    '2384': 'VF_therapy_2_energy',
+    '2386': 'VF_therapy_3_energy',
+
   };
 
   lines.forEach(line => {
@@ -263,25 +324,59 @@ function parseBnkFile(fileContent: string): ParsedData {
     'ManualIntrinsicResult.LVMsmt.Msmt': 'mdc_idc_msmt_lv_sensing_mean',
     'InterPaceThreshResult.LVMsmt.Amplitude': 'mdc_idc_msmt_lv_pacing_threshold',
     'InterPaceThreshResult.LVMsmt.PulseWidth': 'mdc_idc_msmt_lv_pw',
+    // Tachy Settings
+    // VT1 Settings
+    'DetectVT1Interval': 'VT1_detection_interval',
+    ' ': 'VT1_therapy_1_atp',
+    'VT1ATP1NumberOfBursts': 'VT1_therapy_1_no_bursts',
+    'VT1ATP2NumberOfBursts ': 'VT1_therapy_2_no_bursts',
+    'VT1Shock1Energy': 'VT1_therapy_3_energy',
+    'VT1Shock2Energy ': 'VT1_therapy_4_energy',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]': 'VT1_therapy_5_max_num_shocks',
+
+    // VT2 Settings
+    'DetectVTInterval': 'VT2_detection_interval',
+    'VTATP1NumberOfBursts ': 'VT2_therapy_1_no_bursts',
+    'VTATP2NumberOfBursts': 'VT2_therapy_2_no_bursts',
+    'VTShock1Energy': 'VT2_therapy_3_energy',
+    'VTShock2Energy': 'VT2_therapy_4_energy',
+    'VTMaxShockEnergy': 'VT2_therapy_5_energy',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]': 'VT2_therapy_5_max_num_shocks',
+
+    // VF Settings
+    'DetectVFInterval': 'VF_detection_interval',
+    'VTherapyParams.VFATPEnable': 'VF_therapy_1_atp',
+    'VFShock1Energy': 'VF_therapy_2_energy',
+    'VFShock2Energy': 'VF_therapy_3_energy',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': 'VF_therapy_3_max_num_shocks',
   };
 
   const lines = fileContent.split('\n');
   const result: ParsedData = {};
+  const rawData: { [key: string]: string } = {}; // Temporary object to hold all key-value pairs
 
+  // First, parse the entire file into the rawData object
   lines.forEach(line => {
     if (!line.startsWith('#')) {
-      const [key, value] = line.split(',').map(part => part.trim());
-      
-      if (mappings[key]) {
-        let processedValue = value;
-        processedValue = processedValue
-          .replace(/V|\bohms|Ohm|mV|ms|%|bpm/gi, '')
-          .trim();
-          
-        result[mappings[key]] = processedValue;
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const value = parts.slice(1).join(',').trim(); // Handle values that might contain commas
+        rawData[key] = value;
       }
     }
   });
+
+  // Now, process the mappings for simple one-to-one value assignments
+  for (const key in mappings) {
+    if (rawData[key] && mappings[key]) {
+      let processedValue = rawData[key];
+      processedValue = processedValue
+        .replace(/V|\bohms|Ohm|mV|ms|%|bpm/gi, '')
+        .trim();
+      result[mappings[key]] = processedValue;
+    }
+  }
 
   // Process header date
   const headerLine = lines[0];
@@ -290,6 +385,27 @@ function parseBnkFile(fileContent: string): ParsedData {
     const dateStr = dateMatch[1];
     result.report_date = new Date(dateStr).toISOString();
   }
+
+  // // Helper function to safely parse a value to a number, defaulting to 0
+  // const getNumber = (key: string): number => {
+  //   const value = rawData[key];
+  //   if (value) {
+  //     const num = parseInt(value, 10);
+  //     return isNaN(num) ? 0 : num;
+  //   }
+  //   return 0;
+  // };
+
+  // // Calculate and assign VT1 number of bursts
+  // const vtAtp1Bursts = getNumber('VTATP1NumberOfBursts');
+  // const vtAtp2Bursts = getNumber('VTATP2NumberOfBursts');
+  // result['VT1_no_bursts'] = (vtAtp1Bursts + vtAtp2Bursts).toString();
+
+  // // Calculate and assign VT2 number of bursts
+  // const vt1Atp1Bursts = getNumber('VT1ATP1NumberOfBursts');
+  // const vt1Atp2Bursts = getNumber('VT1ATP2NumberOfBursts');
+  // result['VT2_no_bursts'] = (vt1Atp1Bursts + vt1Atp2Bursts).toString();
+
 
   // Process implant dates
   if (result.ImplantDay && result.ImplantMonth && result.ImplantYear) {
@@ -341,6 +457,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   return result;
 }
 
+
 function parseXmlFile(fileContent: string): ParsedData {
   const result: ParsedData = {};
 
@@ -362,6 +479,24 @@ function parseXmlFile(fileContent: string): ParsedData {
   if (!idcSection) {
     throw new Error('IDC section not found in XML');
   }
+
+    // --- This is the helper function ---
+  // It safely finds a <value> tag within a <section> by its name attribute,
+  // regardless of whether there is one <value> (object) or many (array).
+  const findValue = (section: any, name: string): string | undefined => {
+    // 1. Return undefined if the section or its value property doesn't exist.
+    if (!section || !section.value) return undefined;
+
+    // 2. Check if section.value is an array.
+    const valueNode = Array.isArray(section.value)
+      // 3a. If it's an array, use .find() to search for the correct node.
+      ? section.value.find((v: any) => v['@_name'] === name)
+      // 3b. If it's not an array (it's an object), check if this single object is the one we want.
+      : (section.value['@_name'] === name ? section.value : undefined);
+    
+    // 4. Return the text content of the found node, or undefined if not found.
+    return valueNode ? valueNode['#text'] : undefined;
+  };
 
   // Parse patient information
   const attrSection = mdcSection.section.find((s: any) => s['@_name'] === 'ATTR');
@@ -655,20 +790,67 @@ function parseXmlFile(fileContent: string): ParsedData {
           result.mdc_idc_msmt_hv_impedance_mean = leadhvchnlValue['#text'];
       }
       // STAT section
-      const statSection = idcSection.section.find(s => s['@_name'] === 'SET');
-      if (statSection?.section) {
-          const bradySection = statSection.section.find(s => s['@_name'] === 'BRADY');
-          const bradyValue = bradySection.value.find(v => v['@_name'] === 'LOWRATE');
-          result.mdc_idc_set_brady_lowrate = bradyValue ? bradyValue['#text'] : '';
-          const modeValue = bradySection.value.find(v => v['@_name'] === 'VENDOR_MODE');
-          result.mdc_idc_set_brady_mode = modeValue ? modeValue['#text'] : '';
-          const trackingRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_TRACKING_RATE');
-          result.mdc_idc_set_brady_max_tracking_rate = trackingRateValue ? trackingRateValue['#text'] : '';
-          const sensorRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_SENSOR_RATE');
-          result.mdc_idc_set_brady_max_sensor_rate = sensorRateValue ? sensorRateValue['#text'] : '';
-          const modeSwitchRate = bradySection.value.find(v => v['@_name'] === 'AT_MODE_SWITCH_RATE');
-          result.mdc_idc_set_brady_mode_switch_rate = modeSwitchRate ? modeSwitchRate['#text'] : '';
+      const setSection = idcSection.section.find(s => s['@_name'] === 'SET');
+      if (setSection?.section) {
+          const bradySection = setSection.section.find(s => s['@_name'] === 'BRADY');
+          if (bradySection){
+            const bradyValue = bradySection.value.find(v => v['@_name'] === 'LOWRATE');
+            result.mdc_idc_set_brady_lowrate = bradyValue ? bradyValue['#text'] : '';
+            const modeValue = bradySection.value.find(v => v['@_name'] === 'VENDOR_MODE');
+            result.mdc_idc_set_brady_mode = modeValue ? modeValue['#text'] : '';
+            const trackingRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_TRACKING_RATE');
+            result.mdc_idc_set_brady_max_tracking_rate = trackingRateValue ? trackingRateValue['#text'] : '';
+            const sensorRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_SENSOR_RATE');
+            result.mdc_idc_set_brady_max_sensor_rate = sensorRateValue ? sensorRateValue['#text'] : '';
+            const modeSwitchRate = bradySection.value.find(v => v['@_name'] === 'AT_MODE_SWITCH_RATE');
+            result.mdc_idc_set_brady_mode_switch_rate = modeSwitchRate ? modeSwitchRate['#text'] : '';
+          }
+                // Parse TACHYTHERAPY settings
+        const tachyTherapySection = setSection.section.find((s: any) => s['@_name'] === 'TACHYTHERAPY');
+        const isTachyOn = findValue(tachyTherapySection, 'VSTAT') === 'On';
+        if (isTachyOn){
+          const zoneSections = setSection.section.filter((s: any) => s['@_name'] === 'ZONE');
+        
+          zoneSections.forEach((zone: any) => {
+            const vendorType = findValue(zone, 'VENDOR_TYPE');
+            
+            switch (vendorType) {
+              case 'BIO-Zone_VT1':
+                result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+                result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+                result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+                result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VT1_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+                break;
+              case 'BIO-Zone_VT2':
+                result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+                result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+                result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+                result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VT2_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+                break;
+              case 'BIO-Zone_VF':
+                result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VF_therapy_1_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VF_therapy_3_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+                break;
+            }
+          });
       }
   }
+  return result;
+}
+  console.log('Parsed XML file:', result);
   return result;
 }
