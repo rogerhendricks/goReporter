@@ -22,7 +22,7 @@ export function Navbar() {
     { href: '/doctors', label: 'Doctors', icon: Stethoscope },
     { href: '/devices', label: 'Devices', icon: CircuitBoard },
     { href: '/leads', label: 'Leads', icon: CircuitBoard },
-    { href: '/search/patients', label: 'Search', icon: Users }
+    { href: '/search/patients', label: '+Search', icon: Users }
   ]
 
   return (
