@@ -5,7 +5,7 @@ interface Lead {
   id: number
   name: string
   manufacturer: string
-  model: string
+  leadModel: string
   type: string
   isMri: boolean
 }

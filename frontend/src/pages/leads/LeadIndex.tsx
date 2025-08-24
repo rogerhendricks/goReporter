@@ -117,7 +117,7 @@ export default function LeadIndex() {
                         {lead.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-left">{lead.model}</TableCell>
+                    <TableCell className="text-left">{lead.leadModel}</TableCell>
                     <TableCell className="text-left">{lead.manufacturer}</TableCell>
                     <TableCell className="text-left">{lead.type}</TableCell>
                     <TableCell className="text-left"> 
