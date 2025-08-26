@@ -324,6 +324,9 @@ function parseBnkFile(fileContent: string): ParsedData {
     'ManualIntrinsicResult.LVMsmt.Msmt': 'mdc_idc_msmt_lv_sensing_mean',
     'InterPaceThreshResult.LVMsmt.Amplitude': 'mdc_idc_msmt_lv_pacing_threshold',
     'InterPaceThreshResult.LVMsmt.PulseWidth': 'mdc_idc_msmt_lv_pw',
+    //if  ShockImpedanceLastMeas0 is empty, use ShockImpedanceLastMeas1
+    'ShockImpedanceLastMeas0': '',
+    'ShockImpedanceLastMeas1': '',
     // Tachy Settings
     // VT1 Settings
     'DetectVT1Interval': 'VT1_detection_interval',
@@ -331,7 +334,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'VT1ATP2NumberOfBursts ': 'VT1_therapy_2_no_bursts',
     'VT1Shock1Energy': 'VT1_therapy_3_energy',
     'VT1Shock2Energy ': 'VT1_therapy_4_energy',
-    'VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]': 'VT1_therapy_5_max_num_shocks',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]': '',
 
     // VT2 Settings
     'DetectVTInterval': 'VT2_detection_interval',
@@ -340,14 +343,14 @@ function parseBnkFile(fileContent: string): ParsedData {
     'VTShock1Energy': 'VT2_therapy_3_energy',
     'VTShock2Energy': 'VT2_therapy_4_energy',
     'VTMaxShockEnergy': 'VT2_therapy_5_energy',
-    'VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]': 'VT2_therapy_5_max_num_shocks',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]': '',
 
     // VF Settings
     'DetectVFInterval': 'VF_detection_interval',
     'VTherapyParams.VFATPEnable': 'VF_therapy_1_atp',
     'VFShock1Energy': 'VF_therapy_2_energy',
     'VFShock2Energy': 'VF_therapy_3_energy',
-    // 'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': 'VF_therapy_3_max_num_shocks',
+    'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': '',
   };
 
   const lines = fileContent.split('\n');
@@ -402,76 +405,61 @@ function parseBnkFile(fileContent: string): ParsedData {
     result.VF_therapy_4_energy = "41.0 J";
   }
 
-  
-  // // Helper function to safely parse a value to a number, defaulting to 0
-  // const getNumber = (key: string): number => {
-  //   const value = rawData[key];
-  //   if (value) {
-  //     const num = parseInt(value, 10);
-  //     return isNaN(num) ? 0 : num;
-  //   }
-  //   return 0;
-  // };
-
-  // // Calculate and assign VT1 number of bursts
-  // const vtAtp1Bursts = getNumber('VTATP1NumberOfBursts');
-  // const vtAtp2Bursts = getNumber('VTATP2NumberOfBursts');
-  // result['VT1_no_bursts'] = (vtAtp1Bursts + vtAtp2Bursts).toString();
-
-  // // Calculate and assign VT2 number of bursts
-  // const vt1Atp1Bursts = getNumber('VT1ATP1NumberOfBursts');
-  // const vt1Atp2Bursts = getNumber('VT1ATP2NumberOfBursts');
-  // result['VT2_no_bursts'] = (vt1Atp1Bursts + vt1Atp2Bursts).toString();
-
   // Helper function to safely parse a value to a number, defaulting to 0
-  const getNumber = (key: string): number => {
-    const value = rawData[key];
-    if (value) {
-      const num = parseInt(value, 10);
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
+  const getNumber = (valOrKey: string): number => {
+    const fromMap = rawData[valOrKey];
+    const value = fromMap !== undefined ? fromMap : valOrKey;
+    const num = parseInt(String(value), 10);
+    return isNaN(num) ? 0 : num;
   };
-  const isPresent = (key: string): 1 | 0 => {
-    return rawData[key] ? 1 : 0;
+  // Replaces `isPresent`
+  const isActiveValue = (value: unknown): 1 | 0 => {
+    if (typeof value !== 'string') return 0;
+    return value.trim().toLowerCase() !== 'off' ? 1 : 0;
   };
 
   // Calculate remaining shocks for VT1 Zone
-  if (rawData['VT1Shock1Energy'] && rawData['VT1Shock1Energy'] !== 'off') {
-    // If the first shock therapy is active, calculate the remaining shocks.
-    const vt1Shock1Present = isPresent('VT1Shock1Energy');
-    const vt1Shock2Present = isPresent('VT1Shock2Energy');
-    const vt1TotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]');
-    
-    if (vt1TotalShocks > 0) {
-        result['VT1_therapy_5_max_num_shocks'] = (vt1TotalShocks - (vt1Shock1Present + vt1Shock2Present)).toString();
-    } else {
-        result['VT1_therapy_5_max_num_shocks'] = 'off';
-    }
-  } else {
-    // If the first shock therapy is 'off' or not present, then all subsequent shocks are also off.
+
+  // If the first shock therapy is active, calculate the remaining shocks.
+  const vt1Shock1Present = isActiveValue(rawData['VT1Shock1Energy']);
+  const vt1Shock2Present = isActiveValue(rawData['VT1Shock2Energy']);
+  if (vt1Shock1Present === 0 && vt1Shock2Present === 0) {
     result['VT1_therapy_5_max_num_shocks'] = 'off';
+  } else {
+    const vt1TotalShocks = getNumber(rawData['VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]']);
+    result['VT1_therapy_5_max_num_shocks'] = (vt1TotalShocks - (vt1Shock1Present + vt1Shock2Present)).toString();
   }
 
-  // Calculate remaining shocks for VT2 Zone (Note: key is VTZone)
-  const vtShock1Present = isPresent('VTShock1Energy');
-  const vtShock2Present = isPresent('VTShock2Energy');
-  const vtTotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]');
-  if (vtTotalShocks > 0) {
-      result['VT2_therapy_5_max_num_shocks'] = (vtTotalShocks - (vtShock1Present + vtShock2Present)).toString();
+
+// Calculate remaining shocks for VT2 Zone (Note: key is VTZone)
+  const vtShock1Present = isActiveValue(rawData['VTShock1Energy']);
+  const vtShock2Present = isActiveValue(rawData['VTShock2Energy']);
+
+  if (vtShock1Present === 0 && vtShock2Present === 0) {
+    result['VT2_therapy_5_max_num_shocks'] = 'off';
+  } else {
+    const vtTotalShocks = getNumber(rawData['VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]']);
+    result['VT2_therapy_5_max_num_shocks'] = (vtTotalShocks - (vtShock1Present + vtShock2Present)).toString();
   }
-  
+
+    
   // Calculate remaining shocks for VF Zone
-  const vfShock1Present = isPresent('VFShock1Energy');
-  const vfShock2Present = isPresent('VFShock2Energy');
-  const vfTotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]');
-  if (vfTotalShocks > 0) {
+  const vfShock1Present = isActiveValue(rawData['VFShock1Energy']);
+  const vfShock2Present = isActiveValue(rawData['VFShock2Energy']);
+
+  if (vfShock1Present === 0 && vfShock2Present === 0) {
+      result['VF_therapy_4_max_num_shocks'] = 'off';
+  } else {
+    const vfTotalShocks = getNumber(rawData['VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]']);
       result['VF_therapy_4_max_num_shocks'] = (vfTotalShocks - (vfShock1Present + vfShock2Present)).toString();
   }
 
-  // Handle VF ATP setting based on "On" or "Off"
-  // const vfAtpEnabled = rawData['VTherapyParams.VFATPEnable'];
-  // result['VF_therapy_1_atp'] = vfAtpEnabled === 'On' ? 'ATP' : 'Shock';
+  //if  ShockImpedanceLastMeas0 is empty, use ShockImpedanceLastMeas1
+  if (rawData['ShockImpedanceLastMeas0']) {
+    result.mdc_idc_msmt_hv_impedance_mean = rawData['ShockImpedanceLastMeas0'].replace(/V|\bohms|Ohm|mV|ms|%|bpm/gi, '').trim();
+  } else if (rawData['ShockImpedanceLastMeas1']) {
+    result.mdc_idc_msmt_hv_impedance_mean = rawData['ShockImpedanceLastMeas1'].replace(/V|\bohms|Ohm|mV|ms|%|bpm/gi, '').trim();
+  }
 
   // Process implant dates
   if (result.ImplantDay && result.ImplantMonth && result.ImplantYear) {
@@ -519,6 +507,9 @@ function parseBnkFile(fileContent: string): ParsedData {
   if (result.mdc_idc_msmt_lv_pacing_threshold) {
     result.mdc_idc_msmt_lv_pacing_threshold = convertThreshold(result.mdc_idc_msmt_lv_pacing_threshold).toString();
   }
+
+
+
   console.log('Parsed BNK file:', result);
   return result;
 }
