@@ -327,7 +327,6 @@ function parseBnkFile(fileContent: string): ParsedData {
     // Tachy Settings
     // VT1 Settings
     'DetectVT1Interval': 'VT1_detection_interval',
-    ' ': 'VT1_therapy_1_atp',
     'VT1ATP1NumberOfBursts': 'VT1_therapy_1_no_bursts',
     'VT1ATP2NumberOfBursts ': 'VT1_therapy_2_no_bursts',
     'VT1Shock1Energy': 'VT1_therapy_3_energy',
@@ -348,7 +347,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'VTherapyParams.VFATPEnable': 'VF_therapy_1_atp',
     'VFShock1Energy': 'VF_therapy_2_energy',
     'VFShock2Energy': 'VF_therapy_3_energy',
-    'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': 'VF_therapy_3_max_num_shocks',
+    // 'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': 'VF_therapy_3_max_num_shocks',
   };
 
   const lines = fileContent.split('\n');
@@ -386,6 +385,24 @@ function parseBnkFile(fileContent: string): ParsedData {
     result.report_date = new Date(dateStr).toISOString();
   }
 
+  if (rawData['VT1ATP1NumberOfBursts']) {
+    result.VT1_therapy_1_atp = "ATP";
+  }
+  if (rawData['VT1ATP2NumberOfBursts']) {
+    result.VT1_therapy_2_atp = "ATP";
+  }
+  if (rawData['VTATP1NumberOfBursts']) {
+    result.VT2_therapy_1_atp = "ATP";
+  }
+  if (rawData['VTATP2NumberOfBursts']) {
+    result.VT2_therapy_2_atp = "ATP";
+  }
+  
+  if (rawData['VFShock2Energy' ] && parseInt(rawData['VFShock2Energy'], 10) > 0) {
+    result.VF_therapy_4_energy = "41.0 J";
+  }
+
+  
   // // Helper function to safely parse a value to a number, defaulting to 0
   // const getNumber = (key: string): number => {
   //   const value = rawData[key];
@@ -406,6 +423,55 @@ function parseBnkFile(fileContent: string): ParsedData {
   // const vt1Atp2Bursts = getNumber('VT1ATP2NumberOfBursts');
   // result['VT2_no_bursts'] = (vt1Atp1Bursts + vt1Atp2Bursts).toString();
 
+  // Helper function to safely parse a value to a number, defaulting to 0
+  const getNumber = (key: string): number => {
+    const value = rawData[key];
+    if (value) {
+      const num = parseInt(value, 10);
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  };
+  const isPresent = (key: string): 1 | 0 => {
+    return rawData[key] ? 1 : 0;
+  };
+
+  // Calculate remaining shocks for VT1 Zone
+  if (rawData['VT1Shock1Energy'] && rawData['VT1Shock1Energy'] !== 'off') {
+    // If the first shock therapy is active, calculate the remaining shocks.
+    const vt1Shock1Present = isPresent('VT1Shock1Energy');
+    const vt1Shock2Present = isPresent('VT1Shock2Energy');
+    const vt1TotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]');
+    
+    if (vt1TotalShocks > 0) {
+        result['VT1_therapy_5_max_num_shocks'] = (vt1TotalShocks - (vt1Shock1Present + vt1Shock2Present)).toString();
+    } else {
+        result['VT1_therapy_5_max_num_shocks'] = 'off';
+    }
+  } else {
+    // If the first shock therapy is 'off' or not present, then all subsequent shocks are also off.
+    result['VT1_therapy_5_max_num_shocks'] = 'off';
+  }
+
+  // Calculate remaining shocks for VT2 Zone (Note: key is VTZone)
+  const vtShock1Present = isPresent('VTShock1Energy');
+  const vtShock2Present = isPresent('VTShock2Energy');
+  const vtTotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]');
+  if (vtTotalShocks > 0) {
+      result['VT2_therapy_5_max_num_shocks'] = (vtTotalShocks - (vtShock1Present + vtShock2Present)).toString();
+  }
+  
+  // Calculate remaining shocks for VF Zone
+  const vfShock1Present = isPresent('VFShock1Energy');
+  const vfShock2Present = isPresent('VFShock2Energy');
+  const vfTotalShocks = getNumber('VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]');
+  if (vfTotalShocks > 0) {
+      result['VF_therapy_4_max_num_shocks'] = (vfTotalShocks - (vfShock1Present + vfShock2Present)).toString();
+  }
+
+  // Handle VF ATP setting based on "On" or "Off"
+  // const vfAtpEnabled = rawData['VTherapyParams.VFATPEnable'];
+  // result['VF_therapy_1_atp'] = vfAtpEnabled === 'On' ? 'ATP' : 'Shock';
 
   // Process implant dates
   if (result.ImplantDay && result.ImplantMonth && result.ImplantYear) {
