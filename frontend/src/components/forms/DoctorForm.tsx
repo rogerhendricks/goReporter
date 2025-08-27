@@ -110,9 +110,7 @@ export default function DoctorForm() {
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => navigate('/doctors')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+
         <h1 className="text-3xl font-bold">{isEdit ? 'Edit Doctor' : 'Create New Doctor'}</h1>
       </div>
 

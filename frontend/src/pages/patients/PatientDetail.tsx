@@ -90,9 +90,7 @@ export default function PatientDetail() {
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => navigate('/patients')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+
         <h1 className="text-3xl font-bold">
           {currentPatient.fname} {currentPatient.lname}
         </h1>
