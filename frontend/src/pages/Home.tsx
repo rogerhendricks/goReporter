@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
-import { Button } from "@/components/ui/button"
+// import { useNavigate } from 'react-router-dom'
+// import { useAuthStore } from '@/stores/authStore'
+// import { Button } from "@/components/ui/button"
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav"
-import { Users } from 'lucide-react'
+// import { Users } from 'lucide-react'
 import api from '@/utils/axios'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,8 +24,8 @@ type AnalyticsResponse = {
 
 
 export default function Home() {
-  const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
+  // const navigate = useNavigate()
+  // const { user, logout } = useAuthStore()
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -43,10 +43,10 @@ export default function Home() {
     return () => { mounted = false }
   }, [])
   
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
-  }
+  // const handleLogout = async () => {
+  //   await logout()
+  //   navigate('/login', { replace: true })
+  // }
   
   const breadcrumbItems = [
     { label: 'Home', current: true }
