@@ -324,7 +324,6 @@ function parseBnkFile(fileContent: string): ParsedData {
     'ManualIntrinsicResult.LVMsmt.Msmt': 'mdc_idc_msmt_lv_sensing_mean',
     'InterPaceThreshResult.LVMsmt.Amplitude': 'mdc_idc_msmt_lv_pacing_threshold',
     'InterPaceThreshResult.LVMsmt.PulseWidth': 'mdc_idc_msmt_lv_pw',
-    //if  ShockImpedanceLastMeas0 is empty, use ShockImpedanceLastMeas1
     'ShockImpedanceLastMeas0': '',
     'ShockImpedanceLastMeas1': '',
     // Tachy Settings
@@ -417,8 +416,6 @@ function parseBnkFile(fileContent: string): ParsedData {
     if (typeof value !== 'string') return 0;
     return value.trim().toLowerCase() !== 'off' ? 1 : 0;
   };
-
-  // Calculate remaining shocks for VT1 Zone
 
   // If the first shock therapy is active, calculate the remaining shocks.
   const vt1Shock1Present = isActiveValue(rawData['VT1Shock1Energy']);

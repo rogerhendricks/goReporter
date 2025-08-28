@@ -81,4 +81,7 @@ func SetupRoutes(app *fiber.App) {
 	
 	// File routes
 	app.Get("/api/files/*", middleware.AuthenticateJWT, handlers.ServeFile)
+
+	// Analytics routes
+	app.Get("/api/analytics/summary", handlers.GetAnalyticsSummary)
 }
