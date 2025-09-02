@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Report } from '@/types'
+import type { Report } from '@/stores/reportStore'
 
 interface QRSDurationTableProps {
   reports: Report[]
@@ -18,8 +18,11 @@ export function QRSDurationTable({ reports }: QRSDurationTableProps) {
   const qrsReports = reports.filter(report => report.qrs_duration !== null)
     .sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime())
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
+  const formatDate = (date: string | Date) => {
+    if (typeof date === 'string') {
+      return new Date(date).toLocaleDateString()
+    }
+    return date.toLocaleDateString()
   }
 
   const getStatusColor = (status: string | null) => {
