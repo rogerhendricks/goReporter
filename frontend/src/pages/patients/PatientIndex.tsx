@@ -182,7 +182,7 @@ export default function PatientIndex() {
                                     <div key={lead.id}>
                                       <p className="text-sm font-semibold">{`${lead.lead.manufacturer} ${lead.lead.name}`}</p>
                                       <p className="text-xs text-muted-foreground">
-                                        Model: {lead.lead.model} {lead.status ? `(${lead.status})` : ''}
+                                        Model: {lead.lead.leadModel} {lead.status ? `(${lead.status})` : ''}
                                       </p>
                                     </div>
                                   ))}

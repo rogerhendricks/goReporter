@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePatientStore } from '../stores/patientStore';
 import { useReportStore } from '../stores/reportStore';

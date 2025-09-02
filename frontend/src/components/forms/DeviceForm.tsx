@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { ArrowLeft } from 'lucide-react'
+// import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface DeviceFormData {

@@ -8,13 +8,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { ArrowLeft } from 'lucide-react'
+// import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface LeadFormData {
   name: string
   manufacturer: string
-  model: string
+  leadModel: string
   type: string
   isMri: boolean
 }
@@ -29,7 +29,7 @@ export default function LeadForm() {
   const [formData, setFormData] = useState<LeadFormData>({
     name: '',
     manufacturer: '',
-    model: '',
+    leadModel: '',
     type: '',
     isMri: false
   })
@@ -45,7 +45,7 @@ export default function LeadForm() {
       setFormData({
         name: currentLead.name,
         manufacturer: currentLead.manufacturer,
-        model: currentLead.model,
+        leadModel: currentLead.leadModel,
         type: currentLead.type,
         isMri: currentLead.isMri
       })
@@ -100,7 +100,7 @@ export default function LeadForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><Label htmlFor="name">Lead Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="model">Model</Label><Input id="model" name="model" value={formData.model} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="model">Model</Label><Input id="model" name="model" value={formData.leadModel} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="manufacturer">Manufacturer</Label><Input id="manufacturer" name="manufacturer" value={formData.manufacturer} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="type">Type</Label><Input id="type" name="type" value={formData.type} onChange={handleInputChange} required /></div>
             </div>

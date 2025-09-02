@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Edit, Trash2, ArrowLeft, Phone, Mail, MapPin, Plus } from 'lucide-react'
+import { Edit, Trash2, Phone, Mail, MapPin, Plus } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -39,18 +39,18 @@ export default function PatientDetail() {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const getLastReportDate = () => {
-    if (!currentPatient?.report || currentPatient.report.length === 0) {
-      return null
-    }
+  // const getLastReportDate = () => {
+  //   if (!currentPatient?.report || currentPatient.report.length === 0) {
+  //     return null
+  //   }
     
-    // Sort reports by date and get the most recent one
-    const sortedReports = currentPatient.report.sort((a, b) => 
-      new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime()
-    )
+  //   // Sort reports by date and get the most recent one
+  //   const sortedReports = currentPatient.report.sort((a, b) => 
+  //     new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime()
+  //   )
     
-    return sortedReports[0].reportDate
-  }
+  //   return sortedReports[0].reportDate
+  // }
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -166,7 +166,7 @@ export default function PatientDetail() {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">{patientDoctor.doctor.email}</div>
-                      <div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone1}</div>
+                      <div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone}</div>
                       {patientDoctor.address && (
                         <div className="text-xs text-muted-foreground">
                           {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}
@@ -245,7 +245,7 @@ export default function PatientDetail() {
                     <TableRow key={implanted.id}>
                       <TableCell className="text-left">
                         <div className="font-medium">{implanted.lead.name}</div>
-                        <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.model}</div>
+                        <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.leadModel}</div>
                       </TableCell>
                       <TableCell className="text-left">{implanted.serial}</TableCell>
                       <TableCell className="text-left">{implanted.chamber}</TableCell>

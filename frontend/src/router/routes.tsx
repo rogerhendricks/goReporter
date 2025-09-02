@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import Home from '@/pages/Home'
 import Login from '@/components/auth/Login'
 import Register from '@/components/auth/Register'

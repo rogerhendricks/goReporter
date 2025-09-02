@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { PDFDocument, PDFName, PDFArray, PDFDict, PDFStream } from 'pdf-lib'
 
 export interface ParsedData {
   mrn?: string;
@@ -37,7 +38,7 @@ export interface ParsedData {
   mdc_idc_stat_brady_rv_percent?: string;
   mdc_idc_stat_brady_lv_percent?: string;
   biv_percent_paced?: string;
-  mdc_idc_batt_percentage: string;
+  mdc_idc_batt_percentage?: string;
   mdc_idc_batt_volt?: string;
   mdc_idc_batt_remaining?: string;
   mdc_idc_batt_status?: string;
@@ -103,6 +104,27 @@ function convertThreshold(threshold: string | number): number {
   return parseFloat(threshold.toString()) / 1000;
 }
 
+function pdfObjToString(obj: any): string {
+  if (!obj) return ''
+  const tryFns = ['decodeText', 'asString', 'toString']
+  for (const fn of tryFns) {
+    if (typeof obj[fn] === 'function') {
+      try { return obj[fn]() } catch { /* ignore */ }
+    }
+  }
+  return String(obj?.value ?? '')
+}
+
+// Read bytes from a PDFStream
+function getStreamBytes(stream: any): Uint8Array | null {
+  if (!stream) return null
+  try {
+    if (typeof stream.getContents === 'function') return stream.getContents()
+    if (stream.contents instanceof Uint8Array) return stream.contents
+  } catch { /* ignore */ }
+  return null
+}
+
 export async function parseFileContent(file: File, serial?: string): Promise<ParsedData> {
   return new Promise((resolve, reject) => {
     console.log(file.name, file.type, serial);
@@ -151,6 +173,14 @@ export async function parseFileContent(file: File, serial?: string): Promise<Par
       reader.addEventListener('error', (e) => {
         reject(e);
       });
+    } else if (file.name.endsWith('.pdf')) {
+      parsePdfFile(file)
+        .then(pdfResult => {
+          resolve(pdfResult)
+        })
+        // .catch(e => {
+        //   resolve({ fileType: 'pdf', fileName: file.name, xmlFound: false, embeddedXml: null })
+        // })
     } else {
       reject(new Error("Unsupported file type. Please upload .xml, .log, or .bnk files."));
     }
@@ -671,21 +701,21 @@ function parseXmlFile(fileContent: string): ParsedData {
     });
   }
 
-  const statSection = idcSection.section.find(s => s['@_name'] === 'STAT');
+  const statSection = idcSection.section.find((s: any) => s['@_name'] === 'STAT');
 
   if (statSection && statSection.section) {
-      const bradySection = statSection.section.find(v => v['@_name'] === 'BRADY');
+      const bradySection = statSection.section.find((v: any) => v['@_name'] === 'BRADY');
   
       if (bradySection && bradySection.value) {
           // Check for traditional pacing values first
-          const raPaced = bradySection.value.find(v => v['@_name'] === 'RA_PERCENT_PACED');
-          const rvPaced = bradySection.value.find(v => v['@_name'] === 'RV_PERCENT_PACED');
-          const lvPaced = bradySection.value.find(v => v['@_name'] === 'LV_PERCENT_PACED');
+          const raPaced = bradySection.value.find((v: any) => v['@_name'] === 'RA_PERCENT_PACED');
+          const rvPaced = bradySection.value.find((v: any) => v['@_name'] === 'RV_PERCENT_PACED');
+          const lvPaced = bradySection.value.find((v: any) => v['@_name'] === 'LV_PERCENT_PACED');
   
           // Check for AP/AS values
-          const apVp = bradySection.value.find(v => v['@_name'] === 'AP_VP_PERCENT');
-          const apVs = bradySection.value.find(v => v['@_name'] === 'AP_VS_PERCENT');
-          const asVp = bradySection.value.find(v => v['@_name'] === 'AS_VP_PERCENT');
+          const apVp = bradySection.value.find((v: any) => v['@_name'] === 'AP_VP_PERCENT');
+          const apVs = bradySection.value.find((v: any) => v['@_name'] === 'AP_VS_PERCENT');
+          const asVp = bradySection.value.find((v: any) => v['@_name'] === 'AS_VP_PERCENT');
   
           // Calculate RA pacing
           if (raPaced) {
@@ -715,11 +745,11 @@ function parseXmlFile(fileContent: string): ParsedData {
   }
 
   // Get MSMT and BATT sections
-  const msmtSection = idcSection.section.find(s => s['@_name'] === 'MSMT');
+  const msmtSection = idcSection.section.find((s: any) => s['@_name'] === 'MSMT');
   if (msmtSection) {
-      const battSection = msmtSection.section.find(s => s['@_name'] === 'BATTERY');
+      const battSection = msmtSection.section.find((s: any) => s['@_name'] === 'BATTERY');
           if (battSection && battSection.value) {
-              battSection.value.forEach(value => {
+              battSection.value.forEach((value: any )=> {
                   if (value['@_name'] === 'STATUS') {
                       result.mdc_idc_batt_status = value['#text'];
                   }
@@ -730,15 +760,15 @@ function parseXmlFile(fileContent: string): ParsedData {
           }
 
       // Get RA section
-      const leadchnl_ra = msmtSection?.section?.find(s => s['@_name'] === 'LEADCHNL_RA');
+      const leadchnl_ra = msmtSection?.section?.find((s: any)  => s['@_name'] === 'LEADCHNL_RA');
           if (leadchnl_ra && leadchnl_ra.section) {
               // Get SENSING values
               const sensingSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find(s => s['@_name'] === 'SENSING')
+              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'SENSING')
               : leadchnl_ra.section;
               if (sensingSection?.value) {
                   const sensingValue = Array.isArray(sensingSection.value) 
-                      ? sensingSection.value.find(v => v['@_name'] === 'INTR_AMPL_MEAN')
+                      ? sensingSection.value.find((v: any)  => v['@_name'] === 'INTR_AMPL_MEAN')
                       : sensingSection.value;
                   result.mdc_idc_msmt_ra_sensing_mean = sensingValue?.['#text'] || '';
               } else {
@@ -746,17 +776,17 @@ function parseXmlFile(fileContent: string): ParsedData {
               }
               // Get PACING_THRESHOLD values
               const pacingSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find(s => s['@_name'] === 'PACING_THRESHOLD')
+              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD')
               : leadchnl_ra?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_ra.section : null;
 
               if (pacingSection?.value) {
               const amplitudeValue = Array.isArray(pacingSection.value)
-                  ? pacingSection.value.find(v => v['@_name'] === 'AMPLITUDE')
+                  ? pacingSection.value.find((v: any)  => v['@_name'] === 'AMPLITUDE')
                   : pacingSection.value;
               result.mdc_idc_msmt_ra_pacing_threshold = amplitudeValue?.['#text'] || '';
 
               const pulsewidthValue = Array.isArray(pacingSection.value)
-                  ? pacingSection.value.find(v => v['@_name'] === 'PULSEWIDTH')
+                  ? pacingSection.value.find((v: any)  => v['@_name'] === 'PULSEWIDTH')
                   : pacingSection.value;
               result.mdc_idc_msmt_ra_pw = pulsewidthValue?.['#text'] || '';
               } else {
@@ -765,11 +795,11 @@ function parseXmlFile(fileContent: string): ParsedData {
               }
               // Get IMPEDANCE values
               const impedanceSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find(s => s['@_name'] === 'IMPEDANCE')
+              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'IMPEDANCE')
               : leadchnl_ra.section;
               if (impedanceSection?.value) {
                   const impedanceValue = Array.isArray(impedanceSection.value) 
-                  ? impedanceSection?.value?.find(v => v['@_name'] === 'VALUE')
+                  ? impedanceSection?.value?.find((v: any)  => v['@_name'] === 'VALUE')
                   : impedanceSection?.value;
                       result.mdc_idc_msmt_ra_impedance_mean = impedanceValue['#text'];
               } else {
@@ -778,15 +808,15 @@ function parseXmlFile(fileContent: string): ParsedData {
           };
 
       // Get LEADCHNL_RV section
-      const leadchnl_rv = msmtSection?.section?.find(s => s['@_name'] === 'LEADCHNL_RV');
+      const leadchnl_rv = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_RV');
           if (leadchnl_rv && leadchnl_rv.section) {
               // Get SENSING values
               const sensingSection = Array.isArray(leadchnl_rv?.section)
-              ? leadchnl_rv.section.find(s => s['@_name'] === 'SENSING')
+              ? leadchnl_rv.section.find((s: any)  => s['@_name'] === 'SENSING')
               : leadchnl_rv.section;
               if (sensingSection && sensingSection.value) {
                   const sensingValue = Array.isArray(sensingSection?.value) 
-                  ? sensingSection.value.find(v => v['@_name'] === 'INTR_AMPL_MEAN')
+                  ? sensingSection.value.find((v: any)  => v['@_name'] === 'INTR_AMPL_MEAN')
                   : sensingSection?.value;
                   if (sensingValue) {
                       result.mdc_idc_msmt_rv_sensing_mean = sensingValue?.['#text'] || '';
@@ -794,11 +824,11 @@ function parseXmlFile(fileContent: string): ParsedData {
               }
           // Get PACING_THRESHOLD values
           const pacingSection = Array.isArray(leadchnl_rv?.section)
-          ? leadchnl_rv.section.find(s => s['@_name'] === 'PACING_THRESHOLD')
+          ? leadchnl_rv.section.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD')
           : leadchnl_rv?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_rv.section : null;;
           if (pacingSection?.value) {
-              const amplitudeValue = pacingSection?.value?.find(v => v['@_name'] === 'AMPLITUDE');
-              const pulsewidthValue = pacingSection?.value?.find(v => v['@_name'] === 'PULSEWIDTH');
+              const amplitudeValue = pacingSection?.value?.find((v: any)  => v['@_name'] === 'AMPLITUDE');
+              const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
               if (amplitudeValue) {
                   result.mdc_idc_msmt_rv_pacing_threshold = amplitudeValue['#text'];
               }
@@ -806,9 +836,9 @@ function parseXmlFile(fileContent: string): ParsedData {
                   result.mdc_idc_msmt_rv_pw = pulsewidthValue['#text'];
               }
               // Get IMPEDANCE values
-              const impedanceSection = leadchnl_rv?.section?.find(s => s['@_name'] === 'IMPEDANCE');
+              const impedanceSection = leadchnl_rv?.section?.find((s: any)  => s['@_name'] === 'IMPEDANCE');
               if (impedanceSection && impedanceSection.value) {
-                  const impedanceValue = impedanceSection?.value?.find(v => v['@_name'] === 'VALUE');
+                  const impedanceValue = impedanceSection?.value?.find((v: any) => v['@_name'] === 'VALUE');
                   if (impedanceValue) {
                       result.mdc_idc_msmt_rv_impedance_mean = impedanceValue['#text'];
                   }
@@ -817,46 +847,46 @@ function parseXmlFile(fileContent: string): ParsedData {
       }
       // Get LEADCHNL_LV section
       const leadchnl_lv = Array.isArray(msmtSection?.section)
-      ? msmtSection?.section?.find(s => s['@_name'] === 'LEADCHNL_LV')
+      ? msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_LV')
       : msmtSection?.section?.['@_name'] === 'LEADCHNL_LV' ? msmtSection?.section : null;
       if (leadchnl_lv?.value) {
-          const pacingSection = leadchnl_lv?.section?.find(s => s['@_name'] === 'PACING_THRESHOLD');
+          const pacingSection = leadchnl_lv?.section?.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD');
           if (pacingSection?.value) {
-              const amplitudeValue = pacingSection?.value?.find(v => v['@_name'] === 'AMPLITUDE');
-              const pulsewidthValue = pacingSection?.value?.find(v => v['@_name'] === 'PULSEWIDTH');
+              const amplitudeValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'AMPLITUDE');
+              const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
               
               result.mdc_idc_msmt_lv_pacing_threshold = amplitudeValue ? amplitudeValue['#text'] : '';
               result.mdc_idc_msmt_lv_pw = pulsewidthValue ? pulsewidthValue['#text'] : '';
           }
 
-          const impedanceSection = leadchnl_lv?.section?.find(s => s['@_name'] === 'IMPEDANCE');
+          const impedanceSection = leadchnl_lv?.section?.find((s: any)  => s['@_name'] === 'IMPEDANCE');
           if (impedanceSection?.value) {
-              const impedanceValue = impedanceSection.value.find(v => v['@_name'] === 'VALUE');
+              const impedanceValue = impedanceSection.value.find((v: any) => v['@_name'] === 'VALUE');
               result.mdc_idc_msmt_lv_impedance_mean = impedanceValue ? impedanceValue['#text'] : '';
           }
       }
 
       // Get LEADHVCHNL section
-      const leadhvchnl = msmtSection?.section?.find(s => s['@_name'] === 'LEADHVCHNL');
+      const leadhvchnl = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADHVCHNL');
       if (leadhvchnl) {
           // Get HV IMPEDANCE values
-          const leadhvchnlValue = leadhvchnl.value.find(v => v['@_name'] === 'IMPEDANCE');
+          const leadhvchnlValue = leadhvchnl.value.find((v: any) => v['@_name'] === 'IMPEDANCE');
           result.mdc_idc_msmt_hv_impedance_mean = leadhvchnlValue['#text'];
       }
       // STAT section
-      const setSection = idcSection.section.find(s => s['@_name'] === 'SET');
+      const setSection = idcSection.section.find((s: any) => s['@_name'] === 'SET');
       if (setSection?.section) {
-          const bradySection = setSection.section.find(s => s['@_name'] === 'BRADY');
+          const bradySection = setSection.section.find((s: any) => s['@_name'] === 'BRADY');
           if (bradySection){
-            const bradyValue = bradySection.value.find(v => v['@_name'] === 'LOWRATE');
+            const bradyValue = bradySection.value.find((v: any) => v['@_name'] === 'LOWRATE');
             result.mdc_idc_set_brady_lowrate = bradyValue ? bradyValue['#text'] : '';
-            const modeValue = bradySection.value.find(v => v['@_name'] === 'VENDOR_MODE');
+            const modeValue = bradySection.value.find((v: any) => v['@_name'] === 'VENDOR_MODE');
             result.mdc_idc_set_brady_mode = modeValue ? modeValue['#text'] : '';
-            const trackingRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_TRACKING_RATE');
+            const trackingRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_TRACKING_RATE');
             result.mdc_idc_set_brady_max_tracking_rate = trackingRateValue ? trackingRateValue['#text'] : '';
-            const sensorRateValue = bradySection.value.find(v => v['@_name'] === 'MAX_SENSOR_RATE');
+            const sensorRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_SENSOR_RATE');
             result.mdc_idc_set_brady_max_sensor_rate = sensorRateValue ? sensorRateValue['#text'] : '';
-            const modeSwitchRate = bradySection.value.find(v => v['@_name'] === 'AT_MODE_SWITCH_RATE');
+            const modeSwitchRate = bradySection.value.find((v: any) => v['@_name'] === 'AT_MODE_SWITCH_RATE');
             result.mdc_idc_set_brady_mode_switch_rate = modeSwitchRate ? modeSwitchRate['#text'] : '';
           }
                 // Parse TACHYTHERAPY settings
@@ -907,4 +937,107 @@ function parseXmlFile(fileContent: string): ParsedData {
 }
   console.log('Parsed XML file:', result);
   return result;
+}
+
+
+// Extract FileSpec bytes (and name) -> used for EmbeddedFiles/AF
+function readFileSpec(dict: any): { name: string; bytes: Uint8Array | null } | null {
+  if (!dict) return null
+  const ef = dict.lookup?.(PDFName.of('EF'), PDFDict) ?? dict.get?.(PDFName.of('EF'))
+  const fileNameObj = dict.get?.(PDFName.of('UF')) ?? dict.get?.(PDFName.of('F'))
+  const name = pdfObjToString(fileNameObj) || 'attachment.xml'
+  const fStream =
+    ef?.lookup?.(PDFName.of('UF'), PDFStream) ??
+    ef?.lookup?.(PDFName.of('F'), PDFStream) ??
+    ef?.get?.(PDFName.of('UF')) ??
+    ef?.get?.(PDFName.of('F'))
+  const bytes = getStreamBytes(fStream)
+  return { name, bytes }
+}
+
+// Walk the Names/EmbeddedFiles name tree and collect attachments
+function extractFromEmbeddedFiles(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
+  const out: { name: string; bytes: Uint8Array | null }[] = []
+  const namesDict = (pdfDoc as any).catalog?.dict?.lookup?.(PDFName.of('Names'), PDFDict)
+  const embeddedRoot = namesDict?.lookup?.(PDFName.of('EmbeddedFiles'), PDFDict)
+  if (!embeddedRoot) return out
+
+  const walk = (node: any) => {
+    const names = node.lookup?.(PDFName.of('Names'), PDFArray)
+    if (names) {
+      for (let i = 0; i < names.size(); i += 2) {
+        //const _key = names.get(i) // usually PDFString filename
+        const fileSpec = names.get(i + 1)
+        const spec = readFileSpec((pdfDoc as any).context?.lookup?.(fileSpec, PDFDict) ?? fileSpec)
+        if (spec) out.push(spec)
+      }
+    }
+    const kids = node.lookup?.(PDFName.of('Kids'), PDFArray)
+    if (kids) {
+      for (let i = 0; i < kids.size(); i++) {
+        const kid = kids.get(i)
+        const kidDict = (pdfDoc as any).context?.lookup?.(kid, PDFDict) ?? kid
+        if (kidDict) walk(kidDict)
+      }
+    }
+  }
+
+  walk(embeddedRoot)
+  return out
+}
+
+// Extract from Associated Files (AF) on the Catalog (and optionally pages)
+function extractFromAF(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
+  const out: { name: string; bytes: Uint8Array | null }[] = []
+  const catalogDict = (pdfDoc as any).catalog?.dict
+  const afArray = catalogDict?.lookup?.(PDFName.of('AF'), PDFArray)
+  if (afArray) {
+    for (let i = 0; i < afArray.size(); i++) {
+      const specDict = (pdfDoc as any).context?.lookup?.(afArray.get(i), PDFDict)
+      const spec = readFileSpec(specDict)
+      if (spec) out.push(spec)
+    }
+  }
+  return out
+}
+
+// Decode XML strings from attachments
+function toXmlStrings(entries: { name: string; bytes: Uint8Array | null }[]): { name: string; xml: string }[] {
+  const dec = new TextDecoder('utf-8', { fatal: false })
+  const xmls: { name: string; xml: string }[] = []
+  for (const e of entries) {
+    if (!e.bytes) continue
+    const text = dec.decode(e.bytes)
+    // Heuristic: filename ends with .xml OR content contains an XML prolog/root tag
+    if (e.name.toLowerCase().endsWith('.xml') || text.trimStart().startsWith('<?xml') || text.includes('<biotronik-ieee11073-export')) {
+      xmls.push({ name: e.name, xml: text })
+    }
+  }
+  return xmls
+}
+
+
+
+
+
+
+export async function parsePdfFile(file: File): Promise<ParsedData> {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
+
+  const attachments = [
+    ...extractFromEmbeddedFiles(pdfDoc),
+    ...extractFromAF(pdfDoc),
+  ]
+
+  const xmls = toXmlStrings(attachments)
+
+  // Return the first XML (and list) so you can parse/map later
+  return {
+    fileType: 'pdf',
+    fileName: file.name,
+    xmlFound: xmls.length > 0,
+    embeddedXml: xmls[0]?.xml ?? null,
+    embeddedXmlFiles: xmls, // [{ name, xml }]
+  }
 }

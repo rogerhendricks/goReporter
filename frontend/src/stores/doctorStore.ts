@@ -29,11 +29,11 @@ interface DoctorState {
   createDoctor: (data: Partial<Doctor>) => Promise<Doctor | undefined>
   updateDoctor: (id: number, data: Partial<Doctor>) => Promise<Doctor | undefined>
   deleteDoctor: (id: number) => Promise<void>
-  searchDoctors: (query: string) => Promise<void>
+  searchDoctors: (query: string) => Promise<Doctor []>
   clearError: () => void
 }
 
-export const useDoctorStore = create<DoctorState>((set, get) => ({
+export const useDoctorStore = create<DoctorState>((set) => ({
   doctors: [],
   currentDoctor: null,
   loading: false,
@@ -130,7 +130,7 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
   //   }
   // }
   
-  searchDoctors: async (query) => {
+  searchDoctors: async (query: string): Promise<Doctor[]> => { // changed
     set({ loading: true, error: null })
     try {
       console.log(`Searching doctors with query: ${query}`)
@@ -138,9 +138,9 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
         params: { search: query } 
       })
       console.log('Search doctors response:', response.data)
-      
-      const doctorsData = Array.isArray(response.data) ? response.data : []
-      set({ doctors: doctorsData , loading:false})
+      const doctorsData: Doctor[] = Array.isArray(response.data) ? response.data : []
+      set({ doctors: doctorsData, loading: false })
+      return doctorsData // return results
     } catch (error: any) {
       console.error('Error searching doctors:', error)
       set({
@@ -148,6 +148,7 @@ export const useDoctorStore = create<DoctorState>((set, get) => ({
         loading: false,
         doctors: []
       })
+      return [] // ensure Promise<Doctor[]> on error
     }
-  },
+  }
 }))

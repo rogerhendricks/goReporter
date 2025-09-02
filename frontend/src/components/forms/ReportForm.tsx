@@ -97,7 +97,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   const { currentReport, fetchReport, setCurrentReport } = useReportStore()
   const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { fillReportForm, getFormFields, isGenerating, error } = usePdfFormFiller()
+  const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
 
   const handleDataImported = (data: ParsedData) => {
     // Map the parsed data to your form fields
@@ -139,15 +139,15 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
 
     // Map device fields
-    if (data.mdc_idc_dev_serial_number) {
-      updatedFormData.mdc_idc_dev_serial_number = data.mdc_idc_dev_serial_number;
-    }
-    if (data.mdc_idc_dev_model) {
-      updatedFormData.mdc_idc_dev_model = data.mdc_idc_dev_model;
-    }
-    if (data.mdc_idc_dev_manufacturer) {
-      updatedFormData.mdc_idc_dev_manufacturer = data.mdc_idc_dev_manufacturer;
-    }
+    // if (data.mdc_idc_dev_serial_number) {
+    //   updatedFormData.mdc_idc_dev_serial_number = data.mdc_idc_dev_serial_number;
+    // }
+    // if (data.mdc_idc_dev_model) {
+    //   updatedFormData.mdc_idc_dev_model = data.mdc_idc_dev_model;
+    // }
+    // if (data.mdc_idc_dev_manufacturer) {
+    //   updatedFormData.mdc_idc_dev_manufacturer = data.mdc_idc_dev_manufacturer;
+    // }
 
     // Map bradycardia settings
     if (data.mdc_idc_set_brady_mode) {
@@ -348,7 +348,7 @@ export function ReportForm({ patient }: ReportFormProps) {
       if (isEdit && currentReport?.file_url) {
         try {
           // FIX: Use the correct API path for fetching the existing PDF
-          const apiPath = currentReport.file_url.replace('/uploads/', '/files/');
+          const apiPath = currentReport.file_url?.replace('/uploads/', '/files/');
           const response = await api.get(apiPath, { responseType: 'blob' });
           const existingPdfFile = new File([response.data], "existing-report.pdf", { type: 'application/pdf' });
           
@@ -765,7 +765,11 @@ export function ReportForm({ patient }: ReportFormProps) {
                 variant="outline"
                 onClick={async () => {
                   try {
-                    const apiPath = currentReport.file_url.replace('/uploads/', '/files/');
+                    const apiPath = currentReport.file_url?.replace('/uploads/', '/files/');
+                    if (!apiPath) {
+                      console.error('apiPath is undefined')
+                      return
+                    }
                     const response = await api.get(apiPath, { 
                       responseType: 'blob' 
                     });

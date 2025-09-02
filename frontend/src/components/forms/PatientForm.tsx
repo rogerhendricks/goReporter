@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { X, Plus, ArrowLeft } from 'lucide-react'
+import { X, Plus } from 'lucide-react'
 import {
   Command,
   CommandEmpty,
@@ -104,11 +104,11 @@ export default function PatientForm() {
   const [openDoctorSearch, setOpenDoctorSearch] = useState(false)
 
   const [deviceSearch, setDeviceSearch] = useState('')
-  const [deviceResults, setDeviceResults] = useState<Device[]>([])
+  // const [deviceResults, setDeviceResults] = useState<Device[]>([])
   const [openDeviceSearch, setOpenDeviceSearch] = useState(false)
 
   const [leadSearch, setLeadSearch] = useState('')
-  const [leadResults, setLeadResults] = useState<Lead[]>([])
+  // const [leadResults, setLeadResults] = useState<Lead[]>([])
   const [openLeadSearch, setOpenLeadSearch] = useState(false)
 
   useEffect(() => {
@@ -146,8 +146,10 @@ export default function PatientForm() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleImplantedDataChange = (type: 'devices' | 'leads', index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const handleImplantedDataChange = (
+    type: 'devices' | 'leads', 
+    index: number, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target as HTMLInputElement | HTMLSelectElement;
     const items = [...formData[type]];
     items[index] = { ...items[index], [name]: value };
     setFormData(prev => ({ ...prev, [type]: items }));
@@ -157,7 +159,15 @@ export default function PatientForm() {
     setDoctorSearch(query)
     if (query.length > 2) {
       const results = await searchDoctors(query)
-      setDoctorResults(results)
+      setDoctorResults(
+        results.map((doctor) => ({
+          ...doctor,
+          addresses: doctor.addresses.map((address) => ({
+            ...address,
+            id: address.id || 0, // Ensure `id` is a number
+          })),
+        }))
+      )
     }
   }
 
@@ -232,7 +242,7 @@ export default function PatientForm() {
   const addDevice = (device: Device) => {
     setFormData(prev => ({
       ...prev,
-      devices: [...prev.devices, { deviceId: device.id, serial: '', implantedAt: '', device }]
+      devices: [...prev.devices, { deviceId: device.id, serial: '', status: 'Active', implantedAt: '', device }]
     }))
     setOpenDeviceSearch(false)
     setDeviceSearch('')
@@ -547,7 +557,7 @@ export default function PatientForm() {
                         {patientDoctor.doctor.email}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {patientDoctor.doctor.phone1}
+                        {patientDoctor.doctor.phone}
                         {patientDoctor.address && (
                           <span> • {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}</span>
                         )}
@@ -598,7 +608,13 @@ export default function PatientForm() {
                             {(doctorSearch.length > 2 ? doctorResults : doctors).map((doctor) => (
                               <CommandItem
                                 key={doctor.id}
-                                onSelect={() => setSelectedDoctor(doctor)}
+                                onSelect={() => setSelectedDoctor({
+                                  ...doctor,
+                                  addresses: doctor.addresses?.map(address => ({
+                                    ...address,
+                                    id: address.id || 0 // Ensure `id` is a number
+                                  }))
+                                })}
                                 className={selectedDoctor?.id === doctor.id ? 'bg-accent' : ''}
                               >
                                 <div>
@@ -795,7 +811,7 @@ export default function PatientForm() {
                             <CommandItem key={lead.id} onSelect={() => addLead(lead)}>
                               <div>
                                 <div className="font-medium">{lead.name}</div>
-                                <div className="text-sm text-muted-foreground">{lead.manufacturer} {lead.model}</div>
+                                <div className="text-sm text-muted-foreground">{lead.manufacturer} {lead.leadModel}</div>
                               </div>
                             </CommandItem>
                           ))}

@@ -11,8 +11,7 @@ export interface Doctor {
   id: number
   name: string
   email: string
-  phone1: string
-  phone2?: string
+  phone: string
   addresses?: Address[]
 }
 
@@ -45,7 +44,7 @@ export interface Lead {
   id: number;
   name: string;
   manufacturer: string;
-  model: string;
+  leadModel: string;
 }
 
 export interface ImplantedDevice {
@@ -112,7 +111,7 @@ interface PatientState {
   clearError: () => void
 }
 
-export const usePatientStore = create<PatientState>((set, get) => ({
+export const usePatientStore = create<PatientState>((set) => ({
   patients: [],
   searchResults: [],
   currentPatient: null,

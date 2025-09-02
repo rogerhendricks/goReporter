@@ -179,7 +179,7 @@ export default function PatientReportList() {
               <TableBody>
                 {reports.map(report => (
                   <TableRow key={report.id}>
-                    <TableCell className="font-medium text-left">{formatDate(report.reportDate)}</TableCell>
+                    <TableCell className="font-medium text-left">{formatDate(typeof report.reportDate === 'string' ? report.reportDate : report.reportDate.toISOString())}</TableCell>
                     <TableCell className="text-left">{report.reportType}</TableCell>
                     <TableCell className="text-left">
                       <Badge variant={report.reportStatus === 'pending' ? 'secondary' : 'default'}>
@@ -195,6 +195,7 @@ export default function PatientReportList() {
                           variant="outline"
                           size="sm"
                           onClick={async () => {
+                            if (!report.file_url) return;
                             try {
                               // Use axios to fetch the protected file
                               const response = await api.get(report.file_url, {

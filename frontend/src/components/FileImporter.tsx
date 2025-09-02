@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+// import { Label } from '@/components/ui/label';
 import { useFileImporter } from '@/hooks/useFileImporter';
 import type { ParsedData } from '@/utils/fileParser';
 import { Upload, FileText, Loader2, AlertCircle } from 'lucide-react';

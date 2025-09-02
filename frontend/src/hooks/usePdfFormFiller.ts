@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PDFDocument, PDFForm } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib'
 import type { Report } from '@/stores/reportStore'
 import type { Patient } from '@/stores/patientStore'
 
@@ -70,8 +70,8 @@ export function usePdfFormFiller() {
       fillTextField('patient_country', patient.country)
       fillTextField('patient_postal', patient.postal)
       // Fill Doctor Information (assuming first doctor is primary)
-      if (patient.doctors && patient.doctors.length > 0) {
-        const primaryDoctor = patient.doctors[0]
+      if ((patient as any).doctors && (patient as any).doctors.length > 0) {
+        const primaryDoctor = (patient as any).doctors[0]
         fillTextField('doctor_name', `Dr. ${primaryDoctor.name}`)
         fillTextField('doctor_email', primaryDoctor.email)
         fillTextField('doctor_phone', primaryDoctor.phone)
