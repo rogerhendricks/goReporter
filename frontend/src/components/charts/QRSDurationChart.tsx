@@ -11,7 +11,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { Report } from '@/stores/reportStore'
+
 
 ChartJS.register(
   CategoryScale,
@@ -24,13 +24,20 @@ ChartJS.register(
   TimeScale
 )
 
+type QrsReportLike = {
+  reportDate: string | Date
+  qrs_duration: number | null
+}
+
 interface QRSDurationChartProps {
-  reports: Report[]
+  reports: QrsReportLike[]
 }
 
 export function QRSDurationChart({ reports }: QRSDurationChartProps) {
   // Filter reports that have QRS duration data
-  const qrsReports = reports.filter(report => report.qrs_duration !== null)
+  const qrsReports = reports
+    // .filter((report) => report.qrs_duration !== null)
+    .filter((r): r is QrsReportLike & { qrs_duration: number } => r.qrs_duration !== null)
     .sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
 
   if (qrsReports.length === 0) {
@@ -47,11 +54,11 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
   }
 
   const data = {
-    labels: qrsReports.map(report => new Date(report.reportDate).toLocaleDateString()),
+    labels: qrsReports.map((report) => new Date(report.reportDate).toLocaleDateString()),
     datasets: [
       {
         label: 'QRS Duration (ms)',
-        data: qrsReports.map(report => report.qrs_duration),
+        data: qrsReports.map((report) => report.qrs_duration),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         tension: 0.1,
