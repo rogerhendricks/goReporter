@@ -1017,10 +1017,6 @@ function toXmlStrings(entries: { name: string; bytes: Uint8Array | null }[]): { 
 }
 
 
-
-
-
-
 export async function parsePdfFile(file: File): Promise<ParsedData> {
   const arrayBuffer = await file.arrayBuffer()
   const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
