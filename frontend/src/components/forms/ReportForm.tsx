@@ -248,6 +248,17 @@ export function ReportForm({ patient }: ReportFormProps) {
     // Update the form data
     setFormData(updatedFormData);
     
+    if (data.xml_report_pdf_file) { 
+      try { const dt = new DataTransfer(); 
+        dt.items.add(data.xml_report_pdf_file); 
+        pdfManager.addFiles(dt.files); 
+        toast.success(`Attached report PDF from XML: ${data.xml_report_pdf_name || data.xml_report_pdf_file.name}`); 
+      } catch (err) { 
+        console.error('Failed to add embedded PDF to uploader:', err); 
+        toast.error('Parsed PDF found in XML, but failed to attach it.'); 
+      } 
+    }
+
     toast.success('Form fields have been populated with imported data');
   };
 

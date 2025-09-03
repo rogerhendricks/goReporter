@@ -88,6 +88,8 @@ export interface ParsedData {
   VF_therapy_3_energy?: string;
   VF_therapy_4_energy?: string;
   VF_therapy_4_max_num_shocks?: string;
+  xml_report_pdf_file?: File;
+  xml_report_pdf_name?:string;
   [key: string]: any;
 }
 
@@ -935,8 +937,60 @@ function parseXmlFile(fileContent: string): ParsedData {
   }
   return result;
 }
-  console.log('Parsed XML file:', result);
-  return result;
+
+// Helper to find a single section by @name (handles array/object)
+const findSection = (section: any, name: string) => {
+  if (!section) return null;
+  const secs = Array.isArray(section) ? section : [section];
+  return secs.find((s: any) => s['@_name'] === name) || null;
+}
+// Helper to find all matching sections by @name
+const findSections = (section: any, name: string) => {
+  if (!section) return [];
+  const secs = Array.isArray(section) ? section : [section];
+  return secs.filter((s: any) => s['@_name'] === name);
+};
+// Helper to find a value node by name (handles array/object)
+const findValueNode = (section: any, name: string) => {
+  if (!section) return null;
+  const values = Array.isArray(section.value) ? section.value : (section.value ? [section.value] : []);
+  return values.find((v: any) => v['@_name'] === name) || null;
+};
+try { // Look for REPORTS > STATUS_REPORT
+  const reportsSection = idcSection?.section && findSection(idcSection.section, 'REPORTS');
+  if (reportsSection) {
+    const statusReports = reportsSection.section ? findSections(reportsSection.section, 'STATUS_REPORT') : [];
+  }
+} catch (error) {
+  console.error('Failed to parse embedded STATUS_REPORT PDF from XML:', error);
+}
+
+for (const sr of statusReports) {
+  const idNode = findValueNode(sr, 'ID');
+  const contentNode = findValueNode(sr, 'CONTENT');
+
+  const idText = idNode?.['#text'];
+  const contentText = contentNode?.['#text'];
+  const contentType = contentNode?.['@_contentType'] || contentNode?.['@_mimeType'] || '';
+  const encoding = (contentNode?.['@_encoding'] || '').toLowerCase();
+
+  // We only care about PDFs and base64 content
+  if (idText && contentText && /pdf/i.test(contentType) && (!encoding || encoding === 'base64')) {
+    const cleanBase64 = String(contentText).replace(/\s+/g, '');
+    const byteStr = atob(cleanBase64);
+    const bytes = new Uint8Array(byteStr.length);
+    for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+
+    const fileName = idText.toLowerCase().endsWith('.pdf') ? idText : `${idText}.pdf`;
+    const file = new File([bytes], fileName, { type: 'application/pdf' });
+
+    result.xml_report_pdf_file = file;
+    result.xml_report_pdf_name = fileName;
+    break; // Just take the first one
+  }
+}
+console.log('Parsed XML file:', result);
+return result;
 }
 
 
