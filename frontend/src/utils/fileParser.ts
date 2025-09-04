@@ -88,8 +88,6 @@ export interface ParsedData {
   VF_therapy_3_energy?: string;
   VF_therapy_4_energy?: string;
   VF_therapy_4_max_num_shocks?: string;
-  xml_report_pdf_file?: File;
-  xml_report_pdf_name?:string;
   [key: string]: any;
 }
 
@@ -127,12 +125,31 @@ function getStreamBytes(stream: any): Uint8Array | null {
   return null
 }
 
+// Small helper: normalize to array
+const toArr = <T>(x: T | T[] | undefined): T[] => (x ? (Array.isArray(x) ? x : [x]) : [])
+
+// Try to detect base64-encoded PDF strings
+function looksLikeBase64Pdf(s: string): boolean {
+  // Common PDF base64 prefix: "JVBERi0" (%PDF-)
+  return /^\s*JVBERi0/i.test(s.trim())
+}
+
+// Recursively walk sections to collect all <value> nodes
+function collectAllValues(node: any, out: any[] = []): any[] {
+  if (!node) return out
+  const values = node.value
+  if (values) out.push(...toArr(values))
+  const sections = node.section
+  toArr(sections).forEach((child: any) => collectAllValues(child, out))
+  return out
+}
+
 export async function parseFileContent(file: File, serial?: string): Promise<ParsedData> {
   return new Promise((resolve, reject) => {
     console.log(file.name, file.type, serial);
 
     const reader = new FileReader();
-    
+
     if (file.type === "text/xml" || file.name.endsWith('.xml')) {
       reader.readAsText(file);
       reader.addEventListener('load', (e) => {
@@ -180,9 +197,9 @@ export async function parseFileContent(file: File, serial?: string): Promise<Par
         .then(pdfResult => {
           resolve(pdfResult)
         })
-        // .catch(e => {
-        //   resolve({ fileType: 'pdf', fileName: file.name, xmlFound: false, embeddedXml: null })
-        // })
+      // .catch(e => {
+      //   resolve({ fileType: 'pdf', fileName: file.name, xmlFound: false, embeddedXml: null })
+      // })
     } else {
       reject(new Error("Unsupported file type. Please upload .xml, .log, or .bnk files."));
     }
@@ -303,7 +320,7 @@ function parseLogFile(data: string): ParsedData {
   if (parsedData.dob) {
     parsedData.dob = new Date(parsedData.dob).toISOString().split('T')[0];
   }
-  
+
   parsedData.mdc_idc_dev_manufacturer = "Abbott";
   console.log('Parsed log file:', parsedData);
   return parsedData;
@@ -341,7 +358,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'NormParams.MTRIntvl': 'mdc_idc_set_brady_max_tracking_rate',
     'NormParams.MSRIntvl': 'mdc_idc_set_brady_max_sensor_rate',
     'BatteryStatus.BatteryPhase': 'mdc_idc_batt_status',
-    'BatteryLongevityParams.RemainingBatteryPercent' : '',
+    'BatteryLongevityParams.RemainingBatteryPercent': '',
     'BatteryLongevityParams.TimeToERI': 'mdc_idc_batt_remaining',
     'CapformChargeTime': 'mdc_idc_cap_charge_time',
     'ManualLeadImpedData.RAMsmt.Msmt': 'mdc_idc_msmt_ra_impedance_mean',
@@ -431,8 +448,8 @@ function parseBnkFile(fileContent: string): ParsedData {
   if (rawData['VTATP2NumberOfBursts']) {
     result.VT2_therapy_2_atp = "ATP";
   }
-  
-  if (rawData['VFShock2Energy' ] && parseInt(rawData['VFShock2Energy'], 10) > 0) {
+
+  if (rawData['VFShock2Energy'] && parseInt(rawData['VFShock2Energy'], 10) > 0) {
     result.VF_therapy_4_energy = "41.0 J";
   }
 
@@ -460,7 +477,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   }
 
 
-// Calculate remaining shocks for VT2 Zone (Note: key is VTZone)
+  // Calculate remaining shocks for VT2 Zone (Note: key is VTZone)
   const vtShock1Present = isActiveValue(rawData['VTShock1Energy']);
   const vtShock2Present = isActiveValue(rawData['VTShock2Energy']);
 
@@ -471,16 +488,16 @@ function parseBnkFile(fileContent: string): ParsedData {
     result['VT2_therapy_5_max_num_shocks'] = (vtTotalShocks - (vtShock1Present + vtShock2Present)).toString();
   }
 
-    
+
   // Calculate remaining shocks for VF Zone
   const vfShock1Present = isActiveValue(rawData['VFShock1Energy']);
   const vfShock2Present = isActiveValue(rawData['VFShock2Energy']);
 
   if (vfShock1Present === 0 && vfShock2Present === 0) {
-      result['VF_therapy_4_max_num_shocks'] = 'off';
+    result['VF_therapy_4_max_num_shocks'] = 'off';
   } else {
     const vfTotalShocks = getNumber(rawData['VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]']);
-      result['VF_therapy_4_max_num_shocks'] = (vfTotalShocks - (vfShock1Present + vfShock2Present)).toString();
+    result['VF_therapy_4_max_num_shocks'] = (vfTotalShocks - (vfShock1Present + vfShock2Present)).toString();
   }
 
   //if  ShockImpedanceLastMeas0 is empty, use ShockImpedanceLastMeas1
@@ -500,7 +517,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   if (result.PatientFirstName && result.PatientLastName) {
     result.name = `${result.PatientFirstName} ${result.PatientLastName}`;
   }
-  
+
   if (result.PatientBirthDay && result.PatientBirthMonth && result.PatientBirthYear) {
     const birthMonth = monthNameToNumber[result.PatientBirthMonth as string];
     const birthDay = String(result.PatientBirthDay).padStart(2, '0');
@@ -509,13 +526,13 @@ function parseBnkFile(fileContent: string): ParsedData {
   }
 
   result.mdc_idc_dev_manufacturer = "Boston Scientific";
-  
+
   if (result.mdc_idc_batt_status === "Beginning of Life") {
-      result.mdc_idc_batt_status = 'BOL';
-    }
+    result.mdc_idc_batt_status = 'BOL';
+  }
 
   if (result.mdc_idc_batt_remaining) {
-    result.mdc_idc_batt_remaining = Math.floor(parseInt(result.mdc_idc_batt_remaining.replace(/months?/i, '').trim()) / 12).toString();    
+    result.mdc_idc_batt_remaining = Math.floor(parseInt(result.mdc_idc_batt_remaining.replace(/months?/i, '').trim()) / 12).toString();
   }
   // Convert rates and thresholds
   if (result.mdc_idc_set_brady_lowrate) {
@@ -555,40 +572,38 @@ function parseXmlFile(fileContent: string): ParsedData {
   const jsonObj = parser.parse(fileContent);
   const sections = jsonObj['biotronik-ieee11073-export'].dataset.section;
   const mdcSection = Array.isArray(sections) ? sections.find((s: any) => s['@_name'] === 'MDC') : sections;
-  
+
   if (!mdcSection) {
     throw new Error('MDC section not found in XML');
   }
-
   const idcSection = mdcSection.section.find((s: any) => s['@_name'] === 'IDC');
-  
   if (!idcSection) {
     throw new Error('IDC section not found in XML');
   }
-
-    // --- This is the helper function ---
+  // --- This is the helper function ---
   // It safely finds a <value> tag within a <section> by its name attribute,
   // regardless of whether there is one <value> (object) or many (array).
+  const asArray = (x: any) => (Array.isArray(x) ? x : x ? [x] : []);
+  const findSection = (parent: any, name: string): any | undefined => {
+    if (!parent) return undefined;
+    const secs = asArray(parent.section);
+    return secs.find((s: any) => s['@_name'] === name);
+  };
+  const findSections = (parent: any, name: string): any[] => {
+    const secs = asArray(parent?.section);
+    return secs.filter((s: any) => s['@_name'] === name);
+  };
   const findValue = (section: any, name: string): string | undefined => {
-    // 1. Return undefined if the section or its value property doesn't exist.
-    if (!section || !section.value) return undefined;
-
-    // 2. Check if section.value is an array.
-    const valueNode = Array.isArray(section.value)
-      // 3a. If it's an array, use .find() to search for the correct node.
-      ? section.value.find((v: any) => v['@_name'] === name)
-      // 3b. If it's not an array (it's an object), check if this single object is the one we want.
-      : (section.value['@_name'] === name ? section.value : undefined);
-    
-    // 4. Return the text content of the found node, or undefined if not found.
-    return valueNode ? valueNode['#text'] : undefined;
+    const vals = asArray(section?.value);
+    const node = vals.find((v: any) => v['@_name'] === name);
+    return node?.['#text'];
   };
 
   // Parse patient information
   const attrSection = mdcSection.section.find((s: any) => s['@_name'] === 'ATTR');
   console.log('attrSection', attrSection);
   if (attrSection && attrSection.section) {
-    const ptSection = Array.isArray(attrSection.section) 
+    const ptSection = Array.isArray(attrSection.section)
       ? attrSection.section.find((s: any) => s['@_name'] === 'PT')
       : attrSection.section;
 
@@ -649,7 +664,6 @@ function parseXmlFile(fileContent: string): ParsedData {
 
   // Parse lead information
   const leadSections = idcSection.section.filter((s: any) => s['@_name'] === 'LEAD');
-  console.log('leadSections', leadSections);
   if (leadSections.length > 0) {
     leadSections.forEach((lead: any) => {
       if (!lead.value) return;
@@ -704,293 +718,378 @@ function parseXmlFile(fileContent: string): ParsedData {
   }
 
   const statSection = idcSection.section.find((s: any) => s['@_name'] === 'STAT');
-
   if (statSection && statSection.section) {
-      const bradySection = statSection.section.find((v: any) => v['@_name'] === 'BRADY');
-  
-      if (bradySection && bradySection.value) {
-          // Check for traditional pacing values first
-          const raPaced = bradySection.value.find((v: any) => v['@_name'] === 'RA_PERCENT_PACED');
-          const rvPaced = bradySection.value.find((v: any) => v['@_name'] === 'RV_PERCENT_PACED');
-          const lvPaced = bradySection.value.find((v: any) => v['@_name'] === 'LV_PERCENT_PACED');
-  
-          // Check for AP/AS values
-          const apVp = bradySection.value.find((v: any) => v['@_name'] === 'AP_VP_PERCENT');
-          const apVs = bradySection.value.find((v: any) => v['@_name'] === 'AP_VS_PERCENT');
-          const asVp = bradySection.value.find((v: any) => v['@_name'] === 'AS_VP_PERCENT');
-  
-          // Calculate RA pacing
-          if (raPaced) {
-              result.mdc_idc_stat_brady_ra_percent = raPaced['#text'];
-          } else if (apVp && apVs) {
-              const apVpValue = parseFloat(apVp['#text'] || 0);
-              const apVsValue = parseFloat(apVs['#text'] || 0);
-              result.mdc_idc_stat_brady_ra_percent = (apVpValue + apVsValue).toString();
-          } else {
-              result.mdc_idc_stat_brady_ra_percent = '';
-          }
-  
-          // Calculate RV pacing
-          if (rvPaced) {
-              result.mdc_idc_stat_brady_rv_percent = rvPaced['#text'];
-          } else if (apVp && asVp) {
-              const apVpValue = parseFloat(apVp['#text'] || 0);
-              const asVpValue = parseFloat(asVp['#text'] || 0);
-              result.mdc_idc_stat_brady_rv_percent = (apVpValue + asVpValue).toString();
-          } else {
-              result.mdc_idc_stat_brady_rv_percent = '';
-          }
-  
-          // LV pacing remains unchanged
-          result.mdc_idc_stat_brady_lv_percent = lvPaced ? lvPaced['#text'] : '';
+    console.log('statSection', statSection);
+    const bradySection = statSection.section.find((v: any) => v['@_name'] === 'BRADY');
+
+    if (bradySection && bradySection.value) {
+      // Check for traditional pacing values first
+      const raPaced = bradySection.value.find((v: any) => v['@_name'] === 'RA_PERCENT_PACED');
+      const rvPaced = bradySection.value.find((v: any) => v['@_name'] === 'RV_PERCENT_PACED');
+      const lvPaced = bradySection.value.find((v: any) => v['@_name'] === 'LV_PERCENT_PACED');
+
+      // Check for AP/AS values
+      const apVp = bradySection.value.find((v: any) => v['@_name'] === 'AP_VP_PERCENT');
+      const apVs = bradySection.value.find((v: any) => v['@_name'] === 'AP_VS_PERCENT');
+      const asVp = bradySection.value.find((v: any) => v['@_name'] === 'AS_VP_PERCENT');
+
+      // Calculate RA pacing
+      if (raPaced) {
+        result.mdc_idc_stat_brady_ra_percent = raPaced['#text'];
+      } else if (apVp && apVs) {
+        const apVpValue = parseFloat(apVp['#text'] || 0);
+        const apVsValue = parseFloat(apVs['#text'] || 0);
+        result.mdc_idc_stat_brady_ra_percent = (apVpValue + apVsValue).toString();
+      } else {
+        result.mdc_idc_stat_brady_ra_percent = '';
       }
+
+      // Calculate RV pacing
+      if (rvPaced) {
+        result.mdc_idc_stat_brady_rv_percent = rvPaced['#text'];
+      } else if (apVp && asVp) {
+        const apVpValue = parseFloat(apVp['#text'] || 0);
+        const asVpValue = parseFloat(asVp['#text'] || 0);
+        result.mdc_idc_stat_brady_rv_percent = (apVpValue + asVpValue).toString();
+      } else {
+        result.mdc_idc_stat_brady_rv_percent = '';
+      }
+
+      // LV pacing remains unchanged
+      result.mdc_idc_stat_brady_lv_percent = lvPaced ? lvPaced['#text'] : '';
+    }
   }
 
   // Get MSMT and BATT sections
-  const msmtSection = idcSection.section.find((s: any) => s['@_name'] === 'MSMT');
+  // const msmtSection = idcSection.section.find((s: any) => s['@_name'] === 'MSMT');
+  // console.log('msmtSection', msmtSection);
+  // if (msmtSection) {
+  //   console.log('msmtSection', msmtSection);
+  //   const battSection = msmtSection.section.find((s: any) => s['@_name'] === 'BATTERY');
+  //   if (battSection && battSection.value) {
+  //     battSection.value.forEach((value: any) => {
+  //       if (value['@_name'] === 'STATUS') {
+  //         result.mdc_idc_batt_status = value['#text'];
+  //       }
+  //       if (value['@_name'] === 'REMAINING_PERCENTAGE') {
+  //         result.mdc_idc_batt_percentage = value['#text'];
+  //       }
+  //     });
+  //   }
+
+  //   // Get RA section
+  //   const leadchnl_ra = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_RA');
+  //   if (leadchnl_ra && leadchnl_ra.section) {
+  //     console.log('leadchnl_ra', leadchnl_ra);
+  //     // Get SENSING values
+  //     const sensingSection = Array.isArray(leadchnl_ra?.section)
+  //       ? leadchnl_ra.section.find((s: any) => s['@_name'] === 'SENSING')
+  //       : leadchnl_ra.section;
+  //     if (sensingSection?.value) {
+  //       const sensingValue = Array.isArray(sensingSection.value)
+  //         ? sensingSection.value.find((v: any) => v['@_name'] === 'INTR_AMPL_MEAN')
+  //         : sensingSection.value;
+  //       result.mdc_idc_msmt_ra_sensing_mean = sensingValue?.['#text'] || '';
+  //     } else {
+  //       result.mdc_idc_msmt_ra_sensing_mean = '';
+  //     }
+  //     // Get PACING_THRESHOLD values
+  //     const pacingSection = Array.isArray(leadchnl_ra?.section)
+  //       ? leadchnl_ra.section.find((s: any) => s['@_name'] === 'PACING_THRESHOLD')
+  //       : leadchnl_ra?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_ra.section : null;
+
+  //     if (pacingSection?.value) {
+  //       const amplitudeValue = Array.isArray(pacingSection.value)
+  //         ? pacingSection.value.find((v: any) => v['@_name'] === 'AMPLITUDE')
+  //         : pacingSection.value;
+  //       result.mdc_idc_msmt_ra_pacing_threshold = amplitudeValue?.['#text'] || '';
+
+  //       const pulsewidthValue = Array.isArray(pacingSection.value)
+  //         ? pacingSection.value.find((v: any) => v['@_name'] === 'PULSEWIDTH')
+  //         : pacingSection.value;
+  //       result.mdc_idc_msmt_ra_pw = pulsewidthValue?.['#text'] || '';
+  //     } else {
+  //       result.mdc_idc_msmt_ra_pacing_threshold = '';
+  //       result.mdc_idc_msmt_ra_pw = '';
+  //     }
+  //     // Get IMPEDANCE values
+  //     const impedanceSection = Array.isArray(leadchnl_ra?.section)
+  //       ? leadchnl_ra.section.find((s: any) => s['@_name'] === 'IMPEDANCE')
+  //       : leadchnl_ra.section;
+  //     if (impedanceSection?.value) {
+  //       const impedanceValue = Array.isArray(impedanceSection.value)
+  //         ? impedanceSection?.value?.find((v: any) => v['@_name'] === 'VALUE')
+  //         : impedanceSection?.value;
+  //       result.mdc_idc_msmt_ra_impedance_mean = impedanceValue['#text'];
+  //     } else {
+  //       result.mdc_idc_msmt_ra_impedance_mean = '';
+  //     }
+  //   };
+
+  //   // Get LEADCHNL_RV section
+  //   const leadchnl_rv = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_RV');
+  //   if (leadchnl_rv && leadchnl_rv.section) {
+  //     console.log('leadchnl_rv', leadchnl_rv);
+  //     // Get SENSING values
+  //     const sensingSection = Array.isArray(leadchnl_rv?.section)
+  //       ? leadchnl_rv.section.find((s: any) => s['@_name'] === 'SENSING')
+  //       : leadchnl_rv.section;
+  //     if (sensingSection && sensingSection.value) {
+  //       const sensingValue = Array.isArray(sensingSection?.value)
+  //         ? sensingSection.value.find((v: any) => v['@_name'] === 'INTR_AMPL_MEAN')
+  //         : sensingSection?.value;
+  //       if (sensingValue) {
+  //         result.mdc_idc_msmt_rv_sensing_mean = sensingValue?.['#text'] || '';
+  //       }
+  //     }
+  //     // Get PACING_THRESHOLD values
+  //     const pacingSection = Array.isArray(leadchnl_rv?.section)
+  //       ? leadchnl_rv.section.find((s: any) => s['@_name'] === 'PACING_THRESHOLD')
+  //       : leadchnl_rv?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_rv.section : null;;
+  //     if (pacingSection?.value) {
+  //       const amplitudeValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'AMPLITUDE');
+  //       const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
+  //       if (amplitudeValue) {
+  //         result.mdc_idc_msmt_rv_pacing_threshold = amplitudeValue['#text'];
+  //       }
+  //       if (pulsewidthValue) {
+  //         result.mdc_idc_msmt_rv_pw = pulsewidthValue['#text'];
+  //       }
+  //       // Get IMPEDANCE values
+  //       const impedanceSection = leadchnl_rv?.section?.find((s: any) => s['@_name'] === 'IMPEDANCE');
+  //       if (impedanceSection && impedanceSection.value) {
+  //         const impedanceValue = impedanceSection?.value?.find((v: any) => v['@_name'] === 'VALUE');
+  //         if (impedanceValue) {
+  //           result.mdc_idc_msmt_rv_impedance_mean = impedanceValue['#text'];
+  //         }
+  //       }
+  //     }
+  //   }
+  //   // Get LEADCHNL_LV section
+  //   const leadchnl_lv = Array.isArray(msmtSection?.section)
+  //     ? msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_LV')
+  //     : msmtSection?.section?.['@_name'] === 'LEADCHNL_LV' ? msmtSection?.section : null;
+  //   if (leadchnl_lv?.value) {
+  //     const pacingSection = leadchnl_lv?.section?.find((s: any) => s['@_name'] === 'PACING_THRESHOLD');
+  //     if (pacingSection?.value) {
+  //       const amplitudeValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'AMPLITUDE');
+  //       const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
+
+  //       result.mdc_idc_msmt_lv_pacing_threshold = amplitudeValue ? amplitudeValue['#text'] : '';
+  //       result.mdc_idc_msmt_lv_pw = pulsewidthValue ? pulsewidthValue['#text'] : '';
+  //     }
+
+  //     const impedanceSection = leadchnl_lv?.section?.find((s: any) => s['@_name'] === 'IMPEDANCE');
+  //     if (impedanceSection?.value) {
+  //       const impedanceValue = impedanceSection.value.find((v: any) => v['@_name'] === 'VALUE');
+  //       result.mdc_idc_msmt_lv_impedance_mean = impedanceValue ? impedanceValue['#text'] : '';
+  //     }
+  //   }
+
+  //   // Get LEADHVCHNL section
+  //   const leadhvchnl = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADHVCHNL');
+  //   if (leadhvchnl) {
+  //     // Get HV IMPEDANCE values
+  //     const leadhvchnlValue = leadhvchnl.value.find((v: any) => v['@_name'] === 'IMPEDANCE');
+  //     result.mdc_idc_msmt_hv_impedance_mean = leadhvchnlValue['#text'];
+  //   }
+  //   // STAT section
+  //   const setSection = idcSection.section.find((s: any) => s['@_name'] === 'SET');
+  //   if (setSection?.section) {
+  //     console.log('setSection', setSection);
+  //     const bradySection = setSection.section.find((s: any) => s['@_name'] === 'BRADY');
+  //     if (bradySection) {
+  //       const bradyValue = bradySection.value.find((v: any) => v['@_name'] === 'LOWRATE');
+  //       result.mdc_idc_set_brady_lowrate = bradyValue ? bradyValue['#text'] : '';
+  //       const modeValue = bradySection.value.find((v: any) => v['@_name'] === 'VENDOR_MODE');
+  //       result.mdc_idc_set_brady_mode = modeValue ? modeValue['#text'] : '';
+  //       const trackingRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_TRACKING_RATE');
+  //       result.mdc_idc_set_brady_max_tracking_rate = trackingRateValue ? trackingRateValue['#text'] : '';
+  //       const sensorRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_SENSOR_RATE');
+  //       result.mdc_idc_set_brady_max_sensor_rate = sensorRateValue ? sensorRateValue['#text'] : '';
+  //       const modeSwitchRate = bradySection.value.find((v: any) => v['@_name'] === 'AT_MODE_SWITCH_RATE');
+  //       result.mdc_idc_set_brady_mode_switch_rate = modeSwitchRate ? modeSwitchRate['#text'] : '';
+  //     }
+  //     // Parse TACHYTHERAPY settings
+  //     const tachyTherapySection = setSection.section.find((s: any) => s['@_name'] === 'TACHYTHERAPY');
+  //     const isTachyOn = findValue(tachyTherapySection, 'VSTAT') === 'On';
+  //     if (isTachyOn) {
+  //       console.log('Tachytherapy is enabled');
+  //       const zoneSections = setSection.section.filter((s: any) => s['@_name'] === 'ZONE');
+
+  //       zoneSections.forEach((zone: any) => {
+  //         const vendorType = findValue(zone, 'VENDOR_TYPE');
+
+  //         switch (vendorType) {
+  //           case 'BIO-Zone_VT1':
+  //             result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+  //             result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+  //             result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+  //             result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+  //             result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+  //             result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+  //             result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+  //             result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+  //             result.VT1_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+  //             break;
+  //           case 'BIO-Zone_VT2':
+  //             result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+  //             result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+  //             result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+  //             result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+  //             result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+  //             result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+  //             result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+  //             result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+  //             result.VT2_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+  //             break;
+  //           case 'BIO-Zone_VF':
+  //             result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+  //             result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+  //             result.VF_therapy_1_energy = findValue(zone, 'SHOCK_ENERGY_1');
+  //             result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_2');
+  //             result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_3');
+  //             result.VF_therapy_3_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+  //             break;
+  //         }
+  //       });
+  //     }
+  //   }
+  //   // return result;
+  // }
+ 
+  const msmtSection = findSection(idcSection, 'MSMT');
+  console.log('msmtSection', msmtSection);
   if (msmtSection) {
-      const battSection = msmtSection.section.find((s: any) => s['@_name'] === 'BATTERY');
-          if (battSection && battSection.value) {
-              battSection.value.forEach((value: any )=> {
-                  if (value['@_name'] === 'STATUS') {
-                      result.mdc_idc_batt_status = value['#text'];
-                  }
-                  if (value['@_name'] === 'REMAINING_PERCENTAGE') {
-                      result.mdc_idc_batt_percentage = value['#text'];
-                  }
-              });
-          }
-
-      // Get RA section
-      const leadchnl_ra = msmtSection?.section?.find((s: any)  => s['@_name'] === 'LEADCHNL_RA');
-          if (leadchnl_ra && leadchnl_ra.section) {
-              // Get SENSING values
-              const sensingSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'SENSING')
-              : leadchnl_ra.section;
-              if (sensingSection?.value) {
-                  const sensingValue = Array.isArray(sensingSection.value) 
-                      ? sensingSection.value.find((v: any)  => v['@_name'] === 'INTR_AMPL_MEAN')
-                      : sensingSection.value;
-                  result.mdc_idc_msmt_ra_sensing_mean = sensingValue?.['#text'] || '';
-              } else {
-                  result.mdc_idc_msmt_ra_sensing_mean = '';
-              }
-              // Get PACING_THRESHOLD values
-              const pacingSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD')
-              : leadchnl_ra?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_ra.section : null;
-
-              if (pacingSection?.value) {
-              const amplitudeValue = Array.isArray(pacingSection.value)
-                  ? pacingSection.value.find((v: any)  => v['@_name'] === 'AMPLITUDE')
-                  : pacingSection.value;
-              result.mdc_idc_msmt_ra_pacing_threshold = amplitudeValue?.['#text'] || '';
-
-              const pulsewidthValue = Array.isArray(pacingSection.value)
-                  ? pacingSection.value.find((v: any)  => v['@_name'] === 'PULSEWIDTH')
-                  : pacingSection.value;
-              result.mdc_idc_msmt_ra_pw = pulsewidthValue?.['#text'] || '';
-              } else {
-              result.mdc_idc_msmt_ra_pacing_threshold = '';
-              result.mdc_idc_msmt_ra_pw = '';
-              }
-              // Get IMPEDANCE values
-              const impedanceSection = Array.isArray(leadchnl_ra?.section)
-              ? leadchnl_ra.section.find((s: any)  => s['@_name'] === 'IMPEDANCE')
-              : leadchnl_ra.section;
-              if (impedanceSection?.value) {
-                  const impedanceValue = Array.isArray(impedanceSection.value) 
-                  ? impedanceSection?.value?.find((v: any)  => v['@_name'] === 'VALUE')
-                  : impedanceSection?.value;
-                      result.mdc_idc_msmt_ra_impedance_mean = impedanceValue['#text'];
-              } else {
-                  result.mdc_idc_msmt_ra_impedance_mean = '';
-              }
-          };
-
-      // Get LEADCHNL_RV section
-      const leadchnl_rv = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_RV');
-          if (leadchnl_rv && leadchnl_rv.section) {
-              // Get SENSING values
-              const sensingSection = Array.isArray(leadchnl_rv?.section)
-              ? leadchnl_rv.section.find((s: any)  => s['@_name'] === 'SENSING')
-              : leadchnl_rv.section;
-              if (sensingSection && sensingSection.value) {
-                  const sensingValue = Array.isArray(sensingSection?.value) 
-                  ? sensingSection.value.find((v: any)  => v['@_name'] === 'INTR_AMPL_MEAN')
-                  : sensingSection?.value;
-                  if (sensingValue) {
-                      result.mdc_idc_msmt_rv_sensing_mean = sensingValue?.['#text'] || '';
-                  }
-              }
-          // Get PACING_THRESHOLD values
-          const pacingSection = Array.isArray(leadchnl_rv?.section)
-          ? leadchnl_rv.section.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD')
-          : leadchnl_rv?.section?.['@_name'] === 'PACING_THRESHOLD' ? leadchnl_rv.section : null;;
-          if (pacingSection?.value) {
-              const amplitudeValue = pacingSection?.value?.find((v: any)  => v['@_name'] === 'AMPLITUDE');
-              const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
-              if (amplitudeValue) {
-                  result.mdc_idc_msmt_rv_pacing_threshold = amplitudeValue['#text'];
-              }
-              if (pulsewidthValue) {
-                  result.mdc_idc_msmt_rv_pw = pulsewidthValue['#text'];
-              }
-              // Get IMPEDANCE values
-              const impedanceSection = leadchnl_rv?.section?.find((s: any)  => s['@_name'] === 'IMPEDANCE');
-              if (impedanceSection && impedanceSection.value) {
-                  const impedanceValue = impedanceSection?.value?.find((v: any) => v['@_name'] === 'VALUE');
-                  if (impedanceValue) {
-                      result.mdc_idc_msmt_rv_impedance_mean = impedanceValue['#text'];
-                  }
-              }
-          }
+    console.log('msmtSection', msmtSection);
+  
+    const battSection = findSection(msmtSection, 'BATTERY');
+    if (battSection) {
+      result.mdc_idc_batt_status = findValue(battSection, 'STATUS') || '';
+      result.mdc_idc_batt_percentage = findValue(battSection, 'REMAINING_PERCENTAGE') || '';
+    }
+  
+    // LEADCHNL_RA
+    const leadchnl_ra = findSection(msmtSection, 'LEADCHNL_RA');
+    if (leadchnl_ra) {
+      console.log('leadchnl_ra', leadchnl_ra);
+  
+      const sensingSection = findSection(leadchnl_ra, 'SENSING');
+      result.mdc_idc_msmt_ra_sensing_mean = findValue(sensingSection, 'INTR_AMPL_MEAN') || '';
+  
+      const pacingSection = findSection(leadchnl_ra, 'PACING_THRESHOLD');
+      if (pacingSection) {
+        result.mdc_idc_msmt_ra_pacing_threshold = findValue(pacingSection, 'AMPLITUDE') || '';
+        result.mdc_idc_msmt_ra_pw = findValue(pacingSection, 'PULSEWIDTH') || '';
+      } else {
+        result.mdc_idc_msmt_ra_pacing_threshold = '';
+        result.mdc_idc_msmt_ra_pw = '';
       }
-      // Get LEADCHNL_LV section
-      const leadchnl_lv = Array.isArray(msmtSection?.section)
-      ? msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADCHNL_LV')
-      : msmtSection?.section?.['@_name'] === 'LEADCHNL_LV' ? msmtSection?.section : null;
-      if (leadchnl_lv?.value) {
-          const pacingSection = leadchnl_lv?.section?.find((s: any)  => s['@_name'] === 'PACING_THRESHOLD');
-          if (pacingSection?.value) {
-              const amplitudeValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'AMPLITUDE');
-              const pulsewidthValue = pacingSection?.value?.find((v: any) => v['@_name'] === 'PULSEWIDTH');
-              
-              result.mdc_idc_msmt_lv_pacing_threshold = amplitudeValue ? amplitudeValue['#text'] : '';
-              result.mdc_idc_msmt_lv_pw = pulsewidthValue ? pulsewidthValue['#text'] : '';
-          }
-
-          const impedanceSection = leadchnl_lv?.section?.find((s: any)  => s['@_name'] === 'IMPEDANCE');
-          if (impedanceSection?.value) {
-              const impedanceValue = impedanceSection.value.find((v: any) => v['@_name'] === 'VALUE');
-              result.mdc_idc_msmt_lv_impedance_mean = impedanceValue ? impedanceValue['#text'] : '';
-          }
+  
+      const impedanceSection = findSection(leadchnl_ra, 'IMPEDANCE');
+      result.mdc_idc_msmt_ra_impedance_mean = findValue(impedanceSection, 'VALUE') || '';
+    }
+  
+    // LEADCHNL_RV
+    const leadchnl_rv = findSection(msmtSection, 'LEADCHNL_RV');
+    if (leadchnl_rv) {
+      console.log('leadchnl_rv', leadchnl_rv);
+  
+      const sensingSectionRV = findSection(leadchnl_rv, 'SENSING');
+      result.mdc_idc_msmt_rv_sensing_mean = findValue(sensingSectionRV, 'INTR_AMPL_MEAN') || '';
+  
+      const pacingSectionRV = findSection(leadchnl_rv, 'PACING_THRESHOLD');
+      if (pacingSectionRV) {
+        result.mdc_idc_msmt_rv_pacing_threshold = findValue(pacingSectionRV, 'AMPLITUDE') || '';
+        result.mdc_idc_msmt_rv_pw = findValue(pacingSectionRV, 'PULSEWIDTH') || '';
       }
-
-      // Get LEADHVCHNL section
-      const leadhvchnl = msmtSection?.section?.find((s: any) => s['@_name'] === 'LEADHVCHNL');
-      if (leadhvchnl) {
-          // Get HV IMPEDANCE values
-          const leadhvchnlValue = leadhvchnl.value.find((v: any) => v['@_name'] === 'IMPEDANCE');
-          result.mdc_idc_msmt_hv_impedance_mean = leadhvchnlValue['#text'];
+  
+      const impedanceSectionRV = findSection(leadchnl_rv, 'IMPEDANCE');
+      result.mdc_idc_msmt_rv_impedance_mean = findValue(impedanceSectionRV, 'VALUE') || '';
+    }
+  
+    // LEADCHNL_LV
+    const leadchnl_lv = findSection(msmtSection, 'LEADCHNL_LV');
+    if (leadchnl_lv) {
+      const pacingSectionLV = findSection(leadchnl_lv, 'PACING_THRESHOLD');
+      if (pacingSectionLV) {
+        result.mdc_idc_msmt_lv_pacing_threshold = findValue(pacingSectionLV, 'AMPLITUDE') || '';
+        result.mdc_idc_msmt_lv_pw = findValue(pacingSectionLV, 'PULSEWIDTH') || '';
+      } else {
+        result.mdc_idc_msmt_lv_pacing_threshold = '';
+        result.mdc_idc_msmt_lv_pw = '';
       }
-      // STAT section
-      const setSection = idcSection.section.find((s: any) => s['@_name'] === 'SET');
-      if (setSection?.section) {
-          const bradySection = setSection.section.find((s: any) => s['@_name'] === 'BRADY');
-          if (bradySection){
-            const bradyValue = bradySection.value.find((v: any) => v['@_name'] === 'LOWRATE');
-            result.mdc_idc_set_brady_lowrate = bradyValue ? bradyValue['#text'] : '';
-            const modeValue = bradySection.value.find((v: any) => v['@_name'] === 'VENDOR_MODE');
-            result.mdc_idc_set_brady_mode = modeValue ? modeValue['#text'] : '';
-            const trackingRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_TRACKING_RATE');
-            result.mdc_idc_set_brady_max_tracking_rate = trackingRateValue ? trackingRateValue['#text'] : '';
-            const sensorRateValue = bradySection.value.find((v: any) => v['@_name'] === 'MAX_SENSOR_RATE');
-            result.mdc_idc_set_brady_max_sensor_rate = sensorRateValue ? sensorRateValue['#text'] : '';
-            const modeSwitchRate = bradySection.value.find((v: any) => v['@_name'] === 'AT_MODE_SWITCH_RATE');
-            result.mdc_idc_set_brady_mode_switch_rate = modeSwitchRate ? modeSwitchRate['#text'] : '';
+  
+      const impedanceSectionLV = findSection(leadchnl_lv, 'IMPEDANCE');
+      result.mdc_idc_msmt_lv_impedance_mean = findValue(impedanceSectionLV, 'VALUE') || '';
+    }
+  
+    // LEADHVCHNL
+    const leadhvchnl = findSection(msmtSection, 'LEADHVCHNL');
+    if (leadhvchnl) {
+      result.mdc_idc_msmt_hv_impedance_mean = findValue(leadhvchnl, 'IMPEDANCE') || '';
+    }
+  
+    // SET
+    const setSection = findSection(idcSection, 'SET');
+    if (setSection) {
+      console.log('setSection', setSection);
+  
+      const bradySection = findSection(setSection, 'BRADY');
+      if (bradySection) {
+        result.mdc_idc_set_brady_lowrate = findValue(bradySection, 'LOWRATE') || '';
+        result.mdc_idc_set_brady_mode = findValue(bradySection, 'VENDOR_MODE') || '';
+        result.mdc_idc_set_brady_max_tracking_rate = findValue(bradySection, 'MAX_TRACKING_RATE') || '';
+        result.mdc_idc_set_brady_max_sensor_rate = findValue(bradySection, 'MAX_SENSOR_RATE') || '';
+        result.mdc_idc_set_brady_mode_switch_rate = findValue(bradySection, 'AT_MODE_SWITCH_RATE') || '';
+      }
+  
+      const tachyTherapySection = findSection(setSection, 'TACHYTHERAPY');
+      const isTachyOn = findValue(tachyTherapySection, 'VSTAT') === 'On';
+      if (isTachyOn) {
+        console.log('Tachytherapy is enabled');
+        const zoneSections = findSections(setSection, 'ZONE');
+        zoneSections.forEach((zone: any) => {
+          const vendorType = findValue(zone, 'VENDOR_TYPE');
+          switch (vendorType) {
+            case 'BIO-Zone_VT1':
+              result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+              result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+              result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+              result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+              result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+              result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+              result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+              result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+              result.VT1_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+              break;
+            case 'BIO-Zone_VT2':
+              result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+              result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+              result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+              result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+              result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+              result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+              result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+              result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+              result.VT2_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+              break;
+            case 'BIO-Zone_VF':
+              result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+              result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+              result.VF_therapy_1_energy = findValue(zone, 'SHOCK_ENERGY_1');
+              result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_2');
+              result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_3');
+              result.VF_therapy_3_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+              break;
           }
-                // Parse TACHYTHERAPY settings
-        const tachyTherapySection = setSection.section.find((s: any) => s['@_name'] === 'TACHYTHERAPY');
-        const isTachyOn = findValue(tachyTherapySection, 'VSTAT') === 'On';
-        if (isTachyOn){
-          const zoneSections = setSection.section.filter((s: any) => s['@_name'] === 'ZONE');
-        
-          zoneSections.forEach((zone: any) => {
-            const vendorType = findValue(zone, 'VENDOR_TYPE');
-            
-            switch (vendorType) {
-              case 'BIO-Zone_VT1':
-                result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-                result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-                result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
-                result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
-                result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
-                result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
-                result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
-                result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
-                result.VT1_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
-                break;
-              case 'BIO-Zone_VT2':
-                result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-                result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-                result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
-                result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
-                result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
-                result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
-                result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
-                result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
-                result.VT2_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
-                break;
-              case 'BIO-Zone_VF':
-                result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-                result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-                result.VF_therapy_1_energy = findValue(zone, 'SHOCK_ENERGY_1');
-                result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_2');
-                result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_3');
-                result.VF_therapy_3_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
-                break;
-            }
-          });
+        });
       }
   }
   return result;
 }
-
-// Helper to find a single section by @name (handles array/object)
-const findSection = (section: any, name: string) => {
-  if (!section) return null;
-  const secs = Array.isArray(section) ? section : [section];
-  return secs.find((s: any) => s['@_name'] === name) || null;
-}
-// Helper to find all matching sections by @name
-const findSections = (section: any, name: string) => {
-  if (!section) return [];
-  const secs = Array.isArray(section) ? section : [section];
-  return secs.filter((s: any) => s['@_name'] === name);
-};
-// Helper to find a value node by name (handles array/object)
-const findValueNode = (section: any, name: string) => {
-  if (!section) return null;
-  const values = Array.isArray(section.value) ? section.value : (section.value ? [section.value] : []);
-  return values.find((v: any) => v['@_name'] === name) || null;
-};
-try { // Look for REPORTS > STATUS_REPORT
-  const reportsSection = idcSection?.section && findSection(idcSection.section, 'REPORTS');
-  if (reportsSection) {
-    const statusReports = reportsSection.section ? findSections(reportsSection.section, 'STATUS_REPORT') : [];
-  }
-} catch (error) {
-  console.error('Failed to parse embedded STATUS_REPORT PDF from XML:', error);
-}
-
-for (const sr of statusReports) {
-  const idNode = findValueNode(sr, 'ID');
-  const contentNode = findValueNode(sr, 'CONTENT');
-
-  const idText = idNode?.['#text'];
-  const contentText = contentNode?.['#text'];
-  const contentType = contentNode?.['@_contentType'] || contentNode?.['@_mimeType'] || '';
-  const encoding = (contentNode?.['@_encoding'] || '').toLowerCase();
-
-  // We only care about PDFs and base64 content
-  if (idText && contentText && /pdf/i.test(contentType) && (!encoding || encoding === 'base64')) {
-    const cleanBase64 = String(contentText).replace(/\s+/g, '');
-    const byteStr = atob(cleanBase64);
-    const bytes = new Uint8Array(byteStr.length);
-    for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
-
-    const fileName = idText.toLowerCase().endsWith('.pdf') ? idText : `${idText}.pdf`;
-    const file = new File([bytes], fileName, { type: 'application/pdf' });
-
-    result.xml_report_pdf_file = file;
-    result.xml_report_pdf_name = fileName;
-    break; // Just take the first one
-  }
-}
-console.log('Parsed XML file:', result);
-return result;
+  console.log('Parsed XML file:', result);
+  return result;
 }
 
 

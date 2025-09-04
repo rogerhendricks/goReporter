@@ -245,6 +245,29 @@ export function ReportForm({ patient }: ReportFormProps) {
       updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(data.mdc_idc_msmt_hv_impedance_mean);
     }
 
+    // If an embedded PDF was discovered in XML, convert and add to pdfManager
+    if (data.embeddedPdfBase64) {
+      try {
+        const b64 = data.embeddedPdfBase64;
+        const byteLen = atob(b64);
+        const bytes = new Uint8Array(byteLen.length);
+        for (let i = 0; i < byteLen.length; i++) bytes[i] = byteLen.charCodeAt(i);
+        const fileName = data.embeddedPdfName || `embedded_report_${patient.id}.pdf`;
+        const file = new File([bytes], fileName, { type: 'application/pdf' });
+
+        // Use DataTransfer to produce a FileList for pdfManager.addFiles
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        // pdfManager.addFiles expects an input FileList (like from <input type="file">)
+        if (typeof (pdfManager as any).addFiles === 'function') {
+          (pdfManager as any).addFiles(dt.files);
+        }
+        toast.success('Embedded PDF found and queued for upload', { description: fileName });
+      } catch (e) {
+        console.error('Failed to attach embedded PDF from XML:', e);
+      }
+    }
+
     // Update the form data
     setFormData(updatedFormData);
     
