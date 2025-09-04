@@ -66,6 +66,9 @@ go-fiber-backend
 5. **Future features:**
    Patient medications, billing
    
+6. **Todo**
+   Remove soft deletes for updating implanted devices and implanted leads in database
+   
 ## Usage
 
 The API provides various endpoints for managing users, devices, doctors, patients, medications, leads, and reports. Refer to the individual handler files for specific route details and request formats.
