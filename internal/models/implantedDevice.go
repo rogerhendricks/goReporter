@@ -11,7 +11,7 @@ type ImplantedDevice struct {
     DeviceID     uint      `json:"deviceId" gorm:"not null"`
     Serial       string    `json:"serial" gorm:"type:varchar(100);not null"`
     ImplantedAt  time.Time `json:"implantedAt" gorm:"not null"`
-    ExplantedAt  *time.Time `json:"explantedAt"`
+    ExplantedAt  *time.Time `json:"explantedAt" gorm:"default:null"`
     Status       string    `json:"status" gorm:"type:varchar(50);default:'Active'"`
     
     // Relationships

@@ -18,6 +18,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// Helpers
+func parseRFC3339OrDate(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, errors.New("empty")
+	}
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	// Fallback for "YYYY-MM-DD"
+	return time.Parse("2006-01-02", s)
+}
+
+func parseOptionalTimePtr(s string) (*time.Time, error) {
+	t, err := parseRFC3339OrDate(s)
+	if err != nil {
+		return nil, nil // treat invalid/empty as NULL
+	}
+	return &t, nil
+}
+
 // --- DTOs for API Responses ---
 
 type PatientResponse struct {
@@ -255,6 +276,7 @@ func CreatePatient(c *fiber.Ctx) error {
 			Serial      string `json:"serial"`
 			Status      string `json:"status"`
 			ImplantedAt string `json:"implantedAt"` // Accept date as string
+			ExplantedAt string `json:"explantedAt"` // Accept date as string
 		} `json:"devices"`
 		Leads []struct {
 			LeadID      uint   `json:"leadId"`
@@ -262,6 +284,7 @@ func CreatePatient(c *fiber.Ctx) error {
 			Chamber     string `json:"chamber"`
 			Status      string `json:"status"`
 			ImplantedAt string `json:"implantedAt"` // Accept date as string
+			ExplantedAt string `json:"explantedAt"` // Accept date as string
 		} `json:"leads"`
 		Medications []interface{} `json:"medications"`
 	}
@@ -365,24 +388,34 @@ func CreatePatient(c *fiber.Ctx) error {
 			IsPrimary: pd.IsPrimary,
 		})
 	}
-	for _, d := range input.Devices {
-		implantDate, _ := time.Parse("2006-01-02", d.ImplantedAt)
-		newPatient.ImplantedDevices = append(newPatient.ImplantedDevices, models.ImplantedDevice{
-			DeviceID:    d.DeviceID,
-			Serial:      d.Serial,
-			Status:      d.Status,
-			ImplantedAt: implantDate,
-		})
-	}
-	for _, l := range input.Leads {
-		implantDate, _ := time.Parse("2006-01-02", l.ImplantedAt)
-		newPatient.ImplantedLeads = append(newPatient.ImplantedLeads, models.ImplantedLead{
-			LeadID:      l.LeadID,
-			Serial:      l.Serial,
-			Chamber:     l.Chamber,
-			Status:      l.Status,
-			ImplantedAt: implantDate,
-		})
+    for _, d := range input.Devices {
+        implAt, err := parseRFC3339OrDate(d.ImplantedAt)
+        if err != nil {
+            implAt = time.Now().UTC()
+        }
+        expAt, _ := parseOptionalTimePtr(d.ExplantedAt)
+        newPatient.ImplantedDevices = append(newPatient.ImplantedDevices, models.ImplantedDevice{
+            DeviceID:    d.DeviceID,
+            Serial:      d.Serial,
+            Status:      d.Status,
+            ImplantedAt: implAt,
+            ExplantedAt: expAt,
+        })
+    }
+    for _, l := range input.Leads {
+        implAt, err := parseRFC3339OrDate(l.ImplantedAt)
+        if err != nil {
+            implAt = time.Now().UTC()
+        }
+        expAt, _ := parseOptionalTimePtr(l.ExplantedAt)
+        newPatient.ImplantedLeads = append(newPatient.ImplantedLeads, models.ImplantedLead{
+            LeadID:      l.LeadID,
+            Serial:      l.Serial,
+            Chamber:     l.Chamber,
+            Status:      l.Status,
+            ImplantedAt: implAt,
+            ExplantedAt: expAt,
+        })
 	}
 
 	// Create patient and all associations in one transaction
@@ -436,6 +469,7 @@ func UpdatePatient(c *fiber.Ctx) error {
 			Serial      string `json:"serial"`
 			Status      string `json:"status"`
 			ImplantedAt string `json:"implantedAt"`
+			ExplantedAt string `json:"explantedAt"`
 		} `json:"devices"`
 		Leads []struct {
 			LeadID      uint   `json:"leadId"`
@@ -443,6 +477,7 @@ func UpdatePatient(c *fiber.Ctx) error {
 			Chamber     string `json:"chamber"`
 			Status      string `json:"status"`
 			ImplantedAt string `json:"implantedAt"`
+			ExplantedAt string `json:"explantedAt"`
 		} `json:"leads"`
 	}
 
@@ -497,7 +532,6 @@ func UpdatePatient(c *fiber.Ctx) error {
 				addrID = &id
 			}
 		}
-
 		newPatientDoctor := models.PatientDoctor{
 			PatientID: existingPatient.ID,
 			DoctorID:  pd.DoctorID,
@@ -510,36 +544,46 @@ func UpdatePatient(c *fiber.Ctx) error {
 		}
 	}
 
-	for _, d := range input.Devices {
-		implantDate, _ := time.Parse("2006-01-02", d.ImplantedAt)
-		newDevice := models.ImplantedDevice{
-			PatientID:   existingPatient.ID,
-			DeviceID:    d.DeviceID,
-			Serial:      d.Serial,
-			Status:      d.Status,
-			ImplantedAt: implantDate,
-		}
-		if err := tx.Create(&newDevice).Error; err != nil {
-			tx.Rollback()
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
-		}
-	}
+    for _, d := range input.Devices {
+        implAt, err := parseRFC3339OrDate(d.ImplantedAt)
+        if err != nil {
+            implAt = time.Now().UTC()
+        }
+        expAt, _ := parseOptionalTimePtr(d.ExplantedAt)
+        dev := models.ImplantedDevice{
+            PatientID:   existingPatient.ID,
+            DeviceID:    d.DeviceID,
+            Serial:      d.Serial,
+            Status:      d.Status,
+            ImplantedAt: implAt,
+            ExplantedAt: expAt,
+        }
+        if err := tx.Create(&dev).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
+        }
+    }
 
-	for _, l := range input.Leads {
-		implantDate, _ := time.Parse("2006-01-02", l.ImplantedAt)
-		newLead := models.ImplantedLead{
-			PatientID:   existingPatient.ID,
-			LeadID:      l.LeadID,
-			Serial:      l.Serial,
-			Chamber:     l.Chamber,
-			Status:      l.Status,
-			ImplantedAt: implantDate,
-		}
-		if err := tx.Create(&newLead).Error; err != nil {
-			tx.Rollback()
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
-		}
-	}
+    for _, l := range input.Leads {
+        implAt, err := parseRFC3339OrDate(l.ImplantedAt)
+        if err != nil {
+            implAt = time.Now().UTC()
+        }
+        expAt, _ := parseOptionalTimePtr(l.ExplantedAt)
+        lead := models.ImplantedLead{
+            PatientID:   existingPatient.ID,
+            LeadID:      l.LeadID,
+            Serial:      l.Serial,
+            Chamber:     l.Chamber,
+            Status:      l.Status,
+            ImplantedAt: implAt,
+            ExplantedAt: expAt,
+        }
+        if err := tx.Create(&lead).Error; err != nil {
+            tx.Rollback()
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
+        }
+    }
 
 	if err := tx.Commit().Error; err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit transaction"})

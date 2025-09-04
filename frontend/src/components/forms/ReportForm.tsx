@@ -98,6 +98,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
+  console.log('Rendering ReportForm with patient:', patient)
 
   const handleDataImported = (data: ParsedData) => {
     // Map the parsed data to your form fields
