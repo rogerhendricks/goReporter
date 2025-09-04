@@ -88,6 +88,8 @@ export interface ParsedData {
   VF_therapy_3_energy?: string;
   VF_therapy_4_energy?: string;
   VF_therapy_4_max_num_shocks?: string;
+  embeddedPdfBase64?: string;
+  embeddedPdfName?: string;
   [key: string]: any;
 }
 
@@ -1085,9 +1087,31 @@ function parseXmlFile(fileContent: string): ParsedData {
           }
         });
       }
+    }
   }
-  return result;
-}
+
+
+  try {
+    console.log('Attempting to extract embedded PDF from XML...');
+    const bioSection = Array.isArray(sections) ? sections.find((s: any) => s['@_name'] === 'BIO') : sections;  
+    console.log('bioSection', bioSection);
+
+    // Use safe section finder to avoid .find on non-arrays
+    const requestSection = findSection(bioSection, 'REQUEST');
+    const reportsSection = findSection(requestSection, 'REPORTS');
+    const statusReportSection = findSection(reportsSection, 'STATUS_REPORT');
+    const idValue = statusReportSection.value.find((v: any) => v['@_name'] === 'ID');
+    const embeddePdfvalue = statusReportSection.value.find((v: any) => v['@_name'] === 'CONTENT');
+    const fileName = idValue['#text'].replace(/\s+/g, '') + '.pdf';
+    if (idValue && typeof idValue['#text'] === 'string' && looksLikeBase64Pdf(embeddePdfvalue['#text'])) {
+      result.embeddedPdfBase64 = embeddePdfvalue['#text'].replace(/\s+/g, ''); // strip whitespace/newlines
+      result.embeddedPdfName = fileName
+    }
+    console.log('Extracted embedded PDF name:', result.embeddedPdfName);
+    console.log('Extracted embedded PDF base64 length:', result.embeddedPdfBase64?.length);
+  } catch (err) {
+    console.error('Error extracting embedded PDF from XML', err);
+  }
   console.log('Parsed XML file:', result);
   return result;
 }
