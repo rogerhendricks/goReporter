@@ -466,6 +466,60 @@ export function ReportForm({ patient }: ReportFormProps) {
     <div className="container mx-auto py-6">
     <BreadcrumbNav items={breadcrumbItems} />
 
+    <div>
+  {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
+  {(() => {
+    const p = (typeof patient !== 'undefined' && patient) ? patient : (typeof currentPatient !== 'undefined' ? currentPatient : null)
+    const activeDevices = (p?.devices ?? []).filter((d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt)
+    const activeLeads = (p?.leads ?? []).filter((l: any) => String(l?.status || '').toLowerCase() === 'active' && !l?.explantedAt)
+
+    if (!p) return null
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded-2xl bg-white shadow">
+        <div>
+          <h4 className="text-sm font-medium mb-2">Active Implanted Device(s)</h4>
+          {activeDevices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active devices.</p>
+          ) : (
+            <ul className="space-y-1">
+              {activeDevices.map((d: any) => (
+                <li key={d.id} className="text-sm">
+                  <span className="font-medium">{d?.device?.manufacturer}</span>
+                  {' • '}
+                  {d?.device?.name}
+                  {' • '}
+                  SN: {d?.serial}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <h4 className="text-sm font-medium mb-2">Active Implanted Lead(s)</h4>
+          {activeLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active leads.</p>
+          ) : (
+            <ul className="space-y-1">
+              {activeLeads.map((l: any) => (
+                <li key={l.id} className="text-sm">
+                  <span className="font-medium">{l?.lead?.manufacturer}</span>
+                  {' • '}
+                  {l?.lead?.name}
+                  {' • '}
+                  SN: {l?.serial}
+                  {l?.chamber ? <> {' • '} {l.chamber}</> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    )
+  })()}
+</div>
+
     <form onSubmit={handleSubmit} className="space-y-6">
     <FileImporter onDataImported={handleDataImported} />
     
