@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import logoUrl from '../../assets/rpm-fusion-logo.min.svg'
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore()
@@ -38,11 +39,15 @@ export function Navbar() {
     user?.username || [user?.username].filter(Boolean).join(' ') || 'Account'
 
   return (
-    <header className="px-4 lg:px-6 h-14 flex items-center bg-background border-b sticky top-0 z-50">
+    <header className="px-4 lg:px-6 h-12 flex items-center bg-background border-b sticky top-0 z-50">
       <div className="flex items-center">
         <Link to="/" className="flex items-center justify-center mr-6">
-          <HeartPulse className="h-6 w-6" />
-          <span className="sr-only">CarePulse</span>
+        <img
+        src={logoUrl}
+        alt="RPM Fusion — Remote Patient Management"
+        className="h-11 w-auto"
+        />
+        <span className="sr-only">RPM Fusion</span>
         </Link>
 
         {/* Desktop Navigation */}

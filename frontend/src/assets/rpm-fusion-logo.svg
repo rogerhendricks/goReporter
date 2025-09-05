@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="200" viewBox="0 0 640 200" role="img" aria-label="RPM Fusion - Remote Patient Management">
+  <title>RPM Fusion — Remote Patient Management</title>
+  <defs>
+    <style>
+      .brand { fill:#0A3D62; }
+      .accent { fill:#E63946; }
+      .white { fill:#FFFFFF; }
+      text { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Icon -->
+  <g transform="translate(24,24)">
+    <circle cx="56" cy="56" r="56" fill="#0A3D62"/>
+    <circle cx="56" cy="56" r="48" fill="#FFFFFF" opacity="0.15"/>
+    <!-- Heart -->
+    <path class="accent" d="M56 38c7-10 22-9 28 2 4 7 3 17-3 23l-25 23-25-23c-6-6-7-16-3-23 6-11 21-12 28-2z"/>
+    <!-- ECG line -->
+    <polyline class="white" points="26,58 42,58 48,46 54,70 62,52 70,58 86,58" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(160,74)">
+    <text x="0" y="0" font-size="64" class="brand" font-weight="700">RPM</text>
+    <text x="214" y="0" font-size="48" class="brand" font-weight="600" letter-spacing="2">FUSION</text>
+    <text x="0" y="52" font-size="20" class="brand" letter-spacing="1.5">REMOTE PATIENT MANAGEMENT</text>
+  </g>
+</svg>

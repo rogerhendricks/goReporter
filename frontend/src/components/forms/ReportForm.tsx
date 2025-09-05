@@ -469,7 +469,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     <div>
   {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
   {(() => {
-    const p = (typeof patient !== 'undefined' && patient) ? patient : (typeof currentPatient !== 'undefined' ? currentPatient : null)
+    const p = (typeof patient !== 'undefined' && patient) ? patient : (typeof patient !== 'undefined' ? patient : null)
     const activeDevices = (p?.devices ?? []).filter((d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt)
     const activeLeads = (p?.leads ?? []).filter((l: any) => String(l?.status || '').toLowerCase() === 'active' && !l?.explantedAt)
 
@@ -832,6 +832,23 @@ export function ReportForm({ patient }: ReportFormProps) {
           <Button type="button" variant="outline" onClick={addArrhythmia}>
             <Plus className="mr-2 h-4 w-4" /> Add Arrhythmia Event
           </Button>
+        </CardContent>
+      </Card>
+
+          {/* Add  Comments and completed in a card here  */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Comments</CardTitle>
+          <CardDescription>Any notes or comments about this report.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+        <div className="space-y-2 pt-2">
+            <Textarea id="comments" name="comments" value={formData.comments || ''} onChange={(e) => setFormData(prev => ({...prev, comments: e.target.value}))} placeholder="Add any relevant comments here..." />
+          </div>
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox id="isCompleted" name="isCompleted" checked={!!formData.isCompleted} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCompleted: !!checked }))} />
+            <Label htmlFor="isCompleted" className="font-normal">Mark as Completed</Label>
+          </div>        
         </CardContent>
       </Card>
 
