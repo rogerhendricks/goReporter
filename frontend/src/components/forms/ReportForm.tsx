@@ -608,7 +608,7 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
         </CardContent>
       </Card>
-      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Bradycardia Settings</CardTitle>
@@ -647,6 +647,16 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tachy Settings</CardTitle>
+          <CardDescription>Programmed parameters for tachycardia.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          Tachycardia Settings
+        </CardContent>
+      </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -835,7 +845,6 @@ export function ReportForm({ patient }: ReportFormProps) {
         </CardContent>
       </Card>
 
-          {/* Add  Comments and completed in a card here  */}
       <Card>
         <CardHeader>
           <CardTitle>Comments</CardTitle>
