@@ -476,7 +476,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     if (!p) return null
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded-2xl bg-white shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded-2xl shadow dark:bg-[#1c2430]">
         <div>
           <h4 className="text-sm font-medium mb-2">Active Implanted Device(s)</h4>
           {activeDevices.length === 0 ? (
