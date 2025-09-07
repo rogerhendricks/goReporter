@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
+import type { ChartOptions } from 'chart.js'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -28,6 +29,25 @@ export function DonutChart({ title, slices, colors = defaultColors }: DonutChart
     ],
   }
 
+  const options: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false, // allow the parent height to control the canvas
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'left',
+        align: 'center',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 10,
+          padding: 12,
+        },
+      },
+      tooltip: { enabled: true },
+    },
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -37,7 +57,9 @@ export function DonutChart({ title, slices, colors = defaultColors }: DonutChart
         {slices.length === 0 ? (
           <p className="text-muted-foreground text-sm">No data</p>
         ) : (
-          <Doughnut data={data} />
+          <div className="h-full w-full">
+            <Doughnut data={data} options={options} />
+          </div>
         )}
       </CardContent>
     </Card>

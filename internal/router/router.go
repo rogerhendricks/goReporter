@@ -12,12 +12,12 @@ func SetupRoutes(app *fiber.App) {
 	auth.Post("/login", handlers.Login)
 	auth.Post("/register", handlers.Register)
 	auth.Post("/logout", middleware.AuthenticateJWT, handlers.Logout)
-    auth.Post("/refresh-token", handlers.RefreshToken) 
+	auth.Post("/refresh-token", handlers.RefreshToken)
 	auth.Get("/me", middleware.AuthenticateJWT, handlers.GetMe)
 
 	// Admin routes
 	app.Use(middleware.AuthenticateJWT)
-	
+
 	// app.Get("/api/admin", handlers.GetAdminData)
 
 	// User routes
@@ -70,15 +70,16 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/medications/:id", handlers.DeleteMedication)
 
 	// Report routes
-    app.Post("/api/reports", middleware.AuthenticateJWT, handlers.UploadFile, handlers.CreateReport)
-    app.Get("/api/patients/:patientId/reports", middleware.AuthenticateJWT, handlers.GetReportsByPatient)
-    app.Get("/api/reports/:id", middleware.AuthenticateJWT, handlers.GetReport)
-    app.Put("/api/reports/:id", middleware.AuthenticateJWT, handlers.UploadFile, handlers.UpdateReport)
-    app.Delete("/api/reports/:id", middleware.AuthenticateJWT, handlers.DeleteReport)
+	app.Post("/api/reports", middleware.AuthenticateJWT, handlers.UploadFile, handlers.CreateReport)
+	app.Get("/api/reports/recent", handlers.GetRecentReports)
+	app.Get("/api/patients/:patientId/reports", middleware.AuthenticateJWT, handlers.GetReportsByPatient)
+	app.Get("/api/reports/:id", middleware.AuthenticateJWT, handlers.GetReport)
+	app.Put("/api/reports/:id", middleware.AuthenticateJWT, handlers.UploadFile, handlers.UpdateReport)
+	app.Delete("/api/reports/:id", middleware.AuthenticateJWT, handlers.DeleteReport)
 
 	// Search routes
 	app.Get("/api/search/patients", middleware.AuthenticateJWT, handlers.SearchPatientsComplex)
-	
+
 	// File routes
 	app.Get("/api/files/*", middleware.AuthenticateJWT, handlers.ServeFile)
 
