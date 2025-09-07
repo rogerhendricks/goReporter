@@ -8,7 +8,7 @@ import api from '@/utils/axios'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-
+import { Link } from 'react-router-dom' 
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -141,8 +141,8 @@ useEffect(() => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Patient</TableHead>
                     <TableHead>MRN</TableHead>
+                    <TableHead>Patient</TableHead>
                     <TableHead>Report Date</TableHead>
                     <TableHead>Created By</TableHead>
                     <TableHead>Status</TableHead>
@@ -152,19 +152,31 @@ useEffect(() => {
                 <TableBody>
                   {recentReports.map((r) => {
                     const p = r.patient
-                    const patientName = p
-                      ? [p.lname, p.fname].filter(Boolean).join(', ')
-                      : '—'
+                    const patientName = p ? [p.lname, p.fname].filter(Boolean).join(', ') : '—'
                     const mrn = p?.mrn || '—'
                     const createdBy = r.createdBy || '—'
-                    const reportDate = r.reportDate
-                      ? new Date(r.reportDate).toLocaleDateString()
-                      : '—'
+                    const reportDateStr = r.reportDate ? new Date(r.reportDate).toLocaleDateString() : '—'
+
+                    const patientCell = p?.id
+                      ? (
+                        <Link to={`/patients/${p.id}`} className="text-primary hover:underline">
+                          {patientName}
+                        </Link>
+                      )
+                      : patientName
+
+                    const reportDateCell = r.id
+                      ? (
+                        <Link to={`/reports/${r.id}/edit`} className="text-primary hover:underline">
+                          {reportDateStr}
+                        </Link>
+                      )
+                      : reportDateStr
                     return (
                       <TableRow key={r.id}>
-                        <TableCell>{patientName}</TableCell>
                         <TableCell>{mrn}</TableCell>
-                        <TableCell>{reportDate}</TableCell>
+                        <TableCell>{patientCell}</TableCell>
+                        <TableCell>{reportDateCell}</TableCell>
                         <TableCell>{createdBy}</TableCell>
                         <TableCell>{r.reportStatus || '—'}</TableCell>
                         <TableCell>{r.reportType || '—'}</TableCell>
