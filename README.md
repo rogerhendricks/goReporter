@@ -1,4 +1,4 @@
-# go-fiber-backend/go-fiber-backend/README.md
+# go-fiber-backend/README.md
 
 # Go Fiber Backend
 
@@ -58,15 +58,22 @@ go-fiber-backend
 3. **Configure environment variables:**
    Create a `.env` file in the root directory and set the necessary environment variables.
 
-4. **Run the application:**
+4. **Seed Database**
+   Edit internal/bootstrap/bootstrap.go to add any additional data to the database
+   * One-time and seed:  
+   ```
+   DB_RESET=file DB_SEED=1 go run cmd/api/main.go
+   ```
+
+5. **Run the application:**
    ```
    go run cmd/api/main.go
    ```
 
-5. **Future features:**
+6. **Future features:**
    Patient medications, billing
    
-6. **Todo**
+7. **Todo**
    Remove soft deletes for updating implanted devices and implanted leads in database
    
 ## Usage

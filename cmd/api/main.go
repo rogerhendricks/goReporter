@@ -2,12 +2,13 @@ package main
 
 import (
     // "fmt"
-    
+    "os"
     "log"
     "github.com/gofiber/fiber/v2"
     "github.com/gofiber/fiber/v2/middleware/limiter"
     "github.com/rogerhendricks/goReporter/internal/router"
     "github.com/rogerhendricks/goReporter/internal/config"
+    "github.com/rogerhendricks/goReporter/internal/bootstrap"
     // "github.com/rogerhendricks/goReporter/internal/models"
     "github.com/rogerhendricks/goReporter/internal/handlers"
     "time"
@@ -28,11 +29,24 @@ func main() {
         }
     }()
 
+    // Optional: reset SQLite DB file on startup if requested
+    // DB_RESET=file -> remove [reporter.db](http://_vscodecontentref_/1) before connecting
+    if os.Getenv("DB_RESET") == "file" {
+        if err := os.Remove("reporter.db"); err == nil {
+            log.Println("SQLite database file removed for reset.")
+        }
+    }
+
     // Load config from .env file for port address
     // cfg := config.LoadConfig()
 
     // Initialize the database connection
     config.ConnectDatabase()
+
+    // Run migrations and seeding
+    if err := bootstrap.MigrateAndSeed(); err != nil {
+        log.Fatalf("Database migration/seed failed: %v", err)
+    }
 
     // // Migrate the models
     // err := config.DB.AutoMigrate(

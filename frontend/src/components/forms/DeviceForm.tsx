@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 // import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,6 +17,7 @@ interface DeviceFormData {
   manufacturer: string
   model: string
   type: string
+  polarity?: string
   isMri: boolean
 }
 
@@ -31,6 +33,7 @@ export default function DeviceForm() {
     manufacturer: '',
     model: '',
     type: '',
+    polarity: '',
     isMri: false
   })
 
@@ -47,6 +50,7 @@ export default function DeviceForm() {
         manufacturer: currentDevice.manufacturer,
         model: currentDevice.model,
         type: currentDevice.type,
+        polarity: currentDevice.polarity,
         isMri: currentDevice.isMri
       })
     }
@@ -54,6 +58,10 @@ export default function DeviceForm() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
@@ -100,8 +108,31 @@ export default function DeviceForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><Label htmlFor="name">Device Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="model">Model</Label><Input id="model" name="model" value={formData.model} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="manufacturer">Manufacturer</Label><Input id="manufacturer" name="manufacturer" value={formData.manufacturer} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="type">Type</Label><Input id="type" name="type" value={formData.type} onChange={handleInputChange} required /></div>
+              <div>
+                <Label htmlFor="manufacturer">Manufacturer</Label>
+                {/* <Input id="manufacturer" name="manufacturer" value={formData.manufacturer} onChange={handleInputChange} required /> */}
+                <Select name="manufacturer" value={formData.manufacturer || ''} onValueChange={(value) => handleSelectChange('manufacturer', value)} required>
+                <SelectTrigger><SelectValue placeholder="Select manufacturer..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Abbott">Abbott</SelectItem>
+                  <SelectItem value="Biotronik">Biotronik</SelectItem>
+                  <SelectItem value="Boston Scientific">Boston Sceintific</SelectItem>
+                  <SelectItem value="Medtronic">Medtronic</SelectItem>
+                  <SelectItem value="Microport">Microport</SelectItem>
+                </SelectContent>
+              </Select>
+              </div>
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select name="type" value={formData.type || ''} onValueChange={(value) => handleSelectChange('type', value)} required>
+                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pacemaker">Pacemaker</SelectItem>
+                  <SelectItem value="Defibrillator">Defibrillator</SelectItem>
+                  <SelectItem value="ILR">Loop Recorder</SelectItem>
+                </SelectContent>
+              </Select>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox id="isMri" name="isMri" checked={formData.isMri} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isMri: !!checked }))} />

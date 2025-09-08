@@ -7,6 +7,7 @@ interface Device {
   manufacturer: string
   model: string
   type: string
+  polarity: string
   isMri: boolean
 }
 

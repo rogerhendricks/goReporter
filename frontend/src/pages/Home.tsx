@@ -134,7 +134,7 @@ useEffect(() => {
         <div className="mt-6">
           <Card>
           <CardHeader>
-            <CardTitle>Newest Reports</CardTitle>
+            <CardTitle>Recent Reports</CardTitle>
           </CardHeader>
           <CardContent>
             {recentReports.length > 0 ? (

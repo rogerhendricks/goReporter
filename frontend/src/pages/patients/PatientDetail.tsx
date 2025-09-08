@@ -204,10 +204,10 @@ export default function PatientDetail() {
                   {currentPatient.devices.map((implanted) => (
                     <TableRow key={implanted.id}>
                       <TableCell className="text-left">
-                        <div className="font-medium">{implanted.device.name}</div>
                         <div className="text-sm text-muted-foreground">
                           {implanted.device.manufacturer} {implanted.device.model}
                         </div>
+                        <div className="font-medium">{implanted.device.name}</div>
                       </TableCell>
                       <TableCell className="text-left">{implanted.serial}</TableCell>
                       <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
@@ -244,8 +244,8 @@ export default function PatientDetail() {
                   {currentPatient.leads.map((implanted) => (
                     <TableRow key={implanted.id}>
                       <TableCell className="text-left">
-                        <div className="font-medium">{implanted.lead.name}</div>
                         <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.leadModel}</div>
+                        <div className="font-medium">{implanted.lead.name}</div>
                       </TableCell>
                       <TableCell className="text-left">{implanted.serial}</TableCell>
                       <TableCell className="text-left">{implanted.chamber}</TableCell>

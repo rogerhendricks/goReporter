@@ -257,6 +257,7 @@ func UpdateDevice(c *fiber.Ctx) error {
     if updateData.Type != "" {
         existingDevice.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
     }
+
     // Update boolean field
     existingDevice.IsMri = updateData.IsMri
 
