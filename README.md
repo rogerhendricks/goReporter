@@ -60,10 +60,14 @@ go-fiber-backend
 
 4. **Seed Database**
    Edit internal/bootstrap/bootstrap.go to add any additional data to the database
-   * One-time and seed:  
+   * Full file-based reset and seed / removes databse file and then recreates it:  
    ```
    DB_RESET=file DB_SEED=1 go run cmd/api/main.go
    ```
+   * DB reset and seed / table drop without file removal:
+   ``
+   DB_RESET=drop DB_SEED=1 go run cmd/api/main.go
+   ``
 
 5. **Run the application:**
    ```
@@ -74,7 +78,7 @@ go-fiber-backend
    Patient medications, billing
    
 7. **Todo**
-   Remove soft deletes for updating implanted devices and implanted leads in database
+   * Remove soft deletes for updating implanted devices and implanted leads in database
    
 ## Usage
 

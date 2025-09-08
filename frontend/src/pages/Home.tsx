@@ -114,14 +114,14 @@ useEffect(() => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="text-left">Status</TableHead>
                       <TableHead className="text-right">Count</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.reports.byStatus.map((s) => (
                       <TableRow key={s.label || 'Unknown'}>
-                        <TableCell>{s.label || 'Unknown'}</TableCell>
+                        <TableCell className="text-left">{s.label || 'Unknown'}</TableCell>
                         <TableCell className="text-right">{s.count}</TableCell>
                       </TableRow>
                     ))}
@@ -141,12 +141,12 @@ useEffect(() => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>MRN</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Report Date</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="text-left">MRN</TableHead>
+                    <TableHead className="text-left">Patient</TableHead>
+                    <TableHead className="text-left">Report Date</TableHead>
+                    <TableHead className="text-left">Created By</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
+                    <TableHead className="text-left">Type</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -159,7 +159,7 @@ useEffect(() => {
 
                     const patientCell = p?.id
                       ? (
-                        <Link to={`/patients/${p.id}`} className="text-primary hover:underline">
+                        <Link to={`/patients/${p.id}`} className="text-primary text-left hover:underline">
                           {patientName}
                         </Link>
                       )
@@ -167,19 +167,19 @@ useEffect(() => {
 
                     const reportDateCell = r.id
                       ? (
-                        <Link to={`/reports/${r.id}/edit`} className="text-primary hover:underline">
+                        <Link to={`/reports/${r.id}/edit`} className="text-primary text-left hover:underline">
                           {reportDateStr}
                         </Link>
                       )
                       : reportDateStr
                     return (
                       <TableRow key={r.id}>
-                        <TableCell>{mrn}</TableCell>
-                        <TableCell>{patientCell}</TableCell>
-                        <TableCell>{reportDateCell}</TableCell>
-                        <TableCell>{createdBy}</TableCell>
-                        <TableCell>{r.reportStatus || '—'}</TableCell>
-                        <TableCell>{r.reportType || '—'}</TableCell>
+                        <TableCell className="text-left">{mrn}</TableCell>
+                        <TableCell className="text-left">{patientCell}</TableCell>
+                        <TableCell className="text-left">{reportDateCell}</TableCell>
+                        <TableCell className="text-left">{createdBy}</TableCell>
+                        <TableCell className="text-left">{r.reportStatus || '—'}</TableCell>
+                        <TableCell className="text-left">{r.reportType || '—'}</TableCell>
                       </TableRow>
                     )
                   })}
