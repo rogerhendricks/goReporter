@@ -598,14 +598,14 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Input id="qrs_duration" name="qrs_duration" type="number" value={formData.qrs_duration || ''} onChange={handleChange} placeholder="e.g., 80-120" />
             </div>
           </div>
-          <div className="space-y-2 pt-2">
+          {/* <div className="space-y-2 pt-2">
             <Label htmlFor="comments">Comments</Label>
             <Textarea id="comments" name="comments" value={formData.comments || ''} onChange={(e) => setFormData(prev => ({...prev, comments: e.target.value}))} placeholder="Add any relevant comments here..." />
-          </div>
-          <div className="flex items-center space-x-2 pt-2">
+          </div> */}
+          {/* <div className="flex items-center space-x-2 pt-2">
             <Checkbox id="isCompleted" name="isCompleted" checked={!!formData.isCompleted} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCompleted: !!checked }))} />
             <Label htmlFor="isCompleted" className="font-normal">Mark as Completed</Label>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -616,7 +616,7 @@ export function ReportForm({ patient }: ReportFormProps) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label>Pacing Mode</Label>
+            <Label>Mode</Label>
             <Select name="mdc_idc_set_brady_mode" value={formData.mdc_idc_set_brady_mode || ''} onValueChange={(value) => handleSelectChange('mdc_idc_set_brady_mode', value)}>
               <SelectTrigger><SelectValue placeholder="Select mode..." /></SelectTrigger>
               <SelectContent>
@@ -634,15 +634,15 @@ export function ReportForm({ patient }: ReportFormProps) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mdc_idc_set_brady_lowrate">Lower Rate (bpm)</Label>
+            <Label htmlFor="mdc_idc_set_brady_lowrate">LRL (bpm)</Label>
             <Input id="mdc_idc_set_brady_lowrate" name="mdc_idc_set_brady_lowrate" type="number" value={formData.mdc_idc_set_brady_lowrate || ''} onChange={handleChange} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mdc_idc_set_brady_max_tracking_rate">Max Tracking Rate (bpm)</Label>
+            <Label htmlFor="mdc_idc_set_brady_max_tracking_rate">MTR (bpm)</Label>
             <Input id="mdc_idc_set_brady_max_tracking_rate" name="mdc_idc_set_brady_max_tracking_rate" type="number" value={formData.mdc_idc_set_brady_max_tracking_rate || ''} onChange={handleChange} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mdc_idc_set_brady_max_sensor_rate">Max Sensor Rate (bpm)</Label>
+            <Label htmlFor="mdc_idc_set_brady_max_sensor_rate">MSR (bpm)</Label>
             <Input id="mdc_idc_set_brady_max_sensor_rate" name="mdc_idc_set_brady_max_sensor_rate" type="number" value={formData.mdc_idc_set_brady_max_sensor_rate || ''} onChange={handleChange} />
           </div>
         </CardContent>

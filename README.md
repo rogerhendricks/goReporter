@@ -86,4 +86,7 @@ The API provides various endpoints for managing users, devices, doctors, patient
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+his project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0-only).
+
+- Full text: see the LICENSE file or https://www.gnu.org/licenses/agpl-3.0.html
+- Network use: if you modify and run this software to provide a service over a network, you must make the complete corresponding source code of your modified version available to users of that service under the AGPL.
