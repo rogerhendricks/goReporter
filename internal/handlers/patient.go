@@ -181,14 +181,42 @@ func toPatientResponse(patient models.Patient) PatientResponse {
 // GetPatients retrieves all patients with optional search
 func GetPatients(c *fiber.Ctx) error {
 	searchQuery := c.Query("search")
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
 
 	var patients []models.Patient
 	var err error
 
-	if searchQuery != "" {
-		patients, err = models.SearchPatients(searchQuery)
+	// Admin users can see all patients
+	if userRole == "admin" {
+		if searchQuery != "" {
+			patients, err = models.SearchPatients(searchQuery)
+		} else {
+			patients, err = models.GetAllPatients()
+		}
+	} else if userRole == "doctor" {
+		// Doctor users can only see their assigned patients
+		patients, err = models.GetPatientsForDoctor(userID)
+		if err != nil {
+			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+		}
+
+		// If there's a search query, filter the doctor's patients
+		if searchQuery != "" {
+			var filteredPatients []models.Patient
+			searchLower := strings.ToLower(searchQuery)
+			for _, p := range patients {
+				if strings.Contains(strings.ToLower(p.FirstName), searchLower) ||
+					strings.Contains(strings.ToLower(p.LastName), searchLower) ||
+					strings.Contains(strconv.Itoa(p.MRN), searchQuery) {
+					filteredPatients = append(filteredPatients, p)
+				}
+			}
+			patients = filteredPatients
+		}
 	} else {
-		patients, err = models.GetAllPatients()
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 
 	if err != nil {
@@ -201,7 +229,22 @@ func GetPatients(c *fiber.Ctx) error {
 
 // GetAllPatients retrieves all patients (alternative endpoint)
 func GetAllPatients(c *fiber.Ctx) error {
-	patients, err := models.GetAllPatients()
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
+
+	var patients []models.Patient
+	var err error
+
+	// Admin users can see all patients
+	if userRole == "admin" {
+		patients, err = models.GetAllPatients()
+	} else if userRole == "doctor" {
+		// Doctor users can only see their assigned patients
+		patients, err = models.GetPatientsForDoctor(userID)
+	} else {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+	}
+
 	if err != nil {
 		log.Printf("Error fetching all patients: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
@@ -215,9 +258,34 @@ func GetAllPatients(c *fiber.Ctx) error {
 	return c.JSON(patientResponses)
 }
 
-// GetAllPatients retrieves all patients (alternative endpoint)
+// GetMostRecentPatientList retrieves the most recent patients 
 func GetMostRecentPatientList(c *fiber.Ctx) error {
-	patients, err := models.GetMostRecentPatientList()
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
+
+	var patients []models.Patient
+	var err error
+
+	// Admin users can see all patients
+	if userRole == "admin" {
+		patients, err = models.GetMostRecentPatientList()
+	} else if userRole == "doctor" {
+		// Doctor users can only see their assigned patients (we'll get all and limit to recent)
+		allPatients, err := models.GetPatientsForDoctor(userID)
+		if err != nil {
+			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+		}
+		// Limit to 10 most recent for doctors too
+		if len(allPatients) > 10 {
+			patients = allPatients[:10]
+		} else {
+			patients = allPatients
+		}
+	} else {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+	}
+
 	if err != nil {
 		log.Printf("Error fetching all patients: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
@@ -821,15 +889,46 @@ func SearchPatients(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Search query is required"})
 	}
 
-	patients, err := models.SearchPatients(searchQuery)
-	if err != nil {
-		// Check for the specific "too many results" error from the model
-		if strings.Contains(err.Error(), "too many results") {
-			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
+
+	var patients []models.Patient
+	var err error
+
+	// Admin users can search all patients
+	if userRole == "admin" {
+		patients, err = models.SearchPatients(searchQuery)
+		if err != nil {
+			// Check for the specific "too many results" error from the model
+			if strings.Contains(err.Error(), "too many results") {
+				return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+			}
+			log.Printf("Error searching patients: %v", err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to search patients"})
 		}
-		log.Printf("Error searching patients: %v", err)
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to search patients"})
+	} else if userRole == "doctor" {
+		// Doctor users search within their assigned patients
+		allPatients, err := models.GetPatientsForDoctor(userID)
+		if err != nil {
+			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+		}
+
+		// Filter the doctor's patients by search query
+		var filteredPatients []models.Patient
+		searchLower := strings.ToLower(searchQuery)
+		for _, p := range allPatients {
+			if strings.Contains(strings.ToLower(p.FirstName), searchLower) ||
+				strings.Contains(strings.ToLower(p.LastName), searchLower) ||
+				strings.Contains(strconv.Itoa(p.MRN), searchQuery) {
+				filteredPatients = append(filteredPatients, p)
+			}
+		}
+		patients = filteredPatients
+	} else {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
+
 	if patients == nil {
 		return c.JSON([]PatientResponse{}) // Return empty array if no patients found
 	}
