@@ -65,9 +65,9 @@ go-fiber-backend
    DB_RESET=file DB_SEED=1 go run cmd/api/main.go
    ```
    * DB reset and seed / table drop without file removal:
-   ``
+   ```
    DB_RESET=drop DB_SEED=1 go run cmd/api/main.go
-   ``
+   ```
 
 5. **Run the application:**
    ```
