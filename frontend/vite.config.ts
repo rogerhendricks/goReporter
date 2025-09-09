@@ -15,7 +15,7 @@ export default defineConfig({
     port: 8000,
     strictPort:false,
 		host: '0.0.0.0',
-    allowedHosts: ['dev.nuttynarwhal.com', 'https://dev-mini.nuttynarwhal.com','localhost'],
+    allowedHosts: ['dev.nuttynarwhal.com', 'dev-mini.nuttynarwhal.com','localhost'],
     proxy: {
       '/api':{
         target: 'http://localhost:5000',
