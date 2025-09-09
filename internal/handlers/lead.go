@@ -169,13 +169,6 @@ func GetLead(c *fiber.Ctx) error {
 
 // CreateLead creates a new lead
 func CreateLead(c *fiber.Ctx) error {
-	// Check admin permissions
-	userID := c.Locals("userID").(string)
-	user, err := models.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
-	}
-
 	var newLead models.Lead
 	if err := c.BodyParser(&newLead); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
@@ -210,13 +203,6 @@ func UpdateLead(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(leadID, 10, 32)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid lead ID format"})
-	}
-
-	// Check admin permissions
-	userID := c.Locals("userID").(string)
-	user, err := models.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
 	}
 
 	var updateData models.Lead
@@ -274,13 +260,6 @@ func DeleteLead(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(leadID, 10, 32)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid lead ID format"})
-	}
-
-	// Check admin permissions
-	userID := c.Locals("userID").(string)
-	user, err := models.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
 	}
 
 	// Check if lead exists
