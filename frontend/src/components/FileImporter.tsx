@@ -25,7 +25,6 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
     // Validate file type
     const allowedExtensions = ['.xml', '.log', '.bnk'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    
     if (!allowedExtensions.includes(fileExtension)) {
       toast.error('Please select a valid file (.xml, .log, or .bnk)');
       return;
@@ -48,22 +47,20 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
     }
   };
 
-  const openFileDialog = () => {
-    fileInputRef.current?.click();
-  };
+  const openFileDialog = () => fileInputRef.current?.click();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Import Device Data
-        </CardTitle>
-        <CardDescription>
-          Import data from device files (.xml, .log, .bnk) to automatically populate form fields
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    // <Card>
+    //   <CardHeader>
+    //     <CardTitle className="flex items-center gap-2">
+    //       <FileText className="h-5 w-5" />
+    //       Import Device Data
+    //     </CardTitle>
+    //     <CardDescription>
+    //       Import data from device files (.xml, .log, .bnk) to automatically populate form fields
+    //     </CardDescription>
+    //   </CardHeader>
+    //   <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
           <Button
             type="button"
@@ -80,11 +77,9 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
             {isImporting ? 'Importing...' : 'Select File'}
           </Button>
           
-          <div className="text-sm text-muted-foreground">
+          {/* <div className="text-sm text-muted-foreground">
             Supported formats: XML, LOG, BNK
-          </div>
-        </div>
-
+          </div> */}
         <Input
           ref={fileInputRef}
           type="file"
@@ -92,14 +87,16 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
           onChange={handleFileSelect}
           className="hidden"
         />
-
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+         <span className="text-sm text-muted-foreground">Supported: XML, LOG, BNK</span>
+      </div>
+        // {error && (
+        //   <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md">
+        //     <AlertCircle className="h-4 w-4" />
+        //     <span className="text-sm">{error}</span>
+        //   </div>
+        // )}
+    //   </CardContent>
+    // </Card>
   );
 }
+

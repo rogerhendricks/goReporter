@@ -465,7 +465,9 @@ export function ReportForm({ patient }: ReportFormProps) {
   return (
     <div className="container mx-auto py-6">
     <BreadcrumbNav items={breadcrumbItems} />
-
+    <div className="flex justify-end mb-4">
+    <FileImporter onDataImported={handleDataImported} />
+    </div>
     <div>
   {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
   {(() => {
@@ -521,7 +523,7 @@ export function ReportForm({ patient }: ReportFormProps) {
 </div>
 
     <form onSubmit={handleSubmit} className="space-y-6">
-    <FileImporter onDataImported={handleDataImported} />
+
     
      <Card>
         <CardHeader>
