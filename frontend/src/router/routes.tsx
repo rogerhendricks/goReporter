@@ -3,6 +3,8 @@ import Home from '@/pages/Home'
 import Login from '@/components/auth/Login'
 import Register from '@/components/auth/Register'
 import Unauthorized from '@/components/auth/Unauthorized'
+import AdminDashboard from '@/pages/admin/AdminDashboard'
+import DoctorDashboard from '@/pages/DoctorDashboard'
 import PatientIndex from '@/pages/patients/PatientIndex'
 import PatientDetail from '@/pages/patients/PatientDetail'
 import PatientForm from '@/components/forms/PatientForm'
@@ -52,55 +54,81 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default'
   },
-  // Patient routes
+  
+  // Admin dashboard - admin only
+  {
+    path: '/admin',
+    element: <AdminDashboard />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+  
+  // Doctor dashboard - doctor only
+  {
+    path: '/doctor',
+    element: <DoctorDashboard />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['doctor']
+  },
+  // Patient routes - admin can create/edit, doctors can view their patients
   {
     path: '/patients',
     element: <PatientIndex />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
   {
     path: '/patients/new',
     element: <PatientForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/patients/:id',
     element: <PatientDetail />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
   {
     path: '/patients/:id/edit',
     element: <PatientForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/patients/:patientId/reports',
     element: <PatientReportList />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
   {
     path: '/patients/:patientId/reports/new',
     element: <ReportFormWrapper />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
   {
     path: '/reports/:reportId/edit',
     element: <ReportFormWrapper />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
   { path: 'search/patients', 
     element: <PatientSearch />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor']
   },
-  // Doctor routes
+  // Doctor routes - admin only for create/edit
   {
     path: '/doctors',
     element: <DoctorIndex />,
@@ -111,7 +139,8 @@ export const routes: RouteConfig[] = [
     path: '/doctors/new',
     element: <DoctorForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/doctors/:id',
@@ -123,58 +152,67 @@ export const routes: RouteConfig[] = [
     path: '/doctors/:id/edit',
     element: <DoctorForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
 
-  // Device routes
+  // Device routes - admin only for create/edit/delete
   {
     path: '/devices',
     element: <DeviceIndex />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/devices/new',
     element: <DeviceForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/devices/:id',
     element: <DeviceDetail />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/devices/:id/edit',
     element: <DeviceForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
 
-  // Lead routes
+  // Lead routes - admin only for create/edit/delete
   {
     path: '/leads',
     element: <LeadIndex />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/leads/new',
     element: <LeadForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/leads/:id',
     element: <LeadDetail />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   },
   {
     path: '/leads/:id/edit',
     element: <LeadForm />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin']
   }
 ]

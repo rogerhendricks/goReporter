@@ -175,13 +175,6 @@ func GetDevice(c *fiber.Ctx) error {
 
 // CreateDevice creates a new device
 func CreateDevice(c *fiber.Ctx) error {
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
-    }
-
     var newDevice models.Device
     if err := c.BodyParser(&newDevice); err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
@@ -215,13 +208,6 @@ func UpdateDevice(c *fiber.Ctx) error {
     id, err := strconv.ParseUint(deviceID, 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
-    }
-
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
     }
 
     var updateData models.Device
@@ -277,13 +263,6 @@ func DeleteDevice(c *fiber.Ctx) error {
     id, err := strconv.ParseUint(deviceID, 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
-    }
-
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
     }
 
     // Check if device exists

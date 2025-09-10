@@ -22,7 +22,7 @@ func IsValidEmail(email string) bool {
 
 // IsValidRole checks if role is one of the allowed values
 func IsValidRole(role string) bool {
-    allowedRoles := []string{"admin", "user", "viewer"}
+    allowedRoles := []string{"admin", "user", "viewer", "doctor"}
     for _, allowedRole := range allowedRoles {
         if role == allowedRole {
             return true

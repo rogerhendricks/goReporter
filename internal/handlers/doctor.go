@@ -226,13 +226,6 @@ func SearchDoctors(c *fiber.Ctx) error {
 
 // CreateDoctor creates a new doctor with addresses
 func CreateDoctor(c *fiber.Ctx) error {
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
-    }
-
     var newDoctor models.Doctor
     if err := c.BodyParser(&newDoctor); err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
@@ -272,13 +265,6 @@ func UpdateDoctor(c *fiber.Ctx) error {
     id, err := strconv.ParseUint(doctorID, 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid doctor ID format"})
-    }
-
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
     }
 
     var updateData models.Doctor
@@ -344,13 +330,6 @@ func DeleteDoctor(c *fiber.Ctx) error {
     id, err := strconv.ParseUint(doctorID, 10, 32)
     if err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid doctor ID format"})
-    }
-
-    // Check admin permissions
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
     }
 
     // Check if doctor exists

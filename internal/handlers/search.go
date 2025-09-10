@@ -3,6 +3,8 @@ package handlers
 import (
     "log"
     "net/http"
+    "strconv"
+    "strings"
 
     "github.com/gofiber/fiber/v2"
     "github.com/rogerhendricks/goReporter/internal/models"
@@ -17,8 +19,48 @@ func SearchPatientsComplex(c *fiber.Ctx) error {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid search parameters"})
     }
 
-    // Pass the search parameters to the model function.
-    patients, err := models.SearchPatientsComplex(params)
+    userID := c.Locals("userID").(string)
+    userRole := c.Locals("userRole").(string)
+
+    var patients []models.Patient
+    var err error
+
+    // Admin users can search all patients with complex parameters
+    if userRole == "admin" {
+        patients, err = models.SearchPatientsComplex(params)
+    } else if userRole == "doctor" {
+        // For doctors, we need to get their patients first, then filter
+        // This is a simplified approach - in a real app you might want to extend the SearchPatientsComplex
+        // function to accept a doctor filter
+        allPatients, err := models.GetPatientsForDoctor(userID)
+        if err != nil {
+            log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+        }
+
+        // Apply basic filtering on doctor's patients
+        // For a full implementation, you'd need to extend this to handle all search parameters
+        var filteredPatients []models.Patient
+        for _, p := range allPatients {
+            include := true
+            if params.FirstName != "" && !strings.Contains(strings.ToLower(p.FirstName), strings.ToLower(params.FirstName)) {
+                include = false
+            }
+            if params.LastName != "" && !strings.Contains(strings.ToLower(p.LastName), strings.ToLower(params.LastName)) {
+                include = false
+            }
+            if params.MRN != "" && strconv.Itoa(p.MRN) != params.MRN {
+                include = false
+            }
+            if include {
+                filteredPatients = append(filteredPatients, p)
+            }
+        }
+        patients = filteredPatients
+    } else {
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+    }
+
     if err != nil {
         log.Printf("Error during complex patient search: %v", err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to execute search"})

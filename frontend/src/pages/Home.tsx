@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
-// import { useNavigate } from 'react-router-dom'
-// import { useAuthStore } from '@/stores/authStore'
-// import { Button } from "@/components/ui/button"
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav"
-// import { Users } from 'lucide-react'
 import api from '@/utils/axios'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,11 +35,17 @@ type RecentReport = {
 }
 
 export default function Home() {
-  // const navigate = useNavigate()
-  // const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
-const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+  const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+
+  // Redirect based on user role
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />
+  } else if (user?.role === 'doctor') {
+    return <Navigate to="/doctor" replace />
+  }
 
 useEffect(() => {
   let mounted = true

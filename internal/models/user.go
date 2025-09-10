@@ -13,6 +13,8 @@ type User struct {
     Password string `json:"password" gorm:"type:varchar(255);not null"`
     Email    string `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
     Role     string `json:"role" gorm:"type:varchar(50);not null"`
+    DoctorID *uint  `json:"doctorId,omitempty" gorm:"index"` // Link to doctor record for doctor role users
+    Doctor   *Doctor `json:"doctor,omitempty" gorm:"foreignKey:DoctorID"` // Belongs to doctor
     Reports       []Report `json:"reports"`       // Has many reports
     RefreshTokens []Token  `json:"refresh_tokens"` // Has many tokens
 }
@@ -99,4 +101,58 @@ func HashPassword(password string) (string, error) {
 func CheckPassword(password, hash string) bool {
     err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
     return err == nil
+}
+
+// GetUserWithDoctor retrieves a user by ID with doctor relationship loaded
+func GetUserWithDoctor(userID string) (*User, error) {
+    var user User
+    err := config.DB.Preload("Doctor").Where("id = ?", userID).First(&user).Error
+    if err != nil {
+        return nil, err
+    }
+    return &user, nil
+}
+
+// GetPatientsForDoctor retrieves all patients associated with a doctor user
+func GetPatientsForDoctor(userID string) ([]Patient, error) {
+    user, err := GetUserWithDoctor(userID)
+    if err != nil {
+        return nil, err
+    }
+    
+    if user.Role != "doctor" || user.DoctorID == nil {
+        return nil, errors.New("user is not a doctor or not linked to a doctor record")
+    }
+    
+    var patients []Patient
+    err = config.DB.Preload("ImplantedDevices.Device").
+        Preload("ImplantedLeads.Lead").
+        Preload("PatientDoctors.Doctor.Addresses").
+        Preload("PatientDoctors.Address").
+        Preload("Reports").
+        Preload("Medications").
+        Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
+        Where("patient_doctors.doctor_id = ?", *user.DoctorID).
+        Find(&patients).Error
+    
+    return patients, err
+}
+
+// CanDoctorAccessPatient checks if a doctor user can access a specific patient
+func CanDoctorAccessPatient(userID string, patientID uint) (bool, error) {
+    user, err := GetUserWithDoctor(userID)
+    if err != nil {
+        return false, err
+    }
+    
+    if user.Role != "doctor" || user.DoctorID == nil {
+        return false, nil
+    }
+    
+    var count int64
+    err = config.DB.Model(&PatientDoctor{}).
+        Where("patient_id = ? AND doctor_id = ?", patientID, *user.DoctorID).
+        Count(&count).Error
+    
+    return count > 0, err
 }

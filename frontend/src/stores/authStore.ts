@@ -52,6 +52,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return get().user?.role === 'admin'
   },
 
+  get isDoctor() {
+    return get().user?.role === 'doctor'
+  },
+
   // get isDoctor() {
   //   return get().role === 'DOCTOR'
   // },

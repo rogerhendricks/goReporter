@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { usePatientStore } from '@/stores/patientStore'
+import { useAuthStore } from '@/stores/authStore'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ import {
 export default function PatientIndex() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const { isAdmin } = useAuthStore()
   const { 
     patients, 
     loading, 
@@ -68,10 +70,12 @@ export default function PatientIndex() {
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Patients</h1>
-        <Button onClick={() => navigate('/patients/new')} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Patient
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => navigate('/patients/new')} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Patient
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -123,7 +127,7 @@ export default function PatientIndex() {
                   <TableHead className="text-left">Phone</TableHead>
                   <TableHead className="text-left">Device</TableHead>
                   <TableHead className="text-left">Doctors</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -232,24 +236,26 @@ export default function PatientIndex() {
                         <span className="text-xs text-muted-foreground">No doctors assigned</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/patients/${patient.id}/edit`)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(patient.id, `${patient.fname} ${patient.lname}`)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/patients/${patient.id}/edit`)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(patient.id, `${patient.fname} ${patient.lname}`)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
