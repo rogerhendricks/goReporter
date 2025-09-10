@@ -55,13 +55,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   get isDoctor() {
     return get().user?.role === 'doctor'
   },
+  
+  get isUser() {
+    return get().user?.role === 'user'
+},
 
   // get isDoctor() {
   //   return get().role === 'DOCTOR'
-  // },
-
-  // get isUser() {
-  //   return get().role === 'USER'
   // },
 
   // hasAccess: (roles: string[]) => {

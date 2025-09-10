@@ -78,55 +78,55 @@ export const routes: RouteConfig[] = [
     element: <PatientIndex />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'doctor', 'user']
   },
   {
     path: '/patients/new',
     element: <PatientForm />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin']
+    roles: ['admin', 'user']
   },
   {
     path: '/patients/:id',
     element: <PatientDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'doctor', 'user']
   },
   {
     path: '/patients/:id/edit',
     element: <PatientForm />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin']
+    roles: ['admin', 'user']
   },
   {
     path: '/patients/:patientId/reports',
     element: <PatientReportList />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'doctor', 'user']
   },
   {
     path: '/patients/:patientId/reports/new',
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'user']
   },
   {
     path: '/reports/:reportId/edit',
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'user']
   },
   { path: 'search/patients', 
     element: <PatientSearch />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor']
+    roles: ['admin', 'doctor', 'user']
   },
   // Doctor routes - admin only for create/edit
   {

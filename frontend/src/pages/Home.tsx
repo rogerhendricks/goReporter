@@ -123,7 +123,7 @@ useEffect(() => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.reports.byStatus.map((s) => (
+                    {(data.reports.byStatus ?? []).map((s) => (
                       <TableRow key={s.label || 'Unknown'}>
                         <TableCell className="text-left">{s.label || 'Unknown'}</TableCell>
                         <TableCell className="text-right">{s.count}</TableCell>

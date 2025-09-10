@@ -73,6 +73,11 @@ func GetAnalyticsSummary(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to build report status analytics"})
     }
 
+    // ensure non-nil slice
+    if byStatus == nil {
+        byStatus = make([]donutSlice, 0)
+    }
+
     resp := analyticsResponse{
         ByManufacturer: byManufacturer,
         ByDeviceType:   byDeviceType,

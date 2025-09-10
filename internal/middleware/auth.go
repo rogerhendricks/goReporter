@@ -73,6 +73,11 @@ func RequireDoctor(c *fiber.Ctx) error {
     return RequireRole("admin", "doctor")(c)
 }
 
+// RequireAdminOrUser requires the user to have either admin or user role
+func RequireAdminOrUser(c *fiber.Ctx) error {
+    return RequireRole("admin", "user",)(c)
+}
+    
 // RequireDoctorPatientAccess checks if a doctor user can access a specific patient
 // Admin users always have access. Doctor users must be associated with the patient.
 func RequireDoctorPatientAccess(c *fiber.Ctx) error {

@@ -188,13 +188,14 @@ func GetPatients(c *fiber.Ctx) error {
 	var err error
 
 	// Admin users can see all patients
-	if userRole == "admin" {
+	switch userRole {
+	case "admin", "user":
 		if searchQuery != "" {
 			patients, err = models.SearchPatients(searchQuery)
 		} else {
 			patients, err = models.GetAllPatients()
 		}
-	} else if userRole == "doctor" {
+	case "doctor":
 		// Doctor users can only see their assigned patients
 		patients, err = models.GetPatientsForDoctor(userID)
 		if err != nil {
@@ -215,7 +216,7 @@ func GetPatients(c *fiber.Ctx) error {
 			}
 			patients = filteredPatients
 		}
-	} else {
+	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 
@@ -236,12 +237,13 @@ func GetAllPatients(c *fiber.Ctx) error {
 	var err error
 
 	// Admin users can see all patients
-	if userRole == "admin" {
+	switch userRole {
+	case "admin", "user":
 		patients, err = models.GetAllPatients()
-	} else if userRole == "doctor" {
+	case "doctor":
 		// Doctor users can only see their assigned patients
 		patients, err = models.GetPatientsForDoctor(userID)
-	} else {
+	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 
@@ -267,9 +269,10 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	var err error
 
 	// Admin users can see all patients
-	if userRole == "admin" {
+	switch userRole {
+	case "admin", "user":
 		patients, err = models.GetMostRecentPatientList()
-	} else if userRole == "doctor" {
+	case "doctor":
 		// Doctor users can only see their assigned patients (we'll get all and limit to recent)
 		allPatients, err := models.GetPatientsForDoctor(userID)
 		if err != nil {
@@ -282,7 +285,7 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 		} else {
 			patients = allPatients
 		}
-	} else {
+	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 
@@ -896,7 +899,7 @@ func SearchPatients(c *fiber.Ctx) error {
 	var err error
 
 	// Admin users can search all patients
-	if userRole == "admin" {
+	if userRole == "admin" || userRole == "user" {
 		patients, err = models.SearchPatients(searchQuery)
 		if err != nil {
 			// Check for the specific "too many results" error from the model

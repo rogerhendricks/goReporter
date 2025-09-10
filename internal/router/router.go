@@ -46,14 +46,14 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/doctors/:id", middleware.RequireAdmin, handlers.DeleteDoctor)
 
 	// Patient routes - admin and doctor access with role-based filtering
-	app.Get("/api/patients/all", middleware.RequireDoctor, handlers.GetAllPatients)
-	app.Get("/api/patients/list", middleware.RequireDoctor, handlers.GetMostRecentPatientList)
-	app.Get("/api/patients", middleware.RequireDoctor, handlers.GetPatients)
-	app.Get("/api/patients/search", middleware.RequireDoctor, handlers.SearchPatients)
-	app.Post("/api/patients", middleware.RequireAdmin, handlers.CreatePatient)
-	app.Get("/api/patients/:id", middleware.RequireDoctorPatientAccess, handlers.GetPatient)
-	app.Put("/api/patients/:id", middleware.RequireAdmin, handlers.UpdatePatient)
-	app.Delete("/api/patients/:id", middleware.RequireAdmin, handlers.DeletePatient)
+	app.Get("/api/patients/all", middleware.RequireAdminOrUser,handlers.GetAllPatients)
+	app.Get("/api/patients/list", middleware.RequireAdminOrUser, handlers.GetMostRecentPatientList)
+	app.Get("/api/patients", middleware.RequireAdminOrUser, handlers.GetPatients)
+	app.Get("/api/patients/search", middleware.RequireAdminOrUser, handlers.SearchPatients)
+	app.Post("/api/patients", middleware.RequireAdminOrUser, handlers.CreatePatient)
+	app.Get("/api/patients/:id", middleware.RequireAdminOrUser, handlers.GetPatient)
+	app.Put("/api/patients/:id", middleware.RequireAdminOrUser, handlers.UpdatePatient)
+	app.Delete("/api/patients/:id", middleware.RequireAdminOrUser, handlers.DeletePatient)
 
 	// Lead routes - admin only for CUD operations
 	app.Get("/api/leads/all", handlers.GetleadsBasic)
