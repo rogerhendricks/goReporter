@@ -69,11 +69,17 @@ export default function DeviceForm() {
     e.preventDefault()
     clearError()
     try {
+      // Ensure polarity is set to empty string if undefined for required field
+      const submitData = {
+        ...formData,
+        polarity: formData.polarity || ''
+      }
+      
       if (isEdit && id) {
-        await updateDevice(parseInt(id), formData)
+        await updateDevice(parseInt(id), submitData)
         toast.success('Device updated successfully')
       } else {
-        await createDevice(formData)
+        await createDevice(submitData)
         toast.success('Device created successfully')
       }
       navigate('/devices')

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check } from 'lucide-react'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import {
 import logoUrl from '../../assets/rpm-fusion-logo.min.svg'
 
 export function Navbar() {
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, logout, hasAccess } = useAuthStore()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -28,12 +28,19 @@ export function Navbar() {
   }
 
   const navLinks = [
-    { href: '/patients', label: 'Patients', icon: Users },
-    { href: '/doctors', label: 'Doctors', icon: Stethoscope },
-    { href: '/devices', label: 'Devices', icon: CircuitBoard },
-    { href: '/leads', label: 'Leads', icon: CircuitBoard },
-    { href: '/search/patients', label: '+Search', icon: Users }
+    { href: '/patients', label: 'Patients', icon: Users, roles: ['admin', 'doctor'] },
+    { href: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'doctor'] },
+    { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
+    { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
+    { href: '/search/patients', label: '+Search', icon: Users, roles: ['admin', 'doctor'] },
+    { href: '/admin', label: 'Admin Dashboard', icon: Settings, roles: ['admin'] },
+    { href: '/doctor', label: 'Doctor Dashboard', icon: Stethoscope, roles: ['doctor'] }
   ]
+
+  // Filter nav links based on user role
+  const visibleNavLinks = navLinks.filter(link => 
+    !link.roles || hasAccess(link.roles)
+  )
 
   const displayName =
     user?.username || [user?.username].filter(Boolean).join(' ') || 'Account'
@@ -52,7 +59,7 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          {isAuthenticated && navLinks.map((link) => (
+          {isAuthenticated && visibleNavLinks.map((link) => (
             <Link
               key={link.href}
               to={link.href}
@@ -84,6 +91,7 @@ export function Navbar() {
               <DropdownMenuLabel>
                 <div className="font-medium">{displayName}</div>
                 <div className="text-xs text-muted-foreground">{user?.email}</div>
+                <div className="text-xs text-muted-foreground capitalize">Role: {user?.role}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Theme</DropdownMenuLabel>
@@ -132,7 +140,7 @@ export function Navbar() {
                 </Link>
                 {isAuthenticated ? (
                   <>
-                    {navLinks.map(link => (
+                    {visibleNavLinks.map(link => (
                        <Link
                         key={link.href}
                         to={link.href}
@@ -145,9 +153,10 @@ export function Navbar() {
                         {link.label}
                       </Link>
                     ))}
-                                      <div className="border-t pt-4 mt-auto">
+                  <div className="border-t pt-4 mt-auto">
                     <div className="font-medium">{user?.username}</div>
                     <div className="text-xs text-muted-foreground">{user?.email}</div>
+                    <div className="text-xs text-muted-foreground capitalize">Role: {user?.role}</div>
                   </div>
                     <Button variant="outline" onClick={handleLogout} className="mt-4">Logout</Button>
                   </>

@@ -128,7 +128,7 @@ function getStreamBytes(stream: any): Uint8Array | null {
 }
 
 // Small helper: normalize to array
-const toArr = <T>(x: T | T[] | undefined): T[] => (x ? (Array.isArray(x) ? x : [x]) : [])
+// const toArr = <T>(x: T | T[] | undefined): T[] => (x ? (Array.isArray(x) ? x : [x]) : [])
 
 // Try to detect base64-encoded PDF strings
 function looksLikeBase64Pdf(s: string): boolean {
@@ -137,14 +137,14 @@ function looksLikeBase64Pdf(s: string): boolean {
 }
 
 // Recursively walk sections to collect all <value> nodes
-function collectAllValues(node: any, out: any[] = []): any[] {
-  if (!node) return out
-  const values = node.value
-  if (values) out.push(...toArr(values))
-  const sections = node.section
-  toArr(sections).forEach((child: any) => collectAllValues(child, out))
-  return out
-}
+// function collectAllValues(node: any, out: any[] = []): any[] {
+//   if (!node) return out
+//   const values = node.value
+//   if (values) out.push(...toArr(values))
+//   const sections = node.section
+//   toArr(sections).forEach((child: any) => collectAllValues(child, out))
+//   return out
+// }
 
 export async function parseFileContent(file: File, serial?: string): Promise<ParsedData> {
   return new Promise((resolve, reject) => {
