@@ -1,11 +1,10 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 // import { Label } from '@/components/ui/label';
 import { useFileImporter } from '@/hooks/useFileImporter';
 import type { ParsedData } from '@/utils/fileParser';
-import { Upload, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FileImporterProps {
@@ -14,7 +13,7 @@ interface FileImporterProps {
 
 export function FileImporter({ onDataImported }: FileImporterProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { importFile, isImporting, error, clearError } = useFileImporter();
+  const { importFile, isImporting, clearError } = useFileImporter();
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
