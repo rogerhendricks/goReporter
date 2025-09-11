@@ -104,7 +104,7 @@ const handleSave = async () => {
     };
 
     return (
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Create, edit, and manage system users.</CardDescription>
@@ -118,23 +118,23 @@ const handleSave = async () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Username</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Password</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead className="text-left">Username</TableHead>
+                            <TableHead className="text-left">Email</TableHead>
+                            <TableHead className="text-left">Password</TableHead>
+                            <TableHead className="text-left">Role</TableHead>
+                            <TableHead className="text-left">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading && users.length === 0 ? (
-                            <TableRow>
+                            <TableRow className="text-left">
                                 <TableCell colSpan={5} className="text-center">Loading...</TableCell>
                             </TableRow>
                         ) : (
                             <>
                                 {/* Row for adding a new user appears here when isAdding is true */}
                                 {isAdding && editedUser && (
-                                    <TableRow key="add-new-user-row">
+                                    <TableRow key="add-new-user-row" className="text-left">
                                         <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="Username" /></TableCell>
                                         <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email" /></TableCell>
                                         <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Password" /></TableCell>
@@ -167,7 +167,7 @@ const handleSave = async () => {
                                     // Render the editable row if 'isEditing' is true for this user
                                     if (isEditing && editedUser) {
                                         return (
-                                            <TableRow key={user.ID}>
+                                            <TableRow key={user.ID} className="text-left">
                                                 <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} /></TableCell>
                                                 <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} /></TableCell>
                                                 <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="New password (optional)" /></TableCell>
@@ -195,7 +195,7 @@ const handleSave = async () => {
                                     
                                     // Otherwise, render the standard display row
                                     return (
-                                        <TableRow key={user.ID}>
+                                        <TableRow key={user.ID} className="text-left">
                                             <TableCell>{user.username}</TableCell>
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>******</TableCell>
