@@ -74,8 +74,10 @@ func DeleteUser(userID string) error {
 // GetAllUsers retrieves all users (admin only)
 func GetAllUsers() ([]User, error) {
     var users []User
-    err := config.DB.Find(&users).Error
-    return users, err
+    if err := config.DB.Find(&users).Error; err != nil {
+        return nil, err
+    }
+    return users, nil
 }
 
 // CheckUserExists checks if a user exists by ID

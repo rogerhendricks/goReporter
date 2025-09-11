@@ -81,6 +81,21 @@ func GetUserProfile(c *fiber.Ctx) error {
     return c.JSON(user)
 }
 
+func GetUsers(c *fiber.Ctx) error {
+    users, err := models.GetAllUsers()
+    if err != nil {
+        log.Printf("Error fetching all users: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve users"})
+    }
+
+    // Sanitize passwords before sending
+    for i := range users {
+        users[i].Password = ""
+    }
+
+    return c.JSON(users)
+}
+
 // UpdateUserProfile updates the user profile information
 func UpdateUserProfile(c *fiber.Ctx) error {
     userID := c.Params("id")
@@ -133,6 +148,15 @@ func UpdateUserProfile(c *fiber.Ctx) error {
     // Only admin can change roles
     if isAdmin && updateData.Role != "" {
         existingUser.Role = html.EscapeString(strings.TrimSpace(updateData.Role))
+    }
+    
+        // Allow admin to update password
+    if isAdmin && updateData.Password != "" {
+        hashedPassword, err := models.HashPassword(updateData.Password)
+        if err != nil {
+            return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+        }
+        existingUser.Password = hashedPassword
     }
     
     // Don't allow password updates through this endpoint

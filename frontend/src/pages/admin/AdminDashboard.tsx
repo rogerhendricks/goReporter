@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Users, Stethoscope, CircuitBoard, Plus } from 'lucide-react'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { UserManagementTable } from '@/components/admin/UserManagementTable'
 
 export default function AdminDashboard() {
   const breadcrumbItems = [
@@ -81,6 +82,8 @@ export default function AdminDashboard() {
           )
         })}
       </div>
+
+      <UserManagementTable />
 
       <Card>
         <CardHeader>
