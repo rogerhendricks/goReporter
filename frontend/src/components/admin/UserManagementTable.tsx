@@ -63,7 +63,8 @@ const handleSave = async () => {
                 toast.error('All fields are required to create a new user.');
                 return;
             }
-            const newUser = await createUser(editedUser);
+            const { ID, ...userDataForCreation } = editedUser;
+            const newUser = await createUser(userDataForCreation);
             if (newUser) {
                 await fetchUsers();
                 handleCancel();
@@ -100,7 +101,7 @@ const handleSave = async () => {
         handleCancel(); // Reset any existing edit state
         setIsAdding(true);
         // Initialize an empty user object for the "add" row
-        setEditedUser({ ID: 'new-user', username: '', email: '', role: 'user', password: '' });
+        setEditedUser({ username: '', email: '', role: 'user', password: '' });
     };
 
     return (

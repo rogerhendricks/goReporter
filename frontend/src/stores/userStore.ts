@@ -69,7 +69,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const updatedUser = response.data
       set((state) => ({
         users: state.users.map((user) =>
-          user.id === userId ? { ...updatedUser, password: '' } : user
+          user.ID === userId ? { ...updatedUser, password: '' } : user
         ),
         loading: false,
       }))
@@ -88,7 +88,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       await api.delete(`/users/${userId}`)
       set((state) => ({
-        users: state.users.filter((user) => user.id !== userId),
+        users: state.users.filter((user) => user.ID !== userId),
         loading: false,
       }))
       toast.success('User deleted successfully.')
