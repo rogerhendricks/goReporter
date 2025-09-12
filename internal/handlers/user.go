@@ -97,82 +97,6 @@ func GetUsers(c *fiber.Ctx) error {
     return c.JSON(users)
 }
 
-// UpdateUserProfile updates the user profile information
-// func UpdateUserProfile(c *fiber.Ctx) error {
-//     userID := c.Params("id")
-    
-//     // Validate UUID format
-//     if _, err := uuid.Parse(userID); err != nil {
-//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID format"})
-//     }
-    
-//     // Authorization check - users can only update their own profile or admin can update any
-//     authenticatedUserID := c.Locals("userID").(string)
-//     isAdmin := false
-    
-//     if userID != authenticatedUserID {
-//         authenticatedUser, err := models.GetUserByID(authenticatedUserID)
-//         if err != nil || authenticatedUser.Role != "admin" {
-//             return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-//         }
-//         isAdmin = true
-//     }
-    
-//     var updateData models.User
-//     if err := c.BodyParser(&updateData); err != nil {
-//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-//     }
-    
-//     // Validate input
-//     if err := validateUserUpdate(&updateData, isAdmin); err != nil {
-//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-//     }
-    
-//     // Get existing user to preserve certain fields
-//     existingUser, err := models.GetUserByID(userID)
-//     if err != nil {
-//         log.Printf("Error fetching user %s: %v", userID, err)
-//         if errors.Is(err, gorm.ErrRecordNotFound) {
-//             return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-//         }
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-//     }
-    
-//     // Sanitize and update allowed fields
-//     if updateData.Username != "" {
-//         existingUser.Username = html.EscapeString(strings.TrimSpace(updateData.Username))
-//     }
-//     if updateData.Email != "" {
-//         existingUser.Email = html.EscapeString(strings.TrimSpace(updateData.Email))
-//     }
-    
-//     // Only admin can change roles
-//     if isAdmin && updateData.Role != "" {
-//         existingUser.Role = html.EscapeString(strings.TrimSpace(updateData.Role))
-//     }
-    
-//         // Allow admin to update password
-//     if isAdmin && updateData.Password != "" {
-//         hashedPassword, err := models.HashPassword(updateData.Password)
-//         if err != nil {
-//             return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-//         }
-//         existingUser.Password = hashedPassword
-//     }
-    
-//     // Don't allow password updates through this endpoint
-//     // Password should be updated through a separate, secure endpoint
-    
-//     if err := models.UpdateUser(existingUser); err != nil {
-//         log.Printf("Error updating user %s: %v", userID, err)
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
-//     }
-    
-//     // Remove sensitive data before returning
-//     existingUser.Password = ""
-//     return c.JSON(existingUser)
-// }
-
 // UpdateUser updates a user by ID (admin-only or self-update with restrictions)
 func UpdateUser(c *fiber.Ctx) error {
     userIDParam := c.Params("id")
@@ -276,7 +200,6 @@ func UpdateUser(c *fiber.Ctx) error {
     return c.JSON(existingUser)
 }
 
-
 // DeleteUser deletes a user by ID
 func DeleteUser(c *fiber.Ctx) error {
     userID := c.Params("id")
@@ -315,7 +238,6 @@ func DeleteUser(c *fiber.Ctx) error {
     return c.SendStatus(http.StatusNoContent)
 }
 
-// validateUserUpdate validates user update data
 // validateUserUpdate validates user update data with enhanced checks
 func validateUserUpdate(user *models.User, isAdmin bool) error {
     if user.Username != "" {
@@ -353,35 +275,6 @@ func validateUserUpdate(user *models.User, isAdmin bool) error {
 
     return nil
 }
-
-// func validateUserUpdate(user *models.User, isAdmin bool) error {
-//     if user.Username != "" {
-//         username := strings.TrimSpace(user.Username)
-//         if len(username) < 3 || len(username) > 50 {
-//             return errors.New("username must be between 3 and 50 characters")
-//         }
-//         if !utils.IsValidUsername(username) {
-//             return errors.New("username contains invalid characters")
-//         }
-//     }
-    
-//     if user.Email != "" {
-//         email := strings.TrimSpace(user.Email)
-//         if !utils.IsValidEmail(email) {
-//             return errors.New("invalid email format")
-//         }
-//     }
-    
-//     if user.Role != "" && !isAdmin {
-//         return errors.New("insufficient permissions to change role")
-//     }
-    
-//     if user.Role != "" && !utils.IsValidRole(user.Role) {
-//         return errors.New("invalid role")
-//     }
-    
-//     return nil
-// }
 
 // isValidUsername checks if username contains only allowed characters
 func isValidUsername(username string) bool {
