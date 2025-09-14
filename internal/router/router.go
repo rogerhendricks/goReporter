@@ -47,12 +47,12 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/doctors/:id", middleware.RequireAdmin, handlers.DeleteDoctor)
 
 	// Patient routes - admin and doctor access with role-based filtering
-	app.Get("/api/patients/all", middleware.RequireAdminOrUser,handlers.GetAllPatients)
-	app.Get("/api/patients/list", middleware.RequireAdminOrUser, handlers.GetMostRecentPatientList)
-	app.Get("/api/patients", middleware.RequireAdminOrUser, handlers.GetPatients)
-	app.Get("/api/patients/search", middleware.RequireAdminOrUser, handlers.SearchPatients)
+	app.Get("/api/patients/all", middleware.AuthorizeDoctorPatientAccess, handlers.GetAllPatients)
+	app.Get("/api/patients/list", middleware.AuthorizeDoctorPatientAccess, handlers.GetMostRecentPatientList)
+	app.Get("/api/patients", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatients)
+	app.Get("/api/patients/search", middleware.AuthorizeDoctorPatientAccess, handlers.SearchPatients)
 	app.Post("/api/patients", middleware.RequireAdminOrUser, handlers.CreatePatient)
-	app.Get("/api/patients/:id", middleware.RequireAdminOrUser, handlers.GetPatient)
+	app.Get("/api/patients/:id", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatient)
 	app.Put("/api/patients/:id", middleware.RequireAdminOrUser, handlers.UpdatePatient)
 	app.Delete("/api/patients/:id", middleware.RequireAdminOrUser, handlers.DeletePatient)
 
@@ -71,18 +71,18 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/medications/:id", handlers.DeleteMedication)
 
 	// Report routes
-	app.Post("/api/reports", middleware.AuthenticateJWT, handlers.UploadFile, handlers.CreateReport)
-	app.Get("/api/reports/recent", handlers.GetRecentReports)
-	app.Get("/api/patients/:patientId/reports", middleware.AuthenticateJWT, handlers.GetReportsByPatient)
-	app.Get("/api/reports/:id", middleware.AuthenticateJWT, handlers.GetReport)
-	app.Put("/api/reports/:id", middleware.AuthenticateJWT, handlers.UploadFile, handlers.UpdateReport)
-	app.Delete("/api/reports/:id", middleware.AuthenticateJWT, handlers.DeleteReport)
+	app.Post("/api/reports", handlers.UploadFile, handlers.CreateReport)
+	app.Get("/api/reports/recent", middleware.AuthorizeDoctorPatientAccess, handlers.GetRecentReports)
+	app.Get("/api/patients/:patientId/reports", middleware.AuthorizeDoctorPatientAccess, handlers.GetReportsByPatient)
+	app.Get("/api/reports/:id", handlers.GetReport)
+	app.Put("/api/reports/:id", middleware.RequireAdminOrUser, handlers.UploadFile, handlers.UpdateReport)
+	app.Delete("/api/reports/:id", middleware.RequireAdminOrUser, handlers.DeleteReport)
 
 	// Search routes
-	app.Get("/api/search/patients", middleware.RequireDoctor, handlers.SearchPatientsComplex)
+	app.Get("/api/search/patients", middleware.AuthorizeDoctorPatientAccess, handlers.SearchPatientsComplex)
 
 	// File routes
-	app.Get("/api/files/*", middleware.AuthenticateJWT, handlers.ServeFile)
+	app.Get("/api/files/*", handlers.ServeFile)
 
 	// Analytics routes
 	app.Get("/api/analytics/summary", handlers.GetAnalyticsSummary)

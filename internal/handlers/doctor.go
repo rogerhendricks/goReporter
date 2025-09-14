@@ -27,7 +27,7 @@ type AddressResponse struct {
 
 type DoctorResponse struct {
     ID        uint              `json:"id"`
-    Name      string            `json:"name"`
+    FullName  string            `json:"fullName"`
     Email     string            `json:"email"`
     Phone     string            `json:"phone"`
     Specialty string            `json:"specialty"`
@@ -54,7 +54,7 @@ func toDoctorResponse(doctor models.Doctor) DoctorResponse {
     }
     return DoctorResponse{
         ID:        doctor.ID,
-        Name:      doctor.Name,
+        FullName:  doctor.FullName,
         Email:     doctor.Email,
         Phone:     doctor.Phone,
         Specialty: doctor.Specialty,
@@ -114,7 +114,7 @@ func GetDoctorsBasic(c *fiber.Ctx) error {
     // Create a simplified response with consistent field names
     type DoctorBasic struct {
         ID        uint   `json:"id"`
-        Name      string `json:"name"`
+        FullName  string `json:"fullName"`
         Email     string `json:"email"`
         Phone     string `json:"phone"`
         Specialty string `json:"specialty"`
@@ -124,7 +124,7 @@ func GetDoctorsBasic(c *fiber.Ctx) error {
     for _, doctor := range doctors {
         basicDoctors = append(basicDoctors, DoctorBasic{
             ID:        doctor.ID,
-            Name:      doctor.Name,
+            FullName:  doctor.FullName,
             Email:     doctor.Email,
             Phone:     doctor.Phone,
             Specialty: doctor.Specialty,
@@ -202,7 +202,7 @@ func SearchDoctors(c *fiber.Ctx) error {
 
     type DoctorResponse struct {
         ID        uint      `json:"id"`
-        Name      string    `json:"name"`
+        FullName  string    `json:"fullName"`
         Email     string    `json:"email"`
         Phone     string    `json:"phone"`
         Specialty string    `json:"specialty"`
@@ -213,7 +213,7 @@ func SearchDoctors(c *fiber.Ctx) error {
     for _, doctor := range doctors {
         doctorResponses = append(doctorResponses , DoctorResponse{
             ID:        doctor.ID,
-            Name:      doctor.Name,
+            FullName:  doctor.FullName,
             Email:     doctor.Email,
             Phone:     doctor.Phone,
             Specialty: doctor.Specialty,
@@ -363,7 +363,7 @@ func DeleteDoctor(c *fiber.Ctx) error {
 
 // Validation functions
 func validateDoctor(doctor *models.Doctor) error {
-    if strings.TrimSpace(doctor.Name) == "" {
+    if strings.TrimSpace(doctor.FullName) == "" {
         return errors.New("name is required")
     }
     if doctor.Email != "" && !utils.IsValidEmail(doctor.Email) {
@@ -411,7 +411,7 @@ func validateAddresses(addresses []models.Address) error {
 
 // Sanitization functions
 func sanitizeDoctor(doctor *models.Doctor) {
-    doctor.Name = html.EscapeString(strings.TrimSpace(doctor.Name))
+    doctor.FullName = html.EscapeString(strings.TrimSpace(doctor.FullName))
     doctor.Email = html.EscapeString(strings.TrimSpace(doctor.Email))
     doctor.Phone = html.EscapeString(strings.TrimSpace(doctor.Phone))
     doctor.Specialty = html.EscapeString(strings.TrimSpace(doctor.Specialty))
@@ -428,8 +428,8 @@ func sanitizeAddresses(addresses []models.Address) {
 }
 
 func updateDoctorFields(existing *models.Doctor, update *models.Doctor) {
-    if update.Name != "" {
-        existing.Name = html.EscapeString(strings.TrimSpace(update.Name))
+    if update.FullName != "" {
+        existing.FullName = html.EscapeString(strings.TrimSpace(update.FullName))
     }
     if update.Email != "" {
         existing.Email = html.EscapeString(strings.TrimSpace(update.Email))

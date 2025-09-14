@@ -18,7 +18,7 @@ export default function DoctorDetail() {
   }, [id, fetchDoctor])
 
   const handleDelete = async () => {
-    if (currentDoctor && window.confirm(`Are you sure you want to delete Dr. ${currentDoctor.name}?`)) {
+    if (currentDoctor && window.confirm(`Are you sure you want to delete Dr. ${currentDoctor.fullName}?`)) {
       await deleteDoctor(currentDoctor.id)
       navigate('/doctors')
     }
@@ -35,7 +35,7 @@ export default function DoctorDetail() {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Doctors', href: '/doctors' },
-    { label: currentDoctor.name, current: true }
+    { label: currentDoctor.fullName, current: true }
   ]
 
   return (
@@ -45,7 +45,7 @@ export default function DoctorDetail() {
         <Button variant="outline" size="icon" onClick={() => navigate('/doctors')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold">{currentDoctor.name}</h1>
+        <h1 className="text-3xl font-bold">{currentDoctor.fullName}</h1>
         <div className="ml-auto flex gap-2">
           <Button onClick={() => navigate(`/doctors/${currentDoctor.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" /> Edit

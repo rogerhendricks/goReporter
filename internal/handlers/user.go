@@ -42,6 +42,27 @@ func CreateUser(c *fiber.Ctx) error {
         log.Printf("Error creating user: %v", err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
     }
+
+	// If the user is a doctor, create a corresponding doctor record
+	if newUser.Role == "doctor" {
+		newDoctor := models.Doctor{
+			UserID:   &newUser.ID,
+			FullName: newUser.FullName,
+			Email:    newUser.Email,
+		}
+		if err := models.CreateDoctor(&newDoctor); err != nil {
+			log.Printf("Failed to create doctor record for user %d: %v", newUser.ID, err)
+			// Optional: You might want to delete the created user if doctor creation fails
+			// models.DeleteUser(fmt.Sprint(newUser.ID))
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor record"})
+		}
+		// Link the user to the doctor record
+		newUser.DoctorID = &newDoctor.ID
+		if err := models.UpdateUser(&newUser); err != nil {
+			log.Printf("Failed to link user %d to doctor record %d: %v", newUser.ID, newDoctor.ID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to link user to doctor record"})
+		}
+	}
     
     // Remove sensitive data before returning
     newUser.Password = ""

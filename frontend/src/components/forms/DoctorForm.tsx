@@ -19,7 +19,7 @@ interface Address {
 }
 
 interface DoctorFormData {
-  name: string
+  fullName: string
   email: string
   phone: string
   addresses: Address[]
@@ -33,10 +33,10 @@ export default function DoctorForm() {
   const { currentDoctor, loading, error, fetchDoctor, createDoctor, updateDoctor, clearError } = useDoctorStore()
   
   const [formData, setFormData] = useState<DoctorFormData>({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
-    addresses: [{ street: '', city: '', state: '', country: '', zip: '' }]
+    addresses: []
   })
 
   useEffect(() => {
@@ -48,10 +48,10 @@ export default function DoctorForm() {
   useEffect(() => {
     if (isEdit && currentDoctor) {
       setFormData({
-        name: currentDoctor.name,
+        fullName: currentDoctor.fullName,
         email: currentDoctor.email,
         phone: currentDoctor.phone,
-        addresses: currentDoctor.addresses.length > 0 ? currentDoctor.addresses : [{ street: '', city: '', state: '', country: '', zip: '' }]
+        addresses: currentDoctor.addresses && currentDoctor.addresses.length > 0 ? currentDoctor.addresses : []
       })
     }
   }, [currentDoctor, isEdit])
@@ -103,7 +103,7 @@ export default function DoctorForm() {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Doctors', href: '/doctors' },
-    { label: isEdit ? `Edit ${currentDoctor?.name || 'Doctor'}` : 'New Doctor', current: true }
+    { label: isEdit ? `Edit ${currentDoctor?.fullName || 'Doctor'}` : 'New Doctor', current: true }
   ]
 
   return (
@@ -123,7 +123,7 @@ export default function DoctorForm() {
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label htmlFor="name">Full Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="fullName">Full Name</Label><Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required /></div>
               <div><Label htmlFor="phone">Primary Phone</Label><Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required /></div>
             </div>
@@ -132,7 +132,7 @@ export default function DoctorForm() {
               <h3 className="text-lg font-medium">Addresses</h3>
               {formData.addresses.map((address, index) => (
                 <div key={index} className="p-4 border rounded-md space-y-4 relative">
-                  {formData.addresses.length > 1 && (
+                  {formData.addresses.length > 0 && (
                     <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeAddress(index)}>
                       <X className="h-4 w-4" />
                     </Button>

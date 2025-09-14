@@ -92,7 +92,7 @@ func seed(db *gorm.DB) error {
 
     // Doctors + Addresses
     doc1 := models.Doctor{
-        Name:      "Dr. Alice Smith",
+        FullName:  "Dr. Alice Smith",
         Email:     "alice.smith@clinic.com",
         Phone:     "555-1000",
         Specialty: "Cardiology",
@@ -101,7 +101,7 @@ func seed(db *gorm.DB) error {
         },
     }
     doc2 := models.Doctor{
-        Name:      "Dr. Bob Jones",
+        FullName:  "Dr. Bob Jones",
         Email:     "bob.jones@hospital.org",
         Phone:     "555-2000",
         Specialty: "Electrophysiology",

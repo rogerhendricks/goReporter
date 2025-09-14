@@ -13,6 +13,7 @@ type User struct {
     Password string `json:"password" gorm:"type:varchar(255);not null"`
     Email    string `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
     Role     string `json:"role" gorm:"type:varchar(50);not null"`
+    FullName string `json:"fullName,omitempty" gorm:"-"` // Only used for doctor creation
     DoctorID *uint  `json:"doctorId,omitempty" gorm:"index"` // Link to doctor record for doctor role users
     Doctor   *Doctor `json:"doctor,omitempty" gorm:"foreignKey:DoctorID"` // Belongs to doctor
     Reports       []Report `json:"reports"`       // Has many reports
