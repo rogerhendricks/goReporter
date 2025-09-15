@@ -118,7 +118,7 @@ export default function DoctorIndex() {
                   <TableRow key={doctor.id}>
                     <TableCell className="text-left">
                       <Link to={`/doctors/${doctor.id}`} className="hover:underline">
-                        {doctor.name}
+                        {doctor.fullName}
                       </Link>
                     </TableCell>
                     <TableCell className="text-left">{doctor.email}</TableCell>
@@ -128,7 +128,7 @@ export default function DoctorIndex() {
                         <Button variant="outline" size="sm" onClick={() => navigate(`/doctors/${doctor.id}/edit`)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(doctor.id, doctor.name)}>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(doctor.id, doctor.fullName)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

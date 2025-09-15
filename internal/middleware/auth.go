@@ -131,6 +131,28 @@ func AuthorizeDoctorPatientAccess(c *fiber.Ctx) error {
 	return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: You are not authorized to view this patient's data"})
 }
 
+func SetUserRole(c *fiber.Ctx) error {
+    userIDStr, ok := c.Locals("userID").(string)
+    if !ok {
+        // This should technically be caught by AuthenticateJWT, but good to have.
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user session"})
+    }
+
+    user, err := models.GetUserByID(userIDStr)
+    if err != nil {
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: User not found"})
+    }
+
+    // All authenticated roles (admin, user, doctor) are allowed to access list views.
+    // The handler is responsible for filtering the list based on the role.
+    if user.Role == "admin" || user.Role == "user" || user.Role == "doctor" {
+        c.Locals("userRole", user.Role)
+        return c.Next()
+    }
+
+    return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions to view patient lists"})
+}
+
 // RequireDoctorPatientAccess checks if a doctor user can access a specific patient
 // Admin users always have access. Doctor users must be associated with the patient.
 // func RequireDoctorPatientAccess(c *fiber.Ctx) error {
