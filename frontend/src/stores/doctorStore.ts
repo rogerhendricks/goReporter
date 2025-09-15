@@ -15,6 +15,7 @@ export interface Doctor {
   fullName: string
   email: string
   phone: string
+  specialty: string
   addresses: Address[]
   patients?: any[]
 }

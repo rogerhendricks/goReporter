@@ -9,7 +9,7 @@ import type { Report } from './reportStore'
 
 export interface Doctor {
   id: number
-  name: string
+  fullName: string
   email: string
   phone: string
   addresses?: Address[]

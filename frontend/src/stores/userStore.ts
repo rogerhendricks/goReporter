@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 export interface User {
   ID: string
   username: string
+  fullName: string
   email: string
   role: 'admin' | 'doctor' | 'user'
   password?: string
@@ -23,7 +24,7 @@ interface UserState {
   clearError: () => void
 }
 
-export const useUserStore = create<UserState>((set, get) => ({
+export const useUserStore = create<UserState>((set) => ({
   users: [],
   loading: false,
   error: null,

@@ -59,7 +59,7 @@ const handleSave = async () => {
         setSaving(true);
 
         if (isAdding) {
-            if (!editedUser.username || !editedUser.email || !editedUser.password || !editedUser.role) {
+            if (!editedUser.username || !editedUser.email || !editedUser.password || !editedUser.role || !editedUser.fullName) {
                 toast.error('All fields are required to create a new user.');
                 return;
             }
@@ -101,7 +101,7 @@ const handleSave = async () => {
         handleCancel(); // Reset any existing edit state
         setIsAdding(true);
         // Initialize an empty user object for the "add" row
-        setEditedUser({ username: '', email: '', role: 'user', password: '' });
+        setEditedUser({ username: '', email: '', role: 'user', password: '', fullName: '' });
     };
 
     return (
@@ -119,6 +119,7 @@ const handleSave = async () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="text-left">Full Name</TableHead>
                             <TableHead className="text-left">Username</TableHead>
                             <TableHead className="text-left">Email</TableHead>
                             <TableHead className="text-left">Password</TableHead>
@@ -136,6 +137,7 @@ const handleSave = async () => {
                                 {/* Row for adding a new user appears here when isAdding is true */}
                                 {isAdding && editedUser && (
                                     <TableRow key="add-new-user-row" className="text-left">
+                                        <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} placeholder="Full Name" /></TableCell>
                                         <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="Username" /></TableCell>
                                         <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email" /></TableCell>
                                         <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Password" /></TableCell>
@@ -169,6 +171,7 @@ const handleSave = async () => {
                                     if (isEditing && editedUser) {
                                         return (
                                             <TableRow key={user.ID} className="text-left">
+                                                <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} /></TableCell>
                                                 <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} /></TableCell>
                                                 <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} /></TableCell>
                                                 <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="New password (optional)" /></TableCell>
@@ -197,6 +200,7 @@ const handleSave = async () => {
                                     // Otherwise, render the standard display row
                                     return (
                                         <TableRow key={user.ID} className="text-left">
+                                            <TableCell>{user.fullName}</TableCell>
                                             <TableCell>{user.username}</TableCell>
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>******</TableCell>

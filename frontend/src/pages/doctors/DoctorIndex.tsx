@@ -110,6 +110,7 @@ export default function DoctorIndex() {
                   <TableHead className="text-left">Name</TableHead>
                   <TableHead className="text-left">Email</TableHead>
                   <TableHead className="text-left">Phone</TableHead>
+                  <TableHead className="text-left">Specialty</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -123,6 +124,7 @@ export default function DoctorIndex() {
                     </TableCell>
                     <TableCell className="text-left">{doctor.email}</TableCell>
                     <TableCell className="text-left">{doctor.phone}</TableCell>
+                    <TableCell className="text-left">{doctor.specialty}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => navigate(`/doctors/${doctor.id}/edit`)}>
