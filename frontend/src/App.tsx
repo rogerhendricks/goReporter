@@ -8,11 +8,15 @@ import { routes } from './router/routes'
 import './App.css'
 
 function App() {
-  const { initializeAuth, isAuthenticated } = useAuthStore()
+  const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     initializeAuth()
   }, [initializeAuth])
+
+    if (!isInitialized) {
+    return <div>Loading Application...</div> // Or a proper spinner component
+  }
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">

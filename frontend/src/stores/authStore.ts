@@ -16,6 +16,7 @@ interface AuthState {
   loading: boolean
   error: string | null
   isAuthenticated: boolean
+  isInitialized: boolean;
   // isAdmin: boolean
   // isDoctor: boolean
   // isUser: boolean
@@ -31,6 +32,8 @@ interface AuthState {
   initializeAuth: () => void
   // hasAccess: (roles: string[]) => boolean
   get isAdmin(): boolean;
+  get isDoctor(): boolean;
+  get isUser(): boolean;
 }
 
 
@@ -42,6 +45,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: false,
   error: null,
   isAuthenticated: false,
+  isInitialized: false,
 
   hasAccess: (roles: string[]) => {
     const { user } = get()
@@ -49,16 +53,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   get isAdmin() {
-    return get().user?.role === 'admin'
+    const role = get().user?.role
+    return role?.toLowerCase() === 'admin'
   },
 
   get isDoctor() {
-    return get().user?.role === 'doctor'
+    const role = get().user?.role
+    return role?.toLowerCase() === 'doctor'
   },
   
   get isUser() {
-    return get().user?.role === 'user'
-},
+    const role = get().user?.role
+    return role?.toLowerCase() === 'user'
+  },
 
   // get isDoctor() {
   //   return get().role === 'DOCTOR'
@@ -186,27 +193,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initializeAuth: () => {
-    const token = localStorage.getItem('accessToken')
-    const userData = localStorage.getItem('user')
-    // const role = localStorage.getItem('userRole')
+    if (get().isInitialized) return;
 
-    if (token && userData) {
-      try {
+    // const token = localStorage.getItem('accessToken')
+    // const userData = localStorage.getItem('user')
+
+    try {
+      const token = localStorage.getItem('accessToken')
+      const userData = localStorage.getItem('user')
+
+      if (token && userData) {
         const user = JSON.parse(userData)
         set({
           accessToken: token,
           user,
-          // role,
-          isAuthenticated: true
+          isAuthenticated: true,
         })
-      } catch {
-        localStorage.removeItem('user')
-        // localStorage.removeItem('userRole')
-        localStorage.removeItem('accessToken')
-        set({ isAuthenticated: false })
       }
-    } else {
-      set({ isAuthenticated: false })
+    } catch (error) {
+      // If there's an error (e.g., bad JSON), clear the stored data
+      localStorage.removeItem('user')
+      localStorage.removeItem('accessToken')
+      set({ isAuthenticated: false, user: null, accessToken: null })
+    } finally {
+      // This block will always run, ensuring the app proceeds
+      set({ isInitialized: true })
     }
   }
   

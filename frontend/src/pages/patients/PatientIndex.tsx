@@ -27,7 +27,10 @@ import {
 export default function PatientIndex() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const { isAdmin } = useAuthStore()
+  const role = useAuthStore(s => s.user?.role)
+  const isAdmin = role?.toLowerCase() === 'admin'
+  const isUser = role?.toLowerCase() === 'user'
+  console.log("role:", role, "isAdmin:", isAdmin, "isUser:", isUser)
   const { 
     patients, 
     loading, 
@@ -70,7 +73,7 @@ export default function PatientIndex() {
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Patients</h1>
-        {isAdmin && (
+        {(isAdmin || isUser) && (
           <Button onClick={() => navigate('/patients/new')} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add Patient
