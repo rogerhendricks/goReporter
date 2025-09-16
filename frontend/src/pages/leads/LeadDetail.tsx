@@ -62,7 +62,7 @@ export default function LeadDetail() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><strong>Model:</strong> {currentLead.leadModel}</div>
           <div><strong>Manufacturer:</strong> {currentLead.manufacturer}</div>
-          <div><strong>Type:</strong> {currentLead.type}</div>
+          <div><strong>Connector:</strong> {currentLead.connector}</div>
           <div>
             <strong>MRI Safe:</strong>
             <Badge variant={currentLead.isMri ? 'default' : 'secondary'} className="ml-2">

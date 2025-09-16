@@ -19,7 +19,7 @@ type LeadResponse struct {
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
 	Model        string `json:"model"`
-	Type         string `json:"type"`
+	Connector    string `json:"connector"`
 	Polarity     string `json:"polarity"`
 	IsMri        bool   `json:"isMri"`
 }
@@ -42,7 +42,7 @@ func GetLeads(c *fiber.Ctx) error {
 	return c.JSON(leads)
 }
 
-// GetleadsBasic retrieves basic device information (name, manufacturer, type, model)
+// GetleadsBasic retrieves basic device information (name, manufacturer, connector, model)
 func GetleadsBasic(c *fiber.Ctx) error {
 
 	// Check if user is authenticated (no admin requirement)
@@ -75,8 +75,8 @@ func GetleadsBasic(c *fiber.Ctx) error {
 		Manufacturer string `json:"manufacturer"`
 		LeadModel    string `json:"leadModel"`
 		IsMri        bool   `json:"isMri"`
-        Polarity     string `json:"polarity"`
-		Type         string `json:"type"`
+		Polarity     string `json:"polarity"`
+		Connector    string `json:"connector"`
 	}
 	var basicLeads []LeadBasic
 	for _, lead := range leads {
@@ -86,8 +86,8 @@ func GetleadsBasic(c *fiber.Ctx) error {
 			Manufacturer: lead.Manufacturer,
 			LeadModel:    lead.LeadModel,
 			IsMri:        lead.IsMri,
-            Polarity:     lead.Polarity,
-			Type:         lead.Type,
+			Polarity:     lead.Polarity,
+			Connector:    lead.Connector,
 		})
 	}
 	return c.JSON(basicLeads)
@@ -126,8 +126,8 @@ func SearchLeads(c *fiber.Ctx) error {
 		Manufacturer string `json:"manufacturer"`
 		LeadModel    string `json:"leadModel"`
 		IsMri        bool   `json:"isMri"`
-        Polarity     string `json:"polarity"`
-		Type         string `json:"type"`
+		Polarity     string `json:"polarity"`
+		Connector    string `json:"connector"`
 	}
 
 	var basicLeads []LeadBasic
@@ -138,8 +138,8 @@ func SearchLeads(c *fiber.Ctx) error {
 			Manufacturer: lead.Manufacturer,
 			LeadModel:    lead.LeadModel,
 			IsMri:        lead.IsMri,
-			Type:         lead.Type,
-            Polarity:     lead.Polarity,
+			Connector:    lead.Connector,
+			Polarity:     lead.Polarity,
 		})
 	}
 	return c.JSON(basicLeads)
@@ -183,8 +183,8 @@ func CreateLead(c *fiber.Ctx) error {
 	newLead.Name = html.EscapeString(strings.TrimSpace(newLead.Name))
 	newLead.Manufacturer = html.EscapeString(strings.TrimSpace(newLead.Manufacturer))
 	newLead.LeadModel = html.EscapeString(strings.TrimSpace(newLead.LeadModel))
-	newLead.Type = html.EscapeString(strings.TrimSpace(newLead.Type))
-    newLead.Polarity = html.EscapeString(strings.TrimSpace(newLead.Polarity))
+	newLead.Connector = html.EscapeString(strings.TrimSpace(newLead.Connector))
+	newLead.Polarity = html.EscapeString(strings.TrimSpace(newLead.Polarity))
 
 	// Create lead in database
 	if err := models.CreateLead(&newLead); err != nil {
@@ -235,12 +235,12 @@ func UpdateLead(c *fiber.Ctx) error {
 	if updateData.LeadModel != "" {
 		existingLead.LeadModel = html.EscapeString(strings.TrimSpace(updateData.LeadModel))
 	}
-	if updateData.Type != "" {
-		existingLead.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
+	if updateData.Connector != "" {
+		existingLead.Connector = html.EscapeString(strings.TrimSpace(updateData.Connector))
 	}
-    if updateData.Polarity != "" {
-        existingLead.Polarity = html.EscapeString(strings.TrimSpace(updateData.Polarity))
-    }
+	if updateData.Polarity != "" {
+		existingLead.Polarity = html.EscapeString(strings.TrimSpace(updateData.Polarity))
+	}
 	// Update boolean field
 	existingLead.IsMri = updateData.IsMri
 
@@ -309,13 +309,13 @@ func validateLead(lead *models.Lead) error {
 		return errors.New("lead model must be less than 50 characters")
 	}
 
-	if lead.Type != "" && len(strings.TrimSpace(lead.Type)) > 50 {
-		return errors.New("lead type must be less than 50 characters")
+	if lead.Connector != "" && len(strings.TrimSpace(lead.Connector)) > 50 {
+		return errors.New("lead connector must be less than 50 characters")
 	}
 
-    if lead.Polarity != "" && len(strings.TrimSpace(lead.Polarity)) > 100 {
-        return errors.New("lead polarity must be less than 100 characters")
-    }
+	if lead.Polarity != "" && len(strings.TrimSpace(lead.Polarity)) > 100 {
+		return errors.New("lead polarity must be less than 100 characters")
+	}
 
 	return nil
 }
@@ -336,8 +336,8 @@ func validateLeadUpdate(lead *models.Lead) error {
 		return errors.New("lead model must be less than 50 characters")
 	}
 
-	if lead.Type != "" && len(strings.TrimSpace(lead.Type)) > 50 {
-		return errors.New("lead type must be less than 50 characters")
+	if lead.Connector != "" && len(strings.TrimSpace(lead.Connector)) > 50 {
+		return errors.New("lead connector must be less than 50 characters")
 	}
 
 	return nil

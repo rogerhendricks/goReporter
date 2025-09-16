@@ -104,7 +104,7 @@ export default function LeadIndex() {
                   <TableHead className="text-left">Name</TableHead>
                   <TableHead className="text-left">Model</TableHead>
                   <TableHead className="text-left">Manufacturer</TableHead>
-                  <TableHead className="text-left">Type</TableHead>
+                  <TableHead className="text-left">Connector</TableHead>
                   <TableHead className="text-left">MRI Safe</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -119,7 +119,7 @@ export default function LeadIndex() {
                     </TableCell>
                     <TableCell className="text-left">{lead.leadModel}</TableCell>
                     <TableCell className="text-left">{lead.manufacturer}</TableCell>
-                    <TableCell className="text-left">{lead.type}</TableCell>
+                    <TableCell className="text-left">{lead.connector}</TableCell>
                     <TableCell className="text-left"> 
                       <Badge variant={lead.isMri ? 'default' : 'secondary'}>
                         {lead.isMri ? 'Yes' : 'No'}

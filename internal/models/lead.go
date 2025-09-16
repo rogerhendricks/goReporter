@@ -13,7 +13,7 @@ type Lead struct {
 	Manufacturer string          `json:"manufacturer" gorm:"type:varchar(255)"`
 	LeadModel    string          `json:"model" gorm:"type:varchar(50)"`
 	IsMri        bool            `json:"isMri" gorm:"default:false"`
-	Type         string          `json:"type" gorm:"type:varchar(50)"`
+	Connector    string          `json:"connector" gorm:"type:varchar(50)"`
 	Polarity     string          `json:"polarity" gorm:"type:varchar(100)"`
 	Implanted    []ImplantedLead `json:"implanted"`
 }

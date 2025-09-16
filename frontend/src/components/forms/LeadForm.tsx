@@ -16,7 +16,7 @@ interface LeadFormData {
   name: string
   manufacturer: string
   leadModel: string
-  type: string
+  connector: string
   polarity: string
   isMri: boolean
 }
@@ -32,7 +32,7 @@ export default function LeadForm() {
     name: '',
     manufacturer: '',
     leadModel: '',
-    type: '',
+    connector: '',
     polarity: '',
     isMri: false
   })
@@ -49,7 +49,7 @@ export default function LeadForm() {
         name: currentLead.name,
         manufacturer: currentLead.manufacturer,
         leadModel: currentLead.leadModel,
-        type: currentLead.type,
+        connector: currentLead.connector,
         polarity: currentLead.polarity,
         isMri: currentLead.isMri
       })
@@ -123,10 +123,9 @@ export default function LeadForm() {
               </Select>                
               </div>
               <div>
-                <Label htmlFor="type">Type</Label>
-                {/* <Input id="type" name="type" value={formData.type} onChange={handleInputChange} required /> */}
-                <Select name="type" value={formData.type || ''} onValueChange={(value) => handleSelectChange('type', value)} required>
-                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                <Label htmlFor="connector">Connector</Label>
+                <Select name="connector" value={formData.connector || ''} onValueChange={(value) => handleSelectChange('connector', value)} required>
+                <SelectTrigger><SelectValue placeholder="Select connector..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="IS1">IS1</SelectItem>
                   <SelectItem value="DF4">DF4</SelectItem>
