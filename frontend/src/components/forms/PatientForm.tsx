@@ -638,7 +638,7 @@ export default function PatientForm() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">
-                          {patientDoctor.doctor.name}
+                          {patientDoctor.doctor.fullName}
                         </span>
                         {patientDoctor.isPrimary && (
                           <Badge variant="default">Primary</Badge>
@@ -738,7 +738,7 @@ export default function PatientForm() {
                               >
                                 <div>
                                   <div className="font-medium">
-                                    {doctor.name}
+                                    {doctor.fullName}
                                   </div>
                                   <div className="text-sm text-muted-foreground">
                                     {doctor.email}
@@ -754,7 +754,7 @@ export default function PatientForm() {
                     {selectedDoctor && (
                       <div className="mt-4 p-3 border rounded-lg bg-muted">
                         <div className="font-medium">
-                          Selected: {selectedDoctor.name}
+                          Selected: {selectedDoctor.fullName}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           Addresses available:{" "}
