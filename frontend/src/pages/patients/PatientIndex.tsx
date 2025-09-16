@@ -217,7 +217,7 @@ export default function PatientIndex() {
                                 <div key={pd.id}>
                                   <div>
                                   <h4 className="text-sm font-semibold flex items-center gap-2">
-                                      {pd.doctor.name}
+                                      {pd.doctor.fullName}
                                       {pd.isPrimary && <Badge variant="outline">Primary</Badge>}
                                     </h4>
                                     <p className="text-xs text-muted-foreground">
