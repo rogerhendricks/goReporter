@@ -160,7 +160,7 @@ export default function PatientDetail() {
                   {currentPatient.patientDoctors.map((patientDoctor) => (
                     <div key={patientDoctor.id} className="p-3 border rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="font-semibold">{patientDoctor.doctor.name}</div>
+                        <div className="font-semibold">{patientDoctor.doctor.fullName}</div>
                         {patientDoctor.isPrimary && (
                           <Badge variant="default">Primary</Badge>
                         )}
