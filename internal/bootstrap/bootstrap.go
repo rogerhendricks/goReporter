@@ -229,9 +229,20 @@ func seed(db *gorm.DB) error {
 		{Name: "Attain Performa S", Manufacturer: "Medtronic", LeadModel: "4598", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
 		{Name: "Attain Performa Straight", Manufacturer: "Medtronic", LeadModel: "4398", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
 		{Name: "Attain Performa", Manufacturer: "Medtronic", LeadModel: "4298", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
-
 		// Abbott
-		{Name: "Durata 7122Q", Manufacturer: "Abbott", LeadModel: "7122Q", IsMri: true, Connector: "RV", Polarity: "Bipolar"},
+        {Name: "Tendril STS", Manufacturer: "Abbott", LeadModel: "2088TC-52", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+        {Name: "Tendril STS", Manufacturer: "Abbott", LeadModel: "2088TC-46", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+        {Name: "Tendril 2088TC", Manufacturer: "Abbott", LeadModel: "2088TC-52", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+        {Name: "Tendril 2088TC", Manufacturer: "Abbott", LeadModel: "2088TC-65", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+		{Name: "Durata 7122Q", Manufacturer: "Abbott", LeadModel: "7122Q-58", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
+        {Name: "Durata 7122Q", Manufacturer: "Abbott", LeadModel: "7122Q-65", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
+        {Name: "Durata 7120Q", Manufacturer: "Abbott", LeadModel: "7120Q-58", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
+        {Name: "Durata 7120Q", Manufacturer: "Abbott", LeadModel: "7120Q-65", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
+        // Biotronik
+        {Name: "Solia S 60", Manufacturer: "Biotronik", LeadModel: "SOL60", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+        {Name: "Solia S 53", Manufacturer: "Biotronik", LeadModel: "SOL52", IsMri: true, Connector: "IS1", Polarity: "Bipolar"},
+        {Name: "Pamira", Manufacturer: "Biotronik", LeadModel: "PAM", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
+        {Name: "Plexa Pro MRI", Manufacturer: "Biotronik", LeadModel: "PLX", IsMri: true, Connector: "DF4", Polarity: "Bipolar"},
 		// Boston Sceintific
 		{Name: "Acuity X4", Manufacturer: "Boston Scientific", LeadModel: "4678", IsMri: true, Connector: "LV", Polarity: "Quadripolar"},
 		{Name: "Acuity X4", Manufacturer: "Boston Scientific", LeadModel: "4677", IsMri: true, Connector: "LV", Polarity: "Quadripolar"},
