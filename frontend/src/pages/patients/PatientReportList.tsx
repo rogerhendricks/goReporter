@@ -147,7 +147,7 @@ export default function PatientReportList() {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Patients', href: '/patients' },
-    { label: currentPatient?.fname || 'Patient', href: `/patients/${patientId}` },
+    { label: `${currentPatient?.fname || ''} ${currentPatient?.lname || ''}` || 'Patient', href: `/patients/${patientId}` },
     { label: 'Reports', current: true }
   ]
 
@@ -155,7 +155,8 @@ export default function PatientReportList() {
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Reports for {currentPatient?.fname} {currentPatient?.lname}</h1>
+        {/* <h1 className="text-3xl font-bold">Reports for {currentPatient?.fname} {currentPatient?.lname}</h1> */}
+        
         <Button onClick={() => navigate(`/patients/${patientId}/reports/new`)}>
           <Plus className="mr-2 h-4 w-4" /> Create New Report
         </Button>
@@ -253,7 +254,7 @@ export default function PatientReportList() {
                                 onClick={() => handleDoctorSelect(report, pd.doctorId)}
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="font-medium">{pd.doctor.name}</span>
+                                  <span className="font-medium">{pd.doctor.fullName}</span>
                                   {pd.isPrimary && <Badge variant="default">Primary</Badge>}
                                 </div>
                                 <div className="text-xs text-muted-foreground">{pd.doctor.email}</div>
