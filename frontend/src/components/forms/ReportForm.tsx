@@ -530,26 +530,45 @@ export function ReportForm({ patient }: ReportFormProps) {
           <CardTitle>General Information</CardTitle>
           <CardDescription>High-level details about this report.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label>Report Date</Label>
+
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">Report Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant={"outline"} className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.reportDate ? format(new Date(formData.reportDate), "PPP") : <span>Pick a date</span>}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-full justify-start px-2 py-0 text-left text-sm"
+                  >
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {formData.reportDate
+                      ? format(new Date(formData.reportDate), "PPP")
+                      : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={formData.reportDate ? new Date(formData.reportDate) : undefined} onSelect={handleDateChange} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={formData.reportDate ? new Date(formData.reportDate) : undefined}
+                    onSelect={handleDateChange}
+                    autoFocus
+                  />
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Report Type</Label>
-              <Select name="reportType" value={formData.reportType || ''} onValueChange={(value) => handleSelectChange('reportType', value)}>
-                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">Report Type</Label>
+              <Select
+                name="reportType"
+                value={formData.reportType || ''}
+                onValueChange={(value) => handleSelectChange('reportType', value)}
+              >
+                <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                  <SelectValue placeholder="Select type..." />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="In Clinic">In Clinic</SelectItem>
                   <SelectItem value="Remote">Remote</SelectItem>
@@ -557,10 +576,17 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Report Status</Label>
-              <Select name="reportStatus" value={formData.reportStatus || ''} onValueChange={(value) => handleSelectChange('reportStatus', value)}>
-                <SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">Report Status</Label>
+              <Select
+                name="reportStatus"
+                value={formData.reportStatus || ''}
+                onValueChange={(value) => handleSelectChange('reportStatus', value)}
+              >
+                <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                  <SelectValue placeholder="Select status..." />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="reviewed">Reviewed</SelectItem>
@@ -568,14 +594,32 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="currentHeartRate">Heart Rate (bpm)</Label>
-              <Input id="currentHeartRate" name="currentHeartRate" type="number" value={formData.currentHeartRate || ''} onChange={handleChange} placeholder="e.g., 60" />
+
+            <div className="space-y-1">
+              <Label htmlFor="currentHeartRate" className="text-xs font-medium leading-tight">
+                Heart Rate (bpm)
+              </Label>
+              <Input
+                id="currentHeartRate"
+                name="currentHeartRate"
+                type="number"
+                value={formData.currentHeartRate || ''}
+                onChange={handleChange}
+                placeholder="e.g., 60"
+                className="h-8 text-sm"
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Current Rhythm</Label>
-              <Select name="currentRhythm" value={formData.currentRhythm || ''} onValueChange={(value) => handleSelectChange('currentRhythm', value)}>
-                <SelectTrigger><SelectValue placeholder="Select rhythm..." /></SelectTrigger>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">Current Rhythm</Label>
+              <Select
+                name="currentRhythm"
+                value={formData.currentRhythm || ''}
+                onValueChange={(value) => handleSelectChange('currentRhythm', value)}
+              >
+                <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                  <SelectValue placeholder="Select rhythm..." />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NSR">NSR</SelectItem>
                   <SelectItem value="AFib">AFib</SelectItem>
@@ -584,10 +628,17 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Pacing Dependency</Label>
-              <Select name="currentDependency" value={formData.currentDependency || ''} onValueChange={(value) => handleSelectChange('currentDependency', value)}>
-                <SelectTrigger><SelectValue placeholder="Select dependency..." /></SelectTrigger>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">Pacing Dependency</Label>
+              <Select
+                name="currentDependency"
+                value={formData.currentDependency || ''}
+                onValueChange={(value) => handleSelectChange('currentDependency', value)}
+              >
+                <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                  <SelectValue placeholder="Select dependency..." />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Dependent">Dependent</SelectItem>
                   <SelectItem value="Non-Dependent">Non-Dependent</SelectItem>
@@ -595,19 +646,20 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>QRS Duration</Label>
-              <Input id="qrs_duration" name="qrs_duration" type="number" value={formData.qrs_duration || ''} onChange={handleChange} placeholder="e.g., 80-120" />
+
+            <div className="space-y-1">
+              <Label className="text-xs font-medium leading-tight">QRS Duration</Label>
+              <Input
+                id="qrs_duration"
+                name="qrs_duration"
+                type="number"
+                value={formData.qrs_duration || ''}
+                onChange={handleChange}
+                placeholder="e.g., 80-120"
+                className="h-8 text-sm"
+              />
             </div>
           </div>
-          {/* <div className="space-y-2 pt-2">
-            <Label htmlFor="comments">Comments</Label>
-            <Textarea id="comments" name="comments" value={formData.comments || ''} onChange={(e) => setFormData(prev => ({...prev, comments: e.target.value}))} placeholder="Add any relevant comments here..." />
-          </div> */}
-          {/* <div className="flex items-center space-x-2 pt-2">
-            <Checkbox id="isCompleted" name="isCompleted" checked={!!formData.isCompleted} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCompleted: !!checked }))} />
-            <Label htmlFor="isCompleted" className="font-normal">Mark as Completed</Label>
-          </div> */}
         </CardContent>
       </Card>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -617,10 +669,10 @@ export function ReportForm({ patient }: ReportFormProps) {
           <CardDescription>Programmed parameters for bradycardia pacing.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <Label>Mode</Label>
             <Select name="mdc_idc_set_brady_mode" value={formData.mdc_idc_set_brady_mode || ''} onValueChange={(value) => handleSelectChange('mdc_idc_set_brady_mode', value)}>
-              <SelectTrigger><SelectValue placeholder="Select mode..." /></SelectTrigger>
+              <SelectTrigger className="h-8 text-sm w-full min-w-0"><SelectValue placeholder="Select mode..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="AAI">AAI</SelectItem>
                 <SelectItem value="VVI">VVI</SelectItem>
@@ -635,7 +687,7 @@ export function ReportForm({ patient }: ReportFormProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <Label htmlFor="mdc_idc_set_brady_lowrate">LRL (bpm)</Label>
             <Input id="mdc_idc_set_brady_lowrate" name="mdc_idc_set_brady_lowrate" type="number" value={formData.mdc_idc_set_brady_lowrate || ''} onChange={handleChange} />
           </div>
@@ -704,10 +756,10 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Label htmlFor='mdc_idc_batt_percentage' >Longevity (%)</Label>
               <Input id="mdc_idc_batt_percentage" name="mdc_idc_batt_percentage" type="number" step="any" value={formData.mdc_idc_batt_percentage || ''} onChange={handleChange} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label>Battery Status</Label>
               <Select name="mdc_idc_batt_status" value={formData.mdc_idc_batt_status || ''} onValueChange={(value) => handleSelectChange('mdc_idc_batt_status', value)}>
-                <SelectTrigger><SelectValue placeholder="Select status..." /></SelectTrigger>
+                <SelectTrigger className="h-8 text-sm w-full min-w-0"><SelectValue placeholder="Select status..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BOL">BOL (Beginning Of Life)</SelectItem>
                   <SelectItem value="OK">OK</SelectItem>
@@ -717,7 +769,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="mdc_idc_cap_charge_time">Charge Time (s)</Label>
               <Input id="mdc_idc_cap_charge_time" name="mdc_idc_cap_charge_time" type="number" step="any" value={formData.mdc_idc_cap_charge_time || ''} onChange={handleChange} />
             </div>
