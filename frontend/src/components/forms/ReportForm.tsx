@@ -166,16 +166,16 @@ export function ReportForm({ patient }: ReportFormProps) {
 
     // Map pacing percentages
     if (data.mdc_idc_stat_brady_ra_percent_paced) {
-      updatedFormData.mdc_idc_stat_brady_ra_percent_paced = parseFloat(data.mdc_idc_stat_brady_ra_percent);
+      updatedFormData.mdc_idc_stat_brady_ra_percent_paced = parseFloat(data.mdc_idc_stat_brady_ra_percent_paced);
     }
     if (data.mdc_idc_stat_brady_rv_percent_paced) {
-      updatedFormData.mdc_idc_stat_brady_rv_percent_paced = parseFloat(data.mdc_idc_stat_brady_rv_percent);
+      updatedFormData.mdc_idc_stat_brady_rv_percent_paced = parseFloat(data.mdc_idc_stat_brady_rv_percent_paced);
     }
     if (data.mdc_idc_stat_brady_lv_percent_paced) {
-      updatedFormData.mdc_idc_stat_brady_lv_percent_paced = parseFloat(data.mdc_idc_stat_brady_lv_percent);
+      updatedFormData.mdc_idc_stat_brady_lv_percent_paced = parseFloat(data.mdc_idc_stat_brady_lv_percent_paced);
     }
     if (data.mdc_idc_stat_brady_biv_percent_paced) {
-      updatedFormData.mdc_idc_stat_brady_biv_percent_paced = parseFloat(data.mdc_idc_stat_brady_biv_percent);
+      updatedFormData.mdc_idc_stat_brady_biv_percent_paced = parseFloat(data.mdc_idc_stat_brady_biv_percent_paced);
     }
 
     // Map battery data
@@ -736,7 +736,7 @@ export function ReportForm({ patient }: ReportFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">BiV Paced (%)</Label>
-              <Input id="mdc_idc_stat_brady_biv_percent_paced" name="mdc_idc_stat_brady_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_tachy_biv_percent_paced || ''} onChange={handleChange} />
+              <Input id="mdc_idc_stat_brady_biv_percent_paced" name="mdc_idc_stat_brady_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_biv_percent_paced || ''} onChange={handleChange} />
             </div>
           </CardContent>
         </Card>
