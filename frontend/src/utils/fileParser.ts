@@ -34,10 +34,10 @@ export interface ParsedData {
   mdc_idc_set_brady_mode_switch_rate?: string;
   mdc_idc_dev_sav?: string;
   mdc_idc_dev_pav?: string;
-  mdc_idc_stat_brady_ra_percent?: string;
-  mdc_idc_stat_brady_rv_percent?: string;
-  mdc_idc_stat_brady_lv_percent?: string;
-  biv_percent_paced?: string;
+  mdc_idc_stat_brady_ra_percent_paced?: string;
+  mdc_idc_stat_brady_rv_percent_paced?: string;
+  mdc_idc_stat_brady_lv_percent_paced?: string;
+  mdc_idc_stat_brady_biv_percent_paced?: string;
   mdc_idc_batt_percentage?: string;
   mdc_idc_batt_volt?: string;
   mdc_idc_batt_remaining?: string;
@@ -240,8 +240,8 @@ function parseLogFile(data: string): ParsedData {
     '406': 'mdc_idc_set_brady_max_sensor_rate',
     '323': 'mdc_idc_set_brady_max_tracking_rate',
     '2754': 'mdc_idc_stat_ataf_count',
-    '2682': 'mdc_idc_stat_brady_ra_percent',
-    '2681': 'mdc_idc_stat_brady_rv_percent',
+    '2682': 'mdc_idc_stat_brady_ra_percent_paced',
+    '2681': 'mdc_idc_stat_brady_rv_percent_paced',
     '519': 'mdc_idc_batt_volt',
     '2745': 'mdc_idc_cap_charge_time',
     '533': 'mdc_idc_batt_remaining',
@@ -728,7 +728,6 @@ function parseXmlFile(fileContent: string): ParsedData {
       // Check for traditional pacing values first
       const raPaced = bradySection.value.find((v: any) => v['@_name'] === 'RA_PERCENT_PACED');
       const rvPaced = bradySection.value.find((v: any) => v['@_name'] === 'RV_PERCENT_PACED');
-      const lvPaced = bradySection.value.find((v: any) => v['@_name'] === 'LV_PERCENT_PACED');
 
       // Check for AP/AS values
       const apVp = bradySection.value.find((v: any) => v['@_name'] === 'AP_VP_PERCENT');
@@ -737,31 +736,39 @@ function parseXmlFile(fileContent: string): ParsedData {
 
       // Calculate RA pacing
       if (raPaced) {
-        result.mdc_idc_stat_brady_ra_percent = raPaced['#text'];
+        result.mdc_idc_stat_brady_ra_percent_paced = raPaced['#text'];
       } else if (apVp && apVs) {
         const apVpValue = parseFloat(apVp['#text'] || 0);
         const apVsValue = parseFloat(apVs['#text'] || 0);
-        result.mdc_idc_stat_brady_ra_percent = (apVpValue + apVsValue).toString();
+        result.mdc_idc_stat_brady_ra_percent_paced = (apVpValue + apVsValue).toString();
       } else {
-        result.mdc_idc_stat_brady_ra_percent = '';
+        result.mdc_idc_stat_brady_ra_percent_paced = '';
       }
 
       // Calculate RV pacing
       if (rvPaced) {
-        result.mdc_idc_stat_brady_rv_percent = rvPaced['#text'];
+        result.mdc_idc_stat_brady_rv_percent_paced = rvPaced['#text'];
       } else if (apVp && asVp) {
         const apVpValue = parseFloat(apVp['#text'] || 0);
         const asVpValue = parseFloat(asVp['#text'] || 0);
-        result.mdc_idc_stat_brady_rv_percent = (apVpValue + asVpValue).toString();
+        result.mdc_idc_stat_brady_rv_percent_paced = (apVpValue + asVpValue).toString();
       } else {
-        result.mdc_idc_stat_brady_rv_percent = '';
+        result.mdc_idc_stat_brady_rv_percent_paced = '';
       }
-
-      // LV pacing remains unchanged
-      result.mdc_idc_stat_brady_lv_percent = lvPaced ? lvPaced['#text'] : '';
     }
   }
 
+    const crtSection = statSection.section.find((v: any) => v['@_name'] === 'CRT');
+    if (crtSection && crtSection.value) {
+      crtSection.value.forEach((value: any) => {
+        if (value['@_name'] === 'LV_PERCENT_PACED') {
+          result.mdc_idc_stat_brady_lv_percent_paced = (value['#text']);
+        }
+        if (value['@_name'] === 'PERCENT_PACED') {
+          result.mdc_idc_stat_brady_biv_percent_paced = value['#text'];
+        }
+      });
+    }
   // Get MSMT and BATT sections
   // const msmtSection = idcSection.section.find((s: any) => s['@_name'] === 'MSMT');
   // console.log('msmtSection', msmtSection);

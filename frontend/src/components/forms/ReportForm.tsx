@@ -54,7 +54,7 @@ const initialFormData: Partial<Report> = {
   mdc_idc_stat_brady_ra_percent_paced: undefined,
   mdc_idc_stat_brady_rv_percent_paced: undefined,
   mdc_idc_stat_brady_lv_percent_paced: undefined,
-  mdc_idc_stat_tachy_biv_percent_paced: undefined,
+  mdc_idc_stat_brady_biv_percent_paced: undefined,
   // Battery/device Diagnostics
   mdc_idc_batt_volt: undefined,
   mdc_idc_batt_remaining: undefined,
@@ -165,14 +165,17 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
 
     // Map pacing percentages
-    if (data.mdc_idc_stat_brady_ra_percent) {
+    if (data.mdc_idc_stat_brady_ra_percent_paced) {
       updatedFormData.mdc_idc_stat_brady_ra_percent_paced = parseFloat(data.mdc_idc_stat_brady_ra_percent);
     }
-    if (data.mdc_idc_stat_brady_rv_percent) {
+    if (data.mdc_idc_stat_brady_rv_percent_paced) {
       updatedFormData.mdc_idc_stat_brady_rv_percent_paced = parseFloat(data.mdc_idc_stat_brady_rv_percent);
     }
-    if (data.mdc_idc_stat_brady_lv_percent) {
+    if (data.mdc_idc_stat_brady_lv_percent_paced) {
       updatedFormData.mdc_idc_stat_brady_lv_percent_paced = parseFloat(data.mdc_idc_stat_brady_lv_percent);
+    }
+    if (data.mdc_idc_stat_brady_biv_percent_paced) {
+      updatedFormData.mdc_idc_stat_brady_biv_percent_paced = parseFloat(data.mdc_idc_stat_brady_biv_percent);
     }
 
     // Map battery data
@@ -732,8 +735,8 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Input id="mdc_idc_stat_brady_lv_percent_paced" name="mdc_idc_stat_brady_lv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_lv_percent_paced || ''} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mdc_idc_stat_tachy_biv_percent_paced">BiV Paced (%)</Label>
-              <Input id="mdc_idc_stat_tachy_biv_percent_paced" name="mdc_idc_stat_tachy_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_tachy_biv_percent_paced || ''} onChange={handleChange} />
+              <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">BiV Paced (%)</Label>
+              <Input id="mdc_idc_stat_brady_biv_percent_paced" name="mdc_idc_stat_brady_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_tachy_biv_percent_paced || ''} onChange={handleChange} />
             </div>
           </CardContent>
         </Card>

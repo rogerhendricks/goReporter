@@ -124,7 +124,11 @@ export default function DoctorIndex() {
                     </TableCell>
                     <TableCell className="text-left">{doctor.email}</TableCell>
                     <TableCell className="text-left">{doctor.phone}</TableCell>
-                    <TableCell className="text-left">{doctor.specialty}</TableCell>
+                    <TableCell className="text-left">
+                        {doctor.specialty
+                        ? doctor.specialty.charAt(0).toUpperCase() + doctor.specialty.slice(1)
+                        : ''}
+                      </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => navigate(`/doctors/${doctor.id}/edit`)}>

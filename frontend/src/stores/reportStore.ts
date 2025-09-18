@@ -37,7 +37,7 @@ export interface Report {
   mdc_idc_stat_brady_ra_percent_paced?: number | null
   mdc_idc_stat_brady_rv_percent_paced?: number | null
   mdc_idc_stat_brady_lv_percent_paced?: number | null
-  mdc_idc_stat_tachy_biv_percent_paced?: number | null
+  mdc_idc_stat_brady_biv_percent_paced?: number | null
   // Battery/device diagnostics
   mdc_idc_batt_volt?: number | null
   mdc_idc_batt_remaining?: number | null
