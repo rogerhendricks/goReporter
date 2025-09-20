@@ -60,7 +60,7 @@ export interface ParsedData {
   VT1_therapy_1_atp?: string;
   VT1_therapy_1_no_bursts?: string;
   VT1_therapy_2_atp?: string;
-  VT1_therapt_2_no_bursts?: string;
+  VT1_therapy_2_no_bursts?: string;
   VT1_therapy_3_cvrt?: string;
   VT1_therapy_3_energy?: string;
   VT1_therapy_4_cvrt?: string;

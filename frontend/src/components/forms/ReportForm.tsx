@@ -75,6 +75,39 @@ const initialFormData: Partial<Report> = {
   mdc_idc_msmt_lv_sensing: undefined,
   mdc_idc_msmt_lv_pacing_threshold: undefined,
   mdc_idc_msmt_lv_pw: undefined,
+  // tachy settings
+  VT1_detection_interval: undefined,
+  VT1_therapy_1_atp: undefined,
+  VT1_therapy_1_no_bursts: undefined,
+  VT1_therapy_2_atp: undefined,
+  VT1_therapy_2_no_bursts: undefined,
+  VT1_therapy_3_cvrt: undefined,
+  VT1_therapy_3_energy: undefined,
+  VT1_therapy_4_cvrt: undefined,
+  VT1_therapy_4_energy: undefined,
+  VT1_therapy_5_cvrt: undefined,
+  VT1_therapy_5_energy: undefined,
+  VT1_therapy_5_max_num_shocks: undefined,
+  // VT2 Settings
+  VT2_detection_interval: undefined,
+  VT2_therapy_1_atp: undefined,
+  VT2_therapy_1_no_bursts: undefined,
+  VT2_therapy_2_atp: undefined,
+  VT2_therapy_2_no_bursts: undefined,
+  VT2_therapy_3_cvrt: undefined,
+  VT2_therapy_3_energy: undefined,
+  VT2_therapy_4_cvrt: undefined,
+  VT2_therapy_4_energy: undefined,
+  VT2_therapy_5_cvrt: undefined,
+  VT2_therapy_5_energy: undefined,
+  VT2_therapy_5_max_num_shocks: undefined,
+  //  VF Settings
+  VF_detection_interval: undefined,
+  VF_therapy_1_atp: undefined,
+  VF_therapy_2_energy: undefined,
+  VF_therapy_3_energy: undefined,
+  VF_therapy_4_energy: undefined,
+  VF_therapy_4_max_num_shocks: undefined,
 }
 
 const initialArrhythmia: Arrhythmia = {
@@ -247,6 +280,44 @@ export function ReportForm({ patient }: ReportFormProps) {
     // Map shock impedance
     if (data.mdc_idc_msmt_hv_impedance_mean) {
       updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(data.mdc_idc_msmt_hv_impedance_mean);
+    }
+
+    // Map tachycardia settings
+    if (data.VT1_mdc_idc_tachycardia_detection_interval) {
+      updatedFormData.VT1_detection_interval = data.VT1_mdc_idc_tachycardia_detection_interval;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_1_atp) {
+      updatedFormData.VT1_therapy_1_atp = data.VT1_mdc_idc_tachycardia_therapy_1_atp;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_1_no_bursts) {
+      updatedFormData.VT1_therapy_1_no_bursts = data.VT1_mdc_idc_tachycardia_therapy_1_no_bursts;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_2_atp) {
+      updatedFormData.VT1_therapy_2_atp = data.VT1_mdc_idc_tachycardia_therapy_2_atp;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_2_no_bursts) {
+      updatedFormData.VT1_therapy_2_no_bursts = data.VT1_mdc_idc_tachycardia_therapy_2_no_bursts;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_3_cvrt) {
+      updatedFormData.VT1_therapy_3_cvrt = data.VT1_mdc_idc_tachycardia_therapy_3_cvrt;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_3_energy) {
+      updatedFormData.VT1_therapy_3_energy = data.VT1_mdc_idc_tachycardia_therapy_3_energy;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_4_cvrt) {
+      updatedFormData.VT1_therapy_4_cvrt = data.VT1_mdc_idc_tachycardia_therapy_4_cvrt;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_4_energy) {
+      updatedFormData.VT1_therapy_4_energy = data.VT1_mdc_idc_tachycardia_therapy_4_energy;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_5_cvrt) {
+      updatedFormData.VT1_therapy_5_cvrt = data.VT1_mdc_idc_tachycardia_therapy_5_cvrt;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_5_energy) {
+      updatedFormData.VT1_therapy_5_energy = data.VT1_mdc_idc_tachycardia_therapy_5_energy;
+    }
+    if (data.VT1_mdc_idc_tachycardia_therapy_5_max_num_shocks) {
+      updatedFormData.VT1_therapy_5_max_num_shocks = data.mdc_idc_tachycardia_therapy_5_max_num_shocks;
     }
 
     // If an embedded PDF was discovered in XML, convert and add to pdfManager
@@ -711,6 +782,9 @@ export function ReportForm({ patient }: ReportFormProps) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           Tachycardia Settings
+          VT1: {formData.VT1_detection_interval} {formData.VT1_therapy_1_atp} {formData.VT1_therapy_1_no_bursts} {formData.VT1_therapy_2_atp} {formData.VT1_therapy_2_no_bursts} {formData.VT1_therapy_3_cvrt} {formData.VT1_therapy_3_energy} {formData.VT1_therapy_4_cvrt} {formData.VT1_therapy_4_energy} {formData.VT1_therapy_5_cvrt} {formData.VT1_therapy_5_energy} x {formData.VT1_therapy_5_max_num_shocks}
+          VT2: {formData.VT2_detection_interval} {formData.VT2_therapy_1_atp} {formData.VT2_therapy_1_no_bursts} {formData.VT2_therapy_2_atp} {formData.VT2_therapy_2_no_bursts} {formData.VT2_therapy_3_cvrt} {formData.VT2_therapy_3_energy} {formData.VT2_therapy_4_cvrt} {formData.VT2_therapy_4_energy} {formData.VT2_therapy_5_cvrt} {formData.VT2_therapy_5_energy} x {formData.VT2_therapy_5_max_num_shocks}
+          VF: {formData.VF_detection_interval} {formData.VF_therapy_1_atp} {formData.VF_therapy_2_energy} {formData.VF_therapy_3_energy} {formData.VF_therapy_4_energy} {formData.VF_therapy_4_max_num_shocks}
         </CardContent>
       </Card>
       </div>
