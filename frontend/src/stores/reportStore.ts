@@ -61,6 +61,7 @@ export interface Report {
   mdc_idc_msmt_lv_pacing_threshold?: number | null
   mdc_idc_msmt_lv_pw?: number | null
   // Tachycardia settings
+  VT1_active?: string | null
   VT1_detection_interval?: string | null
   VT1_therapy_1_atp?: string;
   VT1_therapy_1_no_bursts?: string;
@@ -74,25 +75,27 @@ export interface Report {
   VT1_therapy_5_energy?: string;
   VT1_therapy_5_max_num_shocks?: string;
   // VT2 Settings
-  VT2_detection_interval?: string;
-  VT2_therapy_1_atp?: string;
-  VT2_therapy_1_no_bursts?: string;
-  VT2_therapy_2_atp?: string;
-  VT2_therapy_2_no_bursts?: string;
-  VT2_therapy_3_cvrt?: string;
-  VT2_therapy_3_energy?: string;
-  VT2_therapy_4_cvrt?: string;
-  VT2_therapy_4_energy?: string;
-  VT2_therapy_5_cvrt?: string;
-  VT2_therapy_5_energy?: string;
-  VT2_therapy_5_max_num_shocks?: string;
+  VT2_active?: string | null;
+  VT2_detection_interval?: string | null;
+  VT2_therapy_1_atp?: string | null;
+  VT2_therapy_1_no_bursts?: string | null;
+  VT2_therapy_2_atp?: string | null;
+  VT2_therapy_2_no_bursts?: string | null;
+  VT2_therapy_3_cvrt?: string | null;
+  VT2_therapy_3_energy?: string | null;
+  VT2_therapy_4_cvrt?: string | null;
+  VT2_therapy_4_energy?: string | null;
+  VT2_therapy_5_cvrt?: string | null;
+  VT2_therapy_5_energy?: string | null;
+  VT2_therapy_5_max_num_shocks?: string | null;
   //  VF Settings
-  VF_detection_interval?: string;
-  VF_therapy_1_atp?: string;
-  VF_therapy_2_energy?: string;
-  VF_therapy_3_energy?: string;
-  VF_therapy_4_energy?: string;
-  VF_therapy_4_max_num_shocks?: string;
+  VF_active?: string | null;
+  VF_detection_interval?: string | null;
+  VF_therapy_1_atp?: string | null;
+  VF_therapy_2_energy?: string | null;
+  VF_therapy_3_energy?: string | null;
+  VF_therapy_4_energy?: string | null;
+  VF_therapy_4_max_num_shocks?: string | null;
   // Report info
   comments?: string | null
   isCompleted?: boolean | null

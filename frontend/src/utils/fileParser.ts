@@ -56,6 +56,7 @@ export interface ParsedData {
   mdc_idc_msmt_lv_pacing_threshold?: string;
   mdc_idc_msmt_lv_pw?: string;
   // Tachy Settings
+  VT1_active?: string;
   VT1_detection_interval?: string;
   VT1_therapy_1_atp?: string;
   VT1_therapy_1_no_bursts?: string;
@@ -69,6 +70,7 @@ export interface ParsedData {
   VT1_therapy_5_energy?: string;
   VT1_therapy_5_max_num_shocks?: string;
   // VT2 Settings
+  VT2_active?: string;
   VT2_detection_interval?: string;
   VT2_therapy_1_atp?: string;
   VT2_therapy_1_no_bursts?: string;
@@ -82,6 +84,7 @@ export interface ParsedData {
   VT2_therapy_5_energy?: string;
   VT2_therapy_5_max_num_shocks?: string;
   //  VF Settings
+  VF_active?: string;
   VF_detection_interval?: string;
   VF_therapy_1_atp?: string;
   VF_therapy_2_energy?: string;
@@ -1062,34 +1065,67 @@ function parseXmlFile(fileContent: string): ParsedData {
           const vendorType = findValue(zone, 'VENDOR_TYPE');
           switch (vendorType) {
             case 'BIO-Zone_VT1':
-              result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-              result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-              result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
-              result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
-              result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
-              result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
-              result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
-              result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
-              result.VT1_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+              const VT1_active = findValue(zone, 'STATUS');
+              result.VT1_active = VT1_active;
+              if (VT1_active == "Active") {
+                result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT1_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VT1_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+                result.VT1_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+                result.VT1_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+                result.VT1_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VT1_therapy_5_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+              } else if (VT1_active === "Monitor"){
+                result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT1_therapy_1_atp = 'off';
+                result.VT1_therapy_1_no_bursts = '';
+                result.VT1_therapy_2_atp = 'off';
+                result.VT1_therapy_2_no_bursts = '';
+                result.VT1_therapy_3_energy = 'off';
+                result.VT1_therapy_4_energy = 'off';
+                result.VT1_therapy_5_energy = 'off';
+                result.VT1_therapy_5_max_num_shocks = '';
+              }
               break;
             case 'BIO-Zone_VT2':
-              result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-              result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-              result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
-              result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
-              result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
-              result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
-              result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
-              result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
-              result.VT2_therapy_5_max_num_shocks = findValue(zone, 'MAX_NUM_SHOCKS_3');
+              const VT2_active = findValue(zone, 'STATUS');
+              result.VT2_active = VT2_active;
+              if (VT2_active == "Active") {
+                result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT2_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VT2_therapy_1_no_bursts = findValue(zone, 'NUM_ATP_SEQS_1');
+                result.VT2_therapy_2_atp = findValue(zone, 'TYPE_ATP_2');
+                result.VT2_therapy_2_no_bursts = findValue(zone, 'NUM_ATP_SEQS_2');
+                result.VT2_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VT2_therapy_5_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+              } else if ( VT2_active === "Monitor"){
+                result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VT2_therapy_1_atp = 'off';
+                result.VT2_therapy_1_no_bursts = '';
+                result.VT2_therapy_2_atp = 'off';
+                result.VT2_therapy_2_no_bursts = '';
+                result.VT2_therapy_3_energy = 'off';
+                result.VT2_therapy_4_energy = 'off';
+                result.VT2_therapy_5_energy = 'off';
+                result.VT2_therapy_5_max_num_shocks = '';
+              }
+
               break;
             case 'BIO-Zone_VF':
-              result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
-              result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
-              result.VF_therapy_1_energy = findValue(zone, 'SHOCK_ENERGY_1');
-              result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_2');
-              result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_3');
-              result.VF_therapy_3_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+              const VF_active = findValue(zone, 'STATUS');
+              result.VF_active = VF_active;
+              if (VF_active){
+                result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
+                result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
+                result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_1');
+                result.VF_therapy_3_energy = findValue(zone, 'SHOCK_ENERGY_2');
+                result.VF_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_3');
+                result.VF_therapy_4_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
+              }
               break;
           }
         });
