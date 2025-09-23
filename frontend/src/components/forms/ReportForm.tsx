@@ -104,6 +104,7 @@ const initialFormData: Partial<Report> = {
   //  VF Settings
   VF_detection_interval: undefined,
   VF_therapy_1_atp: undefined,
+  VF_therapy_1_no_bursts: undefined,
   VF_therapy_2_energy: undefined,
   VF_therapy_3_energy: undefined,
   VF_therapy_4_energy: undefined,
@@ -391,6 +392,11 @@ export function ReportForm({ patient }: ReportFormProps) {
       updatedFormData.VF_therapy_1_atp = data.VF_therapy_1_atp;
     } else {
       updatedFormData.VF_therapy_1_atp = "off";
+    }
+    if (data.VF_therapy_1_no_bursts){
+      updatedFormData.VF_therapy_1_no_bursts = data.VF_therapy_1_no_bursts;
+    } else {
+      updatedFormData.VF_therapy_1_no_bursts = "";
     }
     if (data.VF_therapy_2_energy) {
       updatedFormData.VF_therapy_2_energy = data.VF_therapy_2_energy;
@@ -902,19 +908,15 @@ export function ReportForm({ patient }: ReportFormProps) {
                     .join(' • ')}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT1_therapy_3_cvrt, formData.VT1_therapy_3_energy]
-                    .filter(Boolean)
-                    .join(' • ')}
+                  {[formData.VT1_therapy_3_energy]
+                    .filter(Boolean)}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT1_therapy_4_cvrt, formData.VT1_therapy_4_energy]
-                    .filter(Boolean)
-                    .join(' • ')}
+                  {formData.VT1_therapy_4_energy}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT1_therapy_5_cvrt, formData.VT1_therapy_5_energy, formData.VT1_therapy_5_max_num_shocks]
-                    .filter(Boolean)
-                    .join(' • ')}
+                  {[formData.VT1_therapy_5_energy, formData.VT1_therapy_5_max_num_shocks]
+                    .filter(Boolean)}
                 </TableCell>
               </TableRow>
 
@@ -933,17 +935,15 @@ export function ReportForm({ patient }: ReportFormProps) {
                     .join(' • ')}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT2_therapy_3_cvrt, formData.VT2_therapy_3_energy]
-                    .filter(Boolean)
-                    .join(' • ')}
+                  {[formData.VT2_therapy_3_energy]
+                    .filter(Boolean)}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT2_therapy_4_cvrt, formData.VT2_therapy_4_energy]
-                    .filter(Boolean)
-                    .join(' • ')}
+                  {[formData.VT2_therapy_4_energy]
+                    .filter(Boolean)}
                 </TableCell>
                 <TableCell>
-                  {[formData.VT2_therapy_5_cvrt, formData.VT2_therapy_5_energy, formData.VT2_therapy_5_max_num_shocks]
+                  {[formData.VT2_therapy_5_energy, formData.VT2_therapy_5_max_num_shocks]
                     .filter(Boolean)
                     .join(' • ')}
                 </TableCell>
@@ -954,7 +954,9 @@ export function ReportForm({ patient }: ReportFormProps) {
                 <TableCell className="font-medium">VF</TableCell>
                 <TableCell>{formData.VF_detection_interval ? `${formData.VF_detection_interval} ms` : ''}</TableCell>
                 <TableCell colSpan={2}>
-                  {[formData.VF_therapy_1_atp]}
+                  {[formData.VF_therapy_1_atp, formData.VF_therapy_1_no_bursts]
+                    .filter(Boolean)
+                    .join(' • ')}
                 </TableCell>
                 <TableCell>
                   {[formData.VF_therapy_2_energy]}

@@ -92,6 +92,7 @@ export interface Report {
   VF_active?: string | null;
   VF_detection_interval?: string | null;
   VF_therapy_1_atp?: string | null;
+  VF_therapy_1_no_bursts?: string | null;
   VF_therapy_2_energy?: string | null;
   VF_therapy_3_energy?: string | null;
   VF_therapy_4_energy?: string | null;
