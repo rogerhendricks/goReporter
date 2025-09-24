@@ -27,6 +27,8 @@ export interface ParsedData {
   mdc_idc_stat_ataf_count?: string;
   mdc_idc_stat_pvc_count?: string;
   mdc_idc_stat_nsvt_count?: string;
+  mdc_idc_stat_atp_delivered_recent?: string;
+  mdc_idc_stat_shocks_delivered_recent?: string;
   mdc_idc_set_brady_mode?: string;
   mdc_idc_set_brady_lowrate?: string;
   mdc_idc_set_brady_max_tracking_rate?: string;
@@ -737,7 +739,7 @@ function parseXmlFile(fileContent: string): ParsedData {
       }
     });
   }
-
+  // Get STAT section
   const statSection = idcSection.section.find((s: any) => s['@_name'] === 'STAT');
   if (statSection && statSection.section) {
     console.log('statSection', statSection);
@@ -776,18 +778,43 @@ function parseXmlFile(fileContent: string): ParsedData {
       }
     }
   }
+  // Get AT section
+  const atSection = statSection.section.find((v: any) => v['@_name'] === 'AT');
+  if (atSection && atSection.value) {
+    atSection.value.forEach((value: any) => {
+      if (value['@_name'] === 'BURDEN_PERCENT') {
+        result.mdc_idc_stat_ataf_burden_percent = value['#text'];
+      }
+      if (value['@_name'] === 'MODE_SW_COUNT') {
+        result.mdc_idc_stat_ataf_count = value['#text'];
+      }
+    });
+  }
+  // Get CRT section
+  const crtSection = statSection.section.find((v: any) => v['@_name'] === 'CRT');
+  if (crtSection && crtSection.value) {
+    crtSection.value.forEach((value: any) => {
+      if (value['@_name'] === 'LV_PERCENT_PACED') {
+        result.mdc_idc_stat_brady_lv_percent_paced = (value['#text']);
+      }
+      if (value['@_name'] === 'PERCENT_PACED') {
+        result.mdc_idc_stat_brady_biv_percent_paced = value['#text'];
+      }
+    });
+  }
+  // Get TACHY section
+  const tachySection = statSection.section.find((v: any) => v['@_name'] === 'TACHYTHERAPY');
+  if (tachySection && tachySection.value) {
+    tachySection.value.forEach((value: any) => {
+      if (value['@_name'] === 'ATP_DELIVERED_RECENT') {
+        result.mdc_idc_stat_atp_delivered_recent = value['#text'];
+      }
+      if (value['@_name'] === 'SHOCKS_DELIVERED_RECENT') {
+        result.mdc_idc_stat_shocks_delivered_recent = value['#text'];
+      }
+    });
+  }
 
-    const crtSection = statSection.section.find((v: any) => v['@_name'] === 'CRT');
-    if (crtSection && crtSection.value) {
-      crtSection.value.forEach((value: any) => {
-        if (value['@_name'] === 'LV_PERCENT_PACED') {
-          result.mdc_idc_stat_brady_lv_percent_paced = (value['#text']);
-        }
-        if (value['@_name'] === 'PERCENT_PACED') {
-          result.mdc_idc_stat_brady_biv_percent_paced = value['#text'];
-        }
-      });
-    }
   // Get MSMT and BATT sections
   // const msmtSection = idcSection.section.find((s: any) => s['@_name'] === 'MSMT');
   // console.log('msmtSection', msmtSection);
