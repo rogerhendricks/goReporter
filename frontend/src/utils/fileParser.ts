@@ -62,11 +62,11 @@ export interface ParsedData {
   VT1_therapy_1_no_bursts?: string;
   VT1_therapy_2_atp?: string;
   VT1_therapy_2_no_bursts?: string;
-  VT1_therapy_3_cvrt?: string;
+  // VT1_therapy_3_cvrt?: string;
   VT1_therapy_3_energy?: string;
-  VT1_therapy_4_cvrt?: string;
+  // VT1_therapy_4_cvrt?: string;
   VT1_therapy_4_energy?: string;
-  VT1_therapy_5_cvrt?: string;
+  // VT1_therapy_5_cvrt?: string;
   VT1_therapy_5_energy?: string;
   VT1_therapy_5_max_num_shocks?: string;
   // VT2 Settings
@@ -76,11 +76,11 @@ export interface ParsedData {
   VT2_therapy_1_no_bursts?: string;
   VT2_therapy_2_atp?: string;
   VT2_therapy_2_no_bursts?: string;
-  VT2_therapy_3_cvrt?: string;
+  // VT2_therapy_3_cvrt?: string;
   VT2_therapy_3_energy?: string;
-  VT2_therapy_4_cvrt?: string;
+  // VT2_therapy_4_cvrt?: string;
   VT2_therapy_4_energy?: string;
-  VT2_therapy_5_cvrt?: string;
+  // VT2_therapy_5_cvrt?: string;
   VT2_therapy_5_energy?: string;
   VT2_therapy_5_max_num_shocks?: string;
   //  VF Settings
@@ -269,11 +269,12 @@ function parseLogFile(data: string): ParsedData {
     '2320': 'VT1_therapy_1_atp',
     '2291': 'VT1_therapy_1_no_bursts',
     // '2321': 'VT1_therapy_2_cvrt',
-    '2327': 'VT1_therapy_2_energy',
+    '2327': 'VT1_therapy_3_energy',
     // '2322': 'VT1_therapy_3_cvrt',
-    '2329': 'VT1_therapy_3_energy',
-    // '2323': 'VT1_therapy_4_cvrt',
-    '2331': 'VT1_therapy_4_energy',
+    '2329': 'VT1_therapy_4_energy',
+    // '2323': 'VT1_therapy_5_cvrt',
+    '2331': 'VT1_therapy_5_energy',
+    '2323': 'VT1_therapy_5_max_num_shocks',
     // VT2
     '2102': 'VT2_detection_interval',
     '2354': 'VT2_therapy_1_atp',
@@ -284,6 +285,7 @@ function parseLogFile(data: string): ParsedData {
     '2363': 'VT2_therapy_4_energy',
     // '2357': 'VT2_therapy_5_cvrt',
     '2365': 'VT2_therapy_5_energy',
+    '2357': 'VT2_therapy_5_max_num_shocks',
     //VF
     '2101': 'VF_detection_interval',
     '2387': 'VF_therapy_1_atp',
@@ -291,8 +293,7 @@ function parseLogFile(data: string): ParsedData {
     '2382': 'VF_therapy_2_energy',
     '2384': 'VF_therapy_3_energy',
     '2386': 'VF_therapy_4_energy',
-    '2388': 'VF_therapy_4_max_num_shocks',
-
+    '2388': 'VF_therapy_4_max_num_shocks', // doesn't exist in log?
   };
 
   lines.forEach(line => {
@@ -302,8 +303,14 @@ function parseLogFile(data: string): ParsedData {
       const value = parts[2];
 
       if (mappings[code] && value) {
-        const processedValue = value.replace(/V|Ohm|%|bpm/g, '').trim();
-        parsedData[mappings[code]] = processedValue;
+        let processedValue = value.replace(/V|Ohm|%|bpm/g, '').trim();
+        if (mappings[code] === 'VT2_therapy_5_max_num_shocks') {
+        processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
+        }
+        if (mappings[code] === 'VT1_therapy_5_max_num_shocks') {
+        processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
+        }
+      parsedData[mappings[code]] = processedValue;
       }
     }
   });
@@ -328,6 +335,7 @@ function parseLogFile(data: string): ParsedData {
     parsedData.dob = new Date(parsedData.dob).toISOString().split('T')[0];
   }
 
+  
   parsedData.mdc_idc_dev_manufacturer = "Abbott";
   console.log('Parsed log file:', parsedData);
   return parsedData;
@@ -386,25 +394,27 @@ function parseBnkFile(fileContent: string): ParsedData {
     // VT1 Settings
     'DetectVT1Interval': 'VT1_detection_interval',
     'VT1ATP1NumberOfBursts': 'VT1_therapy_1_no_bursts',
-    'VT1ATP2NumberOfBursts ': 'VT1_therapy_2_no_bursts',
+    'VT1ATP2NumberOfBursts': 'VT1_therapy_2_no_bursts',
     'VT1Shock1Energy': 'VT1_therapy_3_energy',
-    'VT1Shock2Energy ': 'VT1_therapy_4_energy',
+    'VT1Shock2Energy': 'VT1_therapy_4_energy',
+    'VT1MaxShockEnergy': 'VT1_therapy_5_energy',
     'VTachyConstParam.VThpySelection.MaxNumShocks[VT1Zone]': '',
 
     // VT2 Settings
     'DetectVTInterval': 'VT2_detection_interval',
-    'VTATP1NumberOfBursts ': 'VT2_therapy_1_no_bursts',
+    'VTATP1NumberOfBursts': 'VT2_therapy_1_no_bursts',
     'VTATP2NumberOfBursts': 'VT2_therapy_2_no_bursts',
     'VTShock1Energy': 'VT2_therapy_3_energy',
     'VTShock2Energy': 'VT2_therapy_4_energy',
-    'VTMaxShockEnergy': 'VT2_therapy_5_energy',
+    'VTherapyParams.VTMaxShockEnergy': 'VT2_therapy_5_energy',
     'VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]': '',
 
     // VF Settings
     'DetectVFInterval': 'VF_detection_interval',
-    'VTherapyParams.VFATPEnable': 'VF_therapy_1_atp',
+    'VTherapyParams.VFATPEnable': '',
     'VFShock1Energy': 'VF_therapy_2_energy',
     'VFShock2Energy': 'VF_therapy_3_energy',
+    'VFShock3Energy': 'VF_therapy_4_energy', // doesnt exist in BNK?
     'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': '',
   };
 
@@ -443,6 +453,10 @@ function parseBnkFile(fileContent: string): ParsedData {
     result.report_date = new Date(dateStr).toISOString();
   }
 
+  if (rawData['VTherapyParams.VFATPEnable']){
+    const v = rawData['VTherapyParams.VFATPEnable']?.trim();
+    result.VF_therapy_1_atp = v && v !== '--' ? 'ATP' : 'Off';
+  }
   if (rawData['VT1ATP1NumberOfBursts']) {
     result.VT1_therapy_1_atp = "ATP";
   }
@@ -489,7 +503,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   const vtShock2Present = isActiveValue(rawData['VTShock2Energy']);
 
   if (vtShock1Present === 0 && vtShock2Present === 0) {
-    result['VT2_therapy_5_max_num_shocks'] = 'off';
+    result['VT2_therapy_5_max_num_shocks'] = 'Off';
   } else {
     const vtTotalShocks = getNumber(rawData['VTachyConstParam.VThpySelection.MaxNumShocks[VTZone]']);
     result['VT2_therapy_5_max_num_shocks'] = (vtTotalShocks - (vtShock1Present + vtShock2Present)).toString();

@@ -401,7 +401,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     if (data.VF_therapy_2_energy) {
       updatedFormData.VF_therapy_2_energy = data.VF_therapy_2_energy;
     } else {
-      updatedFormData.VF_therapy_2_energy = "";
+      updatedFormData.VF_therapy_2_energy = "off";
     }
     if (data.VF_therapy_3_energy) {
       updatedFormData.VF_therapy_3_energy = data.VF_therapy_3_energy;
@@ -916,7 +916,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </TableCell>
                 <TableCell>
                   {[formData.VT1_therapy_5_energy, formData.VT1_therapy_5_max_num_shocks]
-                    .filter(Boolean)}
+                    .filter(Boolean)
+                    .join(' • ')}
                 </TableCell>
               </TableRow>
 
@@ -936,11 +937,13 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </TableCell>
                 <TableCell>
                   {[formData.VT2_therapy_3_energy]
-                    .filter(Boolean)}
+                    .filter(Boolean)
+                    .join(' • ')}
                 </TableCell>
                 <TableCell>
                   {[formData.VT2_therapy_4_energy]
-                    .filter(Boolean)}
+                    .filter(Boolean)
+                    .join(' • ')}
                 </TableCell>
                 <TableCell>
                   {[formData.VT2_therapy_5_energy, formData.VT2_therapy_5_max_num_shocks]
