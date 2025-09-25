@@ -283,142 +283,144 @@ export function ReportForm({ patient }: ReportFormProps) {
       updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(data.mdc_idc_msmt_hv_impedance_mean);
     }
 
-    // Map tachycardia settings
-    if (data.VT1_detection_interval) {
-      updatedFormData.VT1_detection_interval = data.VT1_detection_interval;
-    }
-    if (data.VT1_therapy_1_atp) {
-      updatedFormData.VT1_therapy_1_atp = data.VT1_therapy_1_atp;
-    } 
-    if (data.VT1_therapy_1_no_bursts) {
-      updatedFormData.VT1_therapy_1_no_bursts = data.VT1_therapy_1_no_bursts;
-    } 
-    if (data.VT1_therapy_2_atp) {
-      updatedFormData.VT1_therapy_2_atp = data.VT1_therapy_2_atp;
-    } 
-    if (data.VT1_therapy_2_no_bursts) {
-      updatedFormData.VT1_therapy_2_no_bursts = data.VT1_therapy_2_no_bursts;
-    } 
-    if (data.VT1_therapy_3_cvrt) {
-      updatedFormData.VT1_therapy_3_cvrt = data.VT1_therapy_3_cvrt;
-    } else {
-      updatedFormData.VT1_therapy_3_cvrt = "";
-    }
-    if (data.VT1_therapy_3_energy) {
-      updatedFormData.VT1_therapy_3_energy = data.VT1_therapy_3_energy;
-    } 
-    if (data.VT1_therapy_4_cvrt) {
-      updatedFormData.VT1_therapy_4_cvrt = data.VT1_therapy_4_cvrt;
-    } 
-    if (data.VT1_therapy_4_energy) {
-      updatedFormData.VT1_therapy_4_energy = data.VT1_therapy_4_energy;
-    }
-    if (data.VT1_therapy_5_cvrt) {
-      updatedFormData.VT1_therapy_5_cvrt = data.VT1_therapy_5_cvrt;
-    } else {
-      updatedFormData.VT1_therapy_5_cvrt = "";
-    }
-    if (data.VT1_therapy_5_energy) {
-      updatedFormData.VT1_therapy_5_energy = data.VT1_therapy_5_energy;
-    } 
-    if (data.VT1_therapy_5_max_num_shocks) {
-      updatedFormData.VT1_therapy_5_max_num_shocks = data.VT1_therapy_5_max_num_shocks;
-    } 
+    // if device has type device.type == "Defibrillator"
+    if (hasDefibrillator) {
+      // Map tachycardia settings
+      if (data.VT1_detection_interval) {
+        updatedFormData.VT1_detection_interval = data.VT1_detection_interval;
+      }
+      if (data.VT1_therapy_1_atp) {
+        updatedFormData.VT1_therapy_1_atp = data.VT1_therapy_1_atp;
+      } 
+      if (data.VT1_therapy_1_no_bursts) {
+        updatedFormData.VT1_therapy_1_no_bursts = data.VT1_therapy_1_no_bursts;
+      } 
+      if (data.VT1_therapy_2_atp) {
+        updatedFormData.VT1_therapy_2_atp = data.VT1_therapy_2_atp;
+      } 
+      if (data.VT1_therapy_2_no_bursts) {
+        updatedFormData.VT1_therapy_2_no_bursts = data.VT1_therapy_2_no_bursts;
+      } 
+      if (data.VT1_therapy_3_cvrt) {
+        updatedFormData.VT1_therapy_3_cvrt = data.VT1_therapy_3_cvrt;
+      } else {
+        updatedFormData.VT1_therapy_3_cvrt = "";
+      }
+      if (data.VT1_therapy_3_energy) {
+        updatedFormData.VT1_therapy_3_energy = data.VT1_therapy_3_energy;
+      } 
+      if (data.VT1_therapy_4_cvrt) {
+        updatedFormData.VT1_therapy_4_cvrt = data.VT1_therapy_4_cvrt;
+      } 
+      if (data.VT1_therapy_4_energy) {
+        updatedFormData.VT1_therapy_4_energy = data.VT1_therapy_4_energy;
+      }
+      if (data.VT1_therapy_5_cvrt) {
+        updatedFormData.VT1_therapy_5_cvrt = data.VT1_therapy_5_cvrt;
+      } else {
+        updatedFormData.VT1_therapy_5_cvrt = "";
+      }
+      if (data.VT1_therapy_5_energy) {
+        updatedFormData.VT1_therapy_5_energy = data.VT1_therapy_5_energy;
+      } 
+      if (data.VT1_therapy_5_max_num_shocks) {
+        updatedFormData.VT1_therapy_5_max_num_shocks = data.VT1_therapy_5_max_num_shocks;
+      } 
 
 
 
-    if (data.VT2_detection_interval) {
-      updatedFormData.VT2_detection_interval = data.VT2_detection_interval;
-    }
-    if (data.VT2_therapy_1_atp) {
-      updatedFormData.VT2_therapy_1_atp = data.VT2_therapy_1_atp;
-    } else {
-      updatedFormData.VT2_therapy_1_atp = "off";
-    }
-    if (data.VT2_therapy_1_no_bursts) {
-      updatedFormData.VT2_therapy_1_no_bursts = data.VT2_therapy_1_no_bursts;
-    } else {
-      updatedFormData.VT2_therapy_1_no_bursts = "";
-    }
-    if (data.VT2_therapy_2_atp) {
-      updatedFormData.VT2_therapy_2_atp = data.VT2_therapy_2_atp;
-    } else {
-      updatedFormData.VT2_therapy_2_atp = "";
-    }
-    if (data.VT2_therapy_2_no_bursts) {
-      updatedFormData.VT2_therapy_2_no_bursts = data.VT2_therapy_2_no_bursts;
-    } else {
-      updatedFormData.VT2_therapy_2_no_bursts = "";
-    }
-    if (data.VT2_therapy_3_cvrt) {
-      updatedFormData.VT2_therapy_3_cvrt = data.VT2_therapy_3_cvrt;
-    } else {
-      updatedFormData.VT2_therapy_3_cvrt = "";
-    }
-    if (data.VT2_therapy_3_energy) {
-      updatedFormData.VT2_therapy_3_energy = data.VT2_therapy_3_energy;
-    } else {
-      updatedFormData.VT2_therapy_3_energy = "";
-    }
-    if (data.VT2_therapy_4_cvrt) {
-      updatedFormData.VT2_therapy_4_cvrt = data.VT2_therapy_4_cvrt;
-    } else {
-      updatedFormData.VT2_therapy_4_cvrt = "";
-    }
-    if (data.VT2_therapy_4_energy) {
-      updatedFormData.VT2_therapy_4_energy = data.VT2_therapy_4_energy;
-    }
-    if (data.VT2_therapy_5_cvrt) {
-      updatedFormData.VT2_therapy_5_cvrt = data.VT2_therapy_5_cvrt;
-    } else {
-      updatedFormData.VT2_therapy_5_cvrt = "";
-    }
-    if (data.VT2_therapy_5_energy) {
-      updatedFormData.VT2_therapy_5_energy = data.VT2_therapy_5_energy;
-    } else {
-      updatedFormData.VT2_therapy_5_energy = "";
-    }
-    if (data.VT2_therapy_5_max_num_shocks) {
-      updatedFormData.VT2_therapy_5_max_num_shocks = data.VT2_therapy_5_max_num_shocks;
-    } else {
-      updatedFormData.VT2_therapy_5_max_num_shocks = "";
-    }
+      if (data.VT2_detection_interval) {
+        updatedFormData.VT2_detection_interval = data.VT2_detection_interval;
+      }
+      if (data.VT2_therapy_1_atp) {
+        updatedFormData.VT2_therapy_1_atp = data.VT2_therapy_1_atp;
+      } else {
+        updatedFormData.VT2_therapy_1_atp = "off";
+      }
+      if (data.VT2_therapy_1_no_bursts) {
+        updatedFormData.VT2_therapy_1_no_bursts = data.VT2_therapy_1_no_bursts;
+      } else {
+        updatedFormData.VT2_therapy_1_no_bursts = "";
+      }
+      if (data.VT2_therapy_2_atp) {
+        updatedFormData.VT2_therapy_2_atp = data.VT2_therapy_2_atp;
+      } else {
+        updatedFormData.VT2_therapy_2_atp = "";
+      }
+      if (data.VT2_therapy_2_no_bursts) {
+        updatedFormData.VT2_therapy_2_no_bursts = data.VT2_therapy_2_no_bursts;
+      } else {
+        updatedFormData.VT2_therapy_2_no_bursts = "";
+      }
+      if (data.VT2_therapy_3_cvrt) {
+        updatedFormData.VT2_therapy_3_cvrt = data.VT2_therapy_3_cvrt;
+      } else {
+        updatedFormData.VT2_therapy_3_cvrt = "";
+      }
+      if (data.VT2_therapy_3_energy) {
+        updatedFormData.VT2_therapy_3_energy = data.VT2_therapy_3_energy;
+      } else {
+        updatedFormData.VT2_therapy_3_energy = "";
+      }
+      if (data.VT2_therapy_4_cvrt) {
+        updatedFormData.VT2_therapy_4_cvrt = data.VT2_therapy_4_cvrt;
+      } else {
+        updatedFormData.VT2_therapy_4_cvrt = "";
+      }
+      if (data.VT2_therapy_4_energy) {
+        updatedFormData.VT2_therapy_4_energy = data.VT2_therapy_4_energy;
+      }
+      if (data.VT2_therapy_5_cvrt) {
+        updatedFormData.VT2_therapy_5_cvrt = data.VT2_therapy_5_cvrt;
+      } else {
+        updatedFormData.VT2_therapy_5_cvrt = "";
+      }
+      if (data.VT2_therapy_5_energy) {
+        updatedFormData.VT2_therapy_5_energy = data.VT2_therapy_5_energy;
+      } else {
+        updatedFormData.VT2_therapy_5_energy = "";
+      }
+      if (data.VT2_therapy_5_max_num_shocks) {
+        updatedFormData.VT2_therapy_5_max_num_shocks = data.VT2_therapy_5_max_num_shocks;
+      } else {
+        updatedFormData.VT2_therapy_5_max_num_shocks = "";
+      }
 
 
-    if (data.VF_detection_interval){
-      updatedFormData.VF_detection_interval = data.VF_detection_interval;
+      if (data.VF_detection_interval){
+        updatedFormData.VF_detection_interval = data.VF_detection_interval;
+      }
+      if (data.VF_therapy_1_atp){
+        updatedFormData.VF_therapy_1_atp = data.VF_therapy_1_atp;
+      } else {
+        updatedFormData.VF_therapy_1_atp = "off";
+      }
+      if (data.VF_therapy_1_no_bursts){
+        updatedFormData.VF_therapy_1_no_bursts = data.VF_therapy_1_no_bursts;
+      } else {
+        updatedFormData.VF_therapy_1_no_bursts = "";
+      }
+      if (data.VF_therapy_2_energy) {
+        updatedFormData.VF_therapy_2_energy = data.VF_therapy_2_energy;
+      } else {
+        updatedFormData.VF_therapy_2_energy = "off";
+      }
+      if (data.VF_therapy_3_energy) {
+        updatedFormData.VF_therapy_3_energy = data.VF_therapy_3_energy;
+      } else {
+        updatedFormData.VF_therapy_3_energy = "off";
+      }
+      if (data.VF_therapy_4_energy) {
+        updatedFormData.VF_therapy_4_energy = data.VF_therapy_4_energy;
+      } else {
+        updatedFormData.VF_therapy_4_energy = "off";
+      }
+      if (data.VF_therapy_4_max_num_shocks) {
+        updatedFormData.VF_therapy_4_max_num_shocks = data.VF_therapy_4_max_num_shocks;
+      } else {
+        updatedFormData.VF_therapy_4_max_num_shocks = "";
+      }
     }
-    if (data.VF_therapy_1_atp){
-      updatedFormData.VF_therapy_1_atp = data.VF_therapy_1_atp;
-    } else {
-      updatedFormData.VF_therapy_1_atp = "off";
-    }
-    if (data.VF_therapy_1_no_bursts){
-      updatedFormData.VF_therapy_1_no_bursts = data.VF_therapy_1_no_bursts;
-    } else {
-      updatedFormData.VF_therapy_1_no_bursts = "";
-    }
-    if (data.VF_therapy_2_energy) {
-      updatedFormData.VF_therapy_2_energy = data.VF_therapy_2_energy;
-    } else {
-      updatedFormData.VF_therapy_2_energy = "off";
-    }
-    if (data.VF_therapy_3_energy) {
-      updatedFormData.VF_therapy_3_energy = data.VF_therapy_3_energy;
-    } else {
-      updatedFormData.VF_therapy_3_energy = "off";
-    }
-    if (data.VF_therapy_4_energy) {
-      updatedFormData.VF_therapy_4_energy = data.VF_therapy_4_energy;
-    } else {
-      updatedFormData.VF_therapy_4_energy = "off";
-    }
-    if (data.VF_therapy_4_max_num_shocks) {
-      updatedFormData.VF_therapy_4_max_num_shocks = data.VF_therapy_4_max_num_shocks;
-    } else {
-      updatedFormData.VF_therapy_4_max_num_shocks = "";
-    }
-
     // If an embedded PDF was discovered in XML, convert and add to pdfManager
     if (data.embeddedPdfBase64) {
       try {
@@ -626,6 +628,27 @@ export function ReportForm({ patient }: ReportFormProps) {
       setIsSubmitting(false)
     }
   }
+
+    const activeDevices = (patient?.devices ?? []).filter(
+    (d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt
+    )
+    console.log('activedevices', activeDevices)
+    const hasDefibrillator = activeDevices.some((d: any) => {
+      const typeStr = (
+        d?.device?.type ||
+        d?.device_type ||
+        d?.device?.name ||
+        ''
+      ).toLowerCase()
+      return (
+        typeStr.includes('defib') ||
+        typeStr.includes('defibrillator') ||
+        typeStr.includes('icd') ||
+        typeStr.includes('crt-d') ||
+        typeStr.includes('crt d') ||
+        typeStr.includes('cardioverter')
+      )
+    })
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -880,6 +903,7 @@ export function ReportForm({ patient }: ReportFormProps) {
           <CardDescription>Programmed parameters for tachycardia.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          {hasDefibrillator ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -976,6 +1000,11 @@ export function ReportForm({ patient }: ReportFormProps) {
               </TableRow>
             </TableBody>
           </Table>
+          ):(
+            <div className="text-sm text-muted-foreground">
+              Implanted device has no tachy settings.
+            </div>
+          )}
         </CardContent>
       </Card>
       </div>

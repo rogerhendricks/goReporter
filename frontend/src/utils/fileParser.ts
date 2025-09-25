@@ -295,7 +295,7 @@ function parseLogFile(data: string): ParsedData {
     '2382': 'VF_therapy_2_energy',
     '2384': 'VF_therapy_3_energy',
     '2386': 'VF_therapy_4_energy',
-    '2388': 'VF_therapy_4_max_num_shocks', // doesn't exist in log?
+    // '2388': 'VF_therapy_4_max_num_shocks', // doesn't exist in log?
   };
 
   lines.forEach(line => {
@@ -337,8 +337,8 @@ function parseLogFile(data: string): ParsedData {
     parsedData.dob = new Date(parsedData.dob).toISOString().split('T')[0];
   }
 
-  
   parsedData.mdc_idc_dev_manufacturer = "Abbott";
+  parsedData.VF_therapy_4_max_num_shocks = "x 4";
   console.log('Parsed log file:', parsedData);
   return parsedData;
 }
@@ -416,7 +416,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'VTherapyParams.VFATPEnable': '',
     'VFShock1Energy': 'VF_therapy_2_energy',
     'VFShock2Energy': 'VF_therapy_3_energy',
-    'VFShock3Energy': 'VF_therapy_4_energy', // doesnt exist in BNK?
+    // 'VFShock3Energy': 'VF_therapy_4_energy', // doesnt exist in BNK?
     'VTachyConstParam.VThpySelection.MaxNumShocks[VFZone]': '',
   };
 
@@ -549,7 +549,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   }
 
   result.mdc_idc_dev_manufacturer = "Boston Scientific";
-
+  result.VF_therapy_4_energy = "41 J";
   if (result.mdc_idc_batt_status === "Beginning of Life") {
     result.mdc_idc_batt_status = 'BOL';
   }
