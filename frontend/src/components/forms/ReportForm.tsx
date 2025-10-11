@@ -24,7 +24,7 @@ import { toast } from 'sonner'
 import { usePdfFormFiller } from '@/hooks/usePdfFormFiller'
 // import { useDoctorStore } from '@/stores/doctorStore'
 import { FileImporter } from '@/components/FileImporter';
-import type { ParsedData } from '@/utils/fileParser';
+import type { ParsedData } from '@/types/types';
 
 
 

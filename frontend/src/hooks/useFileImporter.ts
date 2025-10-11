@@ -1,19 +1,25 @@
 import { useState } from 'react';
-import { parseFileContent } from '@/utils/fileParser';
-import type { ParsedData } from '@/utils/fileParser';
-
+import api from '@/utils/axios';
+import type { ParsedData } from '@/types/types';
 
 export function useFileImporter() {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const importFile = async (file: File, serial?: string): Promise<ParsedData | null> => {
+  const importFile = async (file: File): Promise<ParsedData | null> => {
     setIsImporting(true);
     setError(null);
 
+    const formData = new FormData();
+    formData.append("file", file);
+
     try {
-      const parsedData = await parseFileContent(file, serial);
-      return parsedData;
+      const response = await api.post("/parser/file", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);

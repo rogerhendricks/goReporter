@@ -81,6 +81,8 @@ func SetupRoutes(app *fiber.App) {
 	// Search routes
 	app.Get("/api/search/patients", middleware.AuthorizeDoctorPatientAccess, handlers.SearchPatientsComplex)
 
+	// Parser route
+	app.Post("/api/parser/file", handlers.ParseFile)
 	// File routes
 	app.Get("/api/files/*", handlers.ServeFile)
 

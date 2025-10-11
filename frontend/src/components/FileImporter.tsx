@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // import { Label } from '@/components/ui/label';
 import { useFileImporter } from '@/hooks/useFileImporter';
-import type { ParsedData } from '@/utils/fileParser';
+import type { ParsedData } from '@/types/types';
 import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
