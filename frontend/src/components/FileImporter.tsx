@@ -22,10 +22,10 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
     clearError();
 
     // Validate file type
-    const allowedExtensions = ['.xml', '.log', '.bnk'];
+    const allowedExtensions = ['.xml', '.log', '.bnk', '.pdf'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
     if (!allowedExtensions.includes(fileExtension)) {
-      toast.error('Please select a valid file (.xml, .log, or .bnk)');
+      toast.error('Please select a valid file (.xml, .log, .bnk, or .pdf)');
       return;
     }
 
@@ -82,11 +82,11 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
         <Input
           ref={fileInputRef}
           type="file"
-          accept=".xml,.log,.bnk"
+          accept=".xml,.log,.bnk, .pdf"
           onChange={handleFileSelect}
           className="hidden"
         />
-         <span className="text-sm text-muted-foreground">Supported: XML, LOG, BNK</span>
+         <span className="text-sm text-muted-foreground">Supported: XML, LOG, BNK, PDF</span>
       </div>
         // {error && (
         //   <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md">

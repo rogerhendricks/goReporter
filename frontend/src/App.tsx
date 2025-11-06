@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/authStore'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper'
 import { ThemeProvider } from "@/components/theme-provider"
+import { ChatbotProvider } from '@/context/ChatbotContext'
+import { Chatbot } from '@/components/Chatbot'
 import { routes } from './router/routes'
 import './App.css'
 
@@ -20,37 +22,42 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <Router>
-        <Routes>
-          {routes.map((route) => (
-            <Route
-              key={route.path}
-              path={route.path}
+      <ChatbotProvider>
+        <Router>
+          <Routes>
+            {routes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={
+                  <LayoutWrapper layout={route.layout}>
+                    {route.requiresAuth ? (
+                      <ProtectedRoute roles={route.roles}>
+                        {route.element}
+                      </ProtectedRoute>
+                    ) : (
+                      route.element
+                    )}
+                  </LayoutWrapper>
+                }
+              />
+            ))}
+            
+            {/* Fallback route */}
+            <Route 
+              path="*" 
               element={
-                <LayoutWrapper layout={route.layout}>
-                  {route.requiresAuth ? (
-                    <ProtectedRoute roles={route.roles}>
-                      {route.element}
-                    </ProtectedRoute>
-                  ) : (
-                    route.element
-                  )}
+                <LayoutWrapper layout="home">
+                  <Navigate to={isAuthenticated ? "/" : "/login"} replace />
                 </LayoutWrapper>
-              }
+              } 
             />
-          ))}
+          </Routes>
           
-          {/* Fallback route */}
-          <Route 
-            path="*" 
-            element={
-              <LayoutWrapper layout="home">
-                <Navigate to={isAuthenticated ? "/" : "/login"} replace />
-              </LayoutWrapper>
-            } 
-          />
-        </Routes>
-      </Router>
+          {/* Chatbot - only show when authenticated */}
+          {isAuthenticated && <Chatbot />}
+        </Router>
+      </ChatbotProvider>
     </ThemeProvider>
   )
 }
