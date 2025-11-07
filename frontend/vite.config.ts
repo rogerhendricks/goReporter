@@ -21,6 +21,16 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true
       },
+      '/n8n-webhook': {
+        target: 'https://n8n.nuttynarwhal.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) =>
+          path.replace(
+            /^\/n8n-webhook/,
+            '/webhook-test/64f46eaa-c284-4eea-a6e1-50030248ce18'
+          ),
+      },
       // '/uploads': {
       //   target: 'http://localhost:5000',
       //   changeOrigin: true

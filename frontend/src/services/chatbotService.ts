@@ -46,7 +46,7 @@ class ChatbotService {
       const response = await axios.post(this.webhookUrl, {
         message: request.message,
         context: request.context,
-        conversation_history: request.conversationHistory.slice(-10), // Send last 10 messages for context
+        conversation_history: request.conversationHistory.slice(-10),
         timestamp: new Date().toISOString()
       }, {
         headers: {

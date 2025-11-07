@@ -26,8 +26,6 @@ import { usePdfFormFiller } from '@/hooks/usePdfFormFiller'
 import { FileImporter } from '@/components/FileImporter';
 import type { ParsedData } from '@/utils/fileParser';
 
-
-
 const initialFormData: Partial<Report> = {
   // Report info
   reportDate: new Date(),

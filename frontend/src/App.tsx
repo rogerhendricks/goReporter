@@ -1,17 +1,18 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './stores/authStore'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper'
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatbotProvider } from '@/context/ChatbotContext'
-import { Chatbot } from '@/components/Chatbot'
+// import { Chatbot } from '@/components/Chatbot'
+import { ChatbotWrapper } from '@/components/ChatbotWrapper'
 import { routes } from './router/routes'
 import './App.css'
 
 function App() {
   const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
-
+  
   useEffect(() => {
     initializeAuth()
   }, [initializeAuth])
@@ -55,7 +56,9 @@ function App() {
           </Routes>
           
           {/* Chatbot - only show when authenticated */}
-          {isAuthenticated && <Chatbot />}
+          {isAuthenticated && (
+            <ChatbotWrapper />
+          )}
         </Router>
       </ChatbotProvider>
     </ThemeProvider>
