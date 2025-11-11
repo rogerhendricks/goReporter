@@ -25,6 +25,9 @@ import { usePdfFormFiller } from '@/hooks/usePdfFormFiller'
 // import { useDoctorStore } from '@/stores/doctorStore'
 import { FileImporter } from '@/components/FileImporter';
 import type { ParsedData } from '@/utils/fileParser';
+import { AutocompleteTextarea } from '@/components/ui/autocomplete-textarea'
+import { REPORT_COMMENT_SUGGESTIONS } from '@/data/commentSuggestions'
+
 
 const initialFormData: Partial<Report> = {
   // Report info
@@ -1200,8 +1203,19 @@ export function ReportForm({ patient }: ReportFormProps) {
           <CardDescription>Any notes or comments about this report.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-        <div className="space-y-2 pt-2">
-            <Textarea id="comments" name="comments" value={formData.comments || ''} onChange={(e) => setFormData(prev => ({...prev, comments: e.target.value}))} placeholder="Add any relevant comments here..." />
+          <div className="space-y-2 pt-2">
+            <AutocompleteTextarea
+              id="comments"
+              name="comments"
+              value={formData.comments || ''}
+              onValueChange={(value) => setFormData(prev => ({...prev, comments: value}))}
+              suggestions={REPORT_COMMENT_SUGGESTIONS}
+              placeholder="Add any relevant comments here... (Start typing to see suggestions)"
+              className="min-h-[120px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Start typing to see suggestions. Use ↑↓ arrows to navigate, Enter to select, Esc to dismiss.
+            </p>
           </div>
           <div className="flex items-center space-x-2 pt-2">
             <Checkbox id="isCompleted" name="isCompleted" checked={!!formData.isCompleted} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCompleted: !!checked }))} />
