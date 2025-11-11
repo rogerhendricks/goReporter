@@ -60,83 +60,83 @@ class ChatbotService {
    * Extract form data from the current page and convert to structured format
    */
   private extractFormData(): FormDataExtract | undefined {
-    const formElements = document.querySelectorAll('form')
-    if (formElements.length === 0) return undefined
+    // Try to find the report form by looking for specific data attributes or structure
+    const formElement = document.querySelector('form')
+    
+    if (!formElement) {
+      return undefined
+    }
 
+    const fields: FormField[] = []
     const sections: FormSection[] = []
-    const allFields: FormField[] = []
-
-    formElements.forEach(form => {
-      // Find all Card components (sections)
-      const cards = form.querySelectorAll('[class*="Card"]')
+    
+    // Extract data from all input elements (including custom components)
+    const inputs = formElement.querySelectorAll('input, textarea, select')
+    
+    inputs.forEach((input) => {
+      const element = input as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
       
-      cards.forEach(card => {
-        // Get section title from CardHeader
-        const titleElement = card.querySelector('[class*="CardTitle"]')
-        const sectionTitle = titleElement?.textContent?.trim() || 'General'
+      // Skip empty or hidden fields
+      if (!element.name || element.type === 'hidden' || !element.value) {
+        return
+      }
 
-        const fields: FormField[] = []
-
-        // Find all input fields within this card
-        const inputs = card.querySelectorAll('input, select, textarea')
-        
-        inputs.forEach(input => {
-          const inputElement = input as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          
-          // Skip hidden or disabled fields
-          if (inputElement.type === 'hidden' || inputElement.disabled) return
-
-          // Find the associated label
-          let label = ''
-          const labelElement = card.querySelector(`label[for="${inputElement.id}"]`)
-          
-          if (labelElement) {
-            label = labelElement.textContent?.trim() || ''
-          } else {
-            // Try to find label by traversing up
-            const parentLabel = inputElement.closest('div')?.querySelector('label')
-            label = parentLabel?.textContent?.trim() || inputElement.name || inputElement.id || 'Unknown'
-          }
-
-          // Get the value
-          let value = ''
-          if (inputElement.type === 'checkbox') {
-            value = (inputElement as HTMLInputElement).checked ? 'Yes' : 'No'
-          } else if (inputElement.type === 'radio') {
-            if ((inputElement as HTMLInputElement).checked) {
-              value = inputElement.value
-            } else {
-              return // Skip unchecked radio buttons
-            }
-          } else {
-            value = inputElement.value || '(empty)'
-          }
-
-          const field: FormField = {
-            label: label,
-            value: value,
-            type: inputElement.type || inputElement.tagName.toLowerCase(),
-            section: sectionTitle
-          }
-
-          fields.push(field)
-          allFields.push(field)
-        })
-
-        if (fields.length > 0) {
-          sections.push({
-            title: sectionTitle,
-            fields
-          })
+      // Find the associated label
+      let label = ''
+      const labelElement = formElement.querySelector(`label[for="${element.id}"]`)
+      if (labelElement) {
+        label = labelElement.textContent?.trim() || ''
+      } else {
+        // Try to find label by traversing up the DOM
+        const closestLabel = element.closest('div')?.querySelector('label')
+        if (closestLabel) {
+          label = closestLabel.textContent?.trim() || ''
         }
+      }
+
+      // Use name as fallback if no label found
+      if (!label) {
+        label = element.name
+      }
+
+      // Try to find the section this field belongs to
+      let section = ''
+      const cardTitle = element.closest('.space-y-6, .space-y-4, .grid')
+        ?.closest('div')
+        ?.querySelector('[class*="CardTitle"], h3, h4')
+      
+      if (cardTitle) {
+        section = cardTitle.textContent?.trim() || ''
+      }
+
+      fields.push({
+        label,
+        value: element.value,
+        type: element.type || 'text',
+        section
       })
     })
 
-    // Generate CSV format
-    const csvData = this.generateCSV(allFields)
+    // Group fields by section
+    const sectionMap = new Map<string, FormField[]>()
+    
+    fields.forEach(field => {
+      const sectionName = field.section || 'General'
+      if (!sectionMap.has(sectionName)) {
+        sectionMap.set(sectionName, [])
+      }
+      sectionMap.get(sectionName)!.push(field)
+    })
+
+    sectionMap.forEach((fields, title) => {
+      sections.push({ title, fields })
+    })
+
+    // Generate CSV
+    const csvData = this.convertToCSV(fields)
 
     return {
-      fields: allFields,
+      fields,
       sections,
       csvData
     }
@@ -145,28 +145,34 @@ class ChatbotService {
   /**
    * Convert form fields to CSV format
    */
-  private generateCSV(fields: FormField[]): string {
-    const header = 'Section,Label,Value,Type\n'
-    const rows = fields.map(field => {
-      const section = this.escapeCSV(field.section || 'General')
-      const label = this.escapeCSV(field.label)
-      const value = this.escapeCSV(field.value)
-      const type = this.escapeCSV(field.type)
-      return `${section},${label},${value},${type}`
-    }).join('\n')
+  private convertToCSV(fields: FormField[]): string {
+    if (fields.length === 0) return ''
+
+    // Create CSV header
+    const header = 'Section,Field,Value,Type'
     
-    return header + rows
+    // Create CSV rows
+    const rows = fields.map(field => {
+      const section = field.section || 'General'
+      const fieldName = field.label
+      const value = field.value.replace(/"/g, '""') // Escape quotes
+      const type = field.type
+      
+      return `"${section}","${fieldName}","${value}","${type}"`
+    })
+
+    return [header, ...rows].join('\n')
   }
 
-  /**
-   * Escape CSV values
-   */
-  private escapeCSV(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-      return `"${value.replace(/"/g, '""')}"`
-    }
-    return value
-  }
+  // /**
+  //  * Escape CSV values
+  //  */
+  // private escapeCSV(value: string): string {
+  //   if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+  //     return `"${value.replace(/"/g, '""')}"`
+  //   }
+  //   return value
+  // }
 
   /**
    * Extract page content with improved structure
