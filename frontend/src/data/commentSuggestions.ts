@@ -10,21 +10,21 @@ export const REPORT_COMMENT_SUGGESTIONS = [
   "Sensing adequate in all chambers",
   
   // Arrhythmia findings
-  "No significant arrhythmias detected",
+  "No significant arrhythmias were detected",
   "Atrial fibrillation burden increased",
   "Atrial fibrillation burden decreased",
   "Episodes of NSVT noted",
   "VT episodes successfully terminated by ATP",
-  "Appropriate ICD therapy delivered",
+  "Appropriate ICD therapy was delivered",
   "No inappropriate shocks",
   
   // Patient symptoms
-  "Patient asymptomatic",
-  "Patient reports palpitations",
-  "Patient denies chest pain",
-  "Patient experiencing dizziness",
-  "Symptoms correlate with device events",
-  "No symptoms reported during arrhythmia episodes",
+  "Patient was asymptomatic",
+  "Patient was experiencing palpitations",
+  "Patient was denying chest pain",
+  "Patient was experiencing dizziness",
+  "Symptoms were correlating with device events",
+  "No symptoms were reported during arrhythmia episodes",
   
   // Recommendations
   "Continue current programming",
@@ -43,4 +43,10 @@ export const REPORT_COMMENT_SUGGESTIONS = [
   "Tachycardia detection zones modified",
   "Pacing output increased",
   "Pacing output decreased",
+
+  // Patient presentation
+  "Patient presented to the clinic with complaints of palpitations.",
+  "Patient presented to the clinic today for a routine follow-up.",
+  "Patient was advised to present to the clinic today for evaluation.",
+  "Patient has a CIED check while as an inpatient."
 ]
