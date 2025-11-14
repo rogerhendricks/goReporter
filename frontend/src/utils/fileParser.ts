@@ -1,5 +1,8 @@
 import { XMLParser } from 'fast-xml-parser';
-import { PDFDocument, PDFName, PDFArray, PDFDict, PDFStream } from 'pdf-lib'
+import * as pdfjsLib from 'pdfjs-dist';
+// import { PDFDocument, PDFName, PDFArray, PDFDict, PDFStream } from 'pdf-lib'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.394/build/pdf.worker.min.mjs';
 
 export interface ParsedData {
   mrn?: string;
@@ -1203,100 +1206,333 @@ function parseXmlFile(fileContent: string): ParsedData {
 }
 
 
-// Extract FileSpec bytes (and name) -> used for EmbeddedFiles/AF
-function readFileSpec(dict: any): { name: string; bytes: Uint8Array | null } | null {
-  if (!dict) return null
-  const ef = dict.lookup?.(PDFName.of('EF'), PDFDict) ?? dict.get?.(PDFName.of('EF'))
-  const fileNameObj = dict.get?.(PDFName.of('UF')) ?? dict.get?.(PDFName.of('F'))
-  const name = pdfObjToString(fileNameObj) || 'attachment.xml'
-  const fStream =
-    ef?.lookup?.(PDFName.of('UF'), PDFStream) ??
-    ef?.lookup?.(PDFName.of('F'), PDFStream) ??
-    ef?.get?.(PDFName.of('UF')) ??
-    ef?.get?.(PDFName.of('F'))
-  const bytes = getStreamBytes(fStream)
-  return { name, bytes }
+async function parsePdfFile(file: File) {
+  const result: Partial<ParsedData> = {};
+  
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    let targetPageText: string | null = null;
+    let parserFunction: ((text: string) => Partial<ParsedData>) | null = null;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      
+      if (pageText.includes('Initial Interrogation: Quick Look II')) {
+        targetPageText = pageText;
+        parserFunction = parseMedtronicQuickLookII;
+        break;
+      } else if (pageText.includes('Session Summary')) {
+        targetPageText = pageText;
+        parserFunction = parseMedtronicSessionSummary;
+        break;
+      }
+    }
+    
+    if (targetPageText && parserFunction) {
+      // Parse the extracted text
+      const parsedData = parserFunction(targetPageText);
+      return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
+    } else {
+      console.warn(
+        'Neither "Initial Interrogation: Quick Look II" nor "Session Summary" section found in PDF.'
+      );
+      return { fileType: 'pdf', fileName: file.name, xmlFound: false };
+    }
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    throw error;
+  }
 }
+
+// Helper function to parse the Medtronic Session Summary section
+function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
+  const result: Partial<ParsedData> = {};
+
+  // Example: Device info
+  const deviceMatch = text.match(/Device Model:\s*(\S+)\s*Serial #:\s*(\S+)/);
+  if (deviceMatch) {
+    result.mdc_idc_dev_model = deviceMatch[1].trim();
+    result.mdc_idc_dev_serial_number = deviceMatch[2];
+  }
+
+  // Example: Session Date
+  const dateMatch = text.match(/Session Date:\s*(\d{1,2}-\w+-\d{4})/);
+  if (dateMatch) {
+    result.report_date = convertMedtronicDate(dateMatch[1]);
+  }
+
+  // Implant Date
+  const implantMatch = text.match(/Implant Date:\s*(\d{1,2}-\w+-\d{4})/);
+  if (implantMatch) {
+    result.mdc_idc_dev_implant_date = convertMedtronicDate(implantMatch[1]);
+  }
+
+  // Remaining Longevity (Battery)
+  const longevityMatch = text.match(/Longevity\s+([\d.]+)\s+years/);
+  if (longevityMatch) {
+    result.mdc_idc_batt_remaining = longevityMatch[1];
+  }
+
+  // Pacing Impedance values (assuming a similar layout)
+  const pacingImpedanceMatch = text.match(/Pacing Impedance\s+RA\s+(\d+)\s+ohms\s+RV\s+(\d+)\s+ohms\s+LV\s+(\d+)\s+ohms/);
+  if (pacingImpedanceMatch) {
+    result.mdc_idc_msmt_ra_impedance_mean = pacingImpedanceMatch[1];
+    result.mdc_idc_msmt_rv_impedance_mean = pacingImpedanceMatch[2];
+    result.mdc_idc_msmt_lv_impedance_mean = pacingImpedanceMatch[3];
+  }
+
+  // Capture Thresholds (assuming a similar layout)
+  const captureThresholdMatch = text.match(/Capture Threshold\s+RA\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+RV\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+LV\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms/);
+  if (captureThresholdMatch) {
+    result.mdc_idc_msmt_ra_pacing_threshold = captureThresholdMatch[1];
+    result.mdc_idc_msmt_ra_pw = captureThresholdMatch[2];
+    result.mdc_idc_msmt_rv_pacing_threshold = captureThresholdMatch[3];
+    result.mdc_idc_msmt_rv_pw = captureThresholdMatch[4];
+    result.mdc_idc_msmt_lv_pacing_threshold = captureThresholdMatch[5];
+    result.mdc_idc_msmt_lv_pw = captureThresholdMatch[6];
+  }
+
+  // Mode and rates
+  const modeMatch = text.match(/Mode\s+(\w+)\s+Lower Rate\s+(\d+)\s+bpm/);
+  if (modeMatch) {
+    result.mdc_idc_set_brady_mode = modeMatch[1];
+    result.mdc_idc_set_brady_lowrate = modeMatch[2];
+  }
+
+  const upperRateMatch = text.match(/Upper Tracking Rate\s+(\d+)\s+bpm/);
+  if (upperRateMatch) {
+    result.mdc_idc_set_brady_max_tracking_rate = upperRateMatch[1];
+  }
+
+  // VF/VT detection rates
+  const vfMatch = text.match(/VF Detection\s+On\s+>(\d+)\s+bpm/);
+  if (vfMatch) {
+    result.VF_detection_interval = vfMatch[1];
+  }
+
+  const vtMatch = text.match(/VT Detection\s+On\s+(\d+)-(\d+)\s+bpm/);
+  if (vtMatch) {
+    result.VT2_detection_interval = vtMatch[1];
+  }
+
+  result.mdc_idc_dev_manufacturer = "Medtronic";
+  return result;
+}
+
+// Helper function to parse the Medtronic Quick Look II section
+function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
+  const result: Partial<ParsedData> = {};
+  
+  // Device info
+  const deviceMatch = text.match(/Device:\s*([^\n]+?)\s+Serial Number:\s*(\S+)/);
+  if (deviceMatch) {
+    result.mdc_idc_dev_model = deviceMatch[1].trim();
+    result.mdc_idc_dev_serial_number = deviceMatch[2];
+  }
+  
+  // Date of Visit
+  const dateMatch = text.match(/Date of Visit:\s*(\d{1,2}-\w+-\d{4})/);
+  if (dateMatch) {
+    result.report_date = convertMedtronicDate(dateMatch[1]);
+  }
+  
+  // Implant Date
+  const implantMatch = text.match(/Implanted:\s*(\d{1,2}-\w+-\d{4})/);
+  if (implantMatch) {
+    result.mdc_idc_dev_implant_date = convertMedtronicDate(implantMatch[1]);
+  }
+  
+  // Remaining Longevity (Battery)
+  const longevityMatch = text.match(/Remaining Longevity\s+([\d.]+)\s+years/);
+  if (longevityMatch) {
+    result.mdc_idc_batt_remaining = longevityMatch[1];
+  }
+  
+  // Pacing Impedance values
+  const pacingImpedanceMatch = text.match(/Pacing Impedance\s+([^o]+?)\s+(\d+)\s+ohms\s+(\d+)\s+ohms/);
+  if (pacingImpedanceMatch) {
+    result.mdc_idc_msmt_ra_impedance_mean = pacingImpedanceMatch[2];
+    result.mdc_idc_msmt_lv_impedance_mean = pacingImpedanceMatch[3];
+  }
+  
+  // Defibrillation Impedance
+  const defibImpedanceMatch = text.match(/Defibrillation Impedance\s+RV=(\d+)\s+ohms/);
+  if (defibImpedanceMatch) {
+    result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
+  }
+  
+  // Capture Threshold - Atrial
+  const captureThresholdMatch = text.match(/Capture Threshold\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms/);
+  if (captureThresholdMatch) {
+    result.mdc_idc_msmt_ra_pacing_threshold = captureThresholdMatch[1];
+    result.mdc_idc_msmt_ra_pw = captureThresholdMatch[2];
+    result.mdc_idc_msmt_rv_pacing_threshold = captureThresholdMatch[3];
+    result.mdc_idc_msmt_rv_pw = captureThresholdMatch[4];
+  }
+  
+  // Mode and rates
+  const modeMatch = text.match(/Mode\s+(\w+)\s+Lower Rate\s+(\d+)\s+bpm/);
+  if (modeMatch) {
+    result.mdc_idc_set_brady_mode = modeMatch[1];
+    result.mdc_idc_set_brady_lowrate = modeMatch[2];
+  }
+  
+  const upperSensorMatch = text.match(/Upper Sensor\s+(\d+)\s+bpm/);
+  if (upperSensorMatch) {
+    result.mdc_idc_set_brady_max_tracking_rate = upperSensorMatch[1];
+  }
+  
+  // VF/VT/AT detection rates
+  const vfMatch = text.match(/VF\s+On\s+>(\d+)\s+bpm/);
+  if (vfMatch) {
+    result.VF_detection_interval = vfMatch[1];
+  }
+  
+  const fvtMatch = text.match(/FVT via VF\s+(\d+)-(\d+)\s+bpm/);
+  if (fvtMatch) {
+    // Note: This might be a combined rate, adjust as needed
+  }
+  
+  const vtMatch = text.match(/VT\s+On\s+(\d+)-(\d+)\s+bpm/);
+  if (vtMatch) {
+    result.VT2_detection_interval = vtMatch[1];
+  }
+  
+  // Therapy settings - ATP
+  const atpMatch = text.match(/ATP During Charging,\s*([\d.]+)J,\s*([\d.]+)J\s+x\s+(\d+)/);
+  if (atpMatch) {
+    result.VF_therapy_1_atp = 'ATP';
+    result.VF_therapy_2_energy = atpMatch[1];
+    result.VF_therapy_3_energy = atpMatch[2];
+    result.VF_therapy_4_max_num_shocks = atpMatch[3];
+  }
+  
+  // Clinical Status - Treated episodes
+  const treatedVFMatch = text.match(/Treated[\s\S]*?VF\s+(\d+)/);
+  if (treatedVFMatch) {
+    result.treated_vf_count = treatedVFMatch[1];
+  }
+  
+  const treatedVTMatch = text.match(/Treated[\s\S]*?VT\s+(\d+)/);
+  if (treatedVTMatch) {
+    result.treated_vt_count = treatedVTMatch[1];
+  }
+  
+  // Pacing percentages
+  const totalVPMatch = text.match(/Total VP\s+([\d.]+)\s+%/);
+  if (totalVPMatch) {
+    result.total_vp_percent = totalVPMatch[1];
+  }
+  
+  result.mdc_idc_dev_manufacturer = "Medtronic";
+  
+  return result;
+}
+
+// Helper to convert Medtronic date format (e.g., "29-Dec-2020") to ISO format
+function convertMedtronicDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toISOString().split('T')[0];
+}
+
+// Extract FileSpec bytes (and name) -> used for EmbeddedFiles/AF
+// function readFileSpec(dict: any): { name: string; bytes: Uint8Array | null } | null {
+//   if (!dict) return null
+//   const ef = dict.lookup?.(PDFName.of('EF'), PDFDict) ?? dict.get?.(PDFName.of('EF'))
+//   const fileNameObj = dict.get?.(PDFName.of('UF')) ?? dict.get?.(PDFName.of('F'))
+//   const name = pdfObjToString(fileNameObj) || 'attachment.xml'
+//   const fStream =
+//     ef?.lookup?.(PDFName.of('UF'), PDFStream) ??
+//     ef?.lookup?.(PDFName.of('F'), PDFStream) ??
+//     ef?.get?.(PDFName.of('UF')) ??
+//     ef?.get?.(PDFName.of('F'))
+//   const bytes = getStreamBytes(fStream)
+//   return { name, bytes }
+// }
 
 // Walk the Names/EmbeddedFiles name tree and collect attachments
-function extractFromEmbeddedFiles(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
-  const out: { name: string; bytes: Uint8Array | null }[] = []
-  const namesDict = (pdfDoc as any).catalog?.dict?.lookup?.(PDFName.of('Names'), PDFDict)
-  const embeddedRoot = namesDict?.lookup?.(PDFName.of('EmbeddedFiles'), PDFDict)
-  if (!embeddedRoot) return out
+// function extractFromEmbeddedFiles(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
+//   const out: { name: string; bytes: Uint8Array | null }[] = []
+//   const namesDict = (pdfDoc as any).catalog?.dict?.lookup?.(PDFName.of('Names'), PDFDict)
+//   const embeddedRoot = namesDict?.lookup?.(PDFName.of('EmbeddedFiles'), PDFDict)
+//   if (!embeddedRoot) return out
 
-  const walk = (node: any) => {
-    const names = node.lookup?.(PDFName.of('Names'), PDFArray)
-    if (names) {
-      for (let i = 0; i < names.size(); i += 2) {
-        //const _key = names.get(i) // usually PDFString filename
-        const fileSpec = names.get(i + 1)
-        const spec = readFileSpec((pdfDoc as any).context?.lookup?.(fileSpec, PDFDict) ?? fileSpec)
-        if (spec) out.push(spec)
-      }
-    }
-    const kids = node.lookup?.(PDFName.of('Kids'), PDFArray)
-    if (kids) {
-      for (let i = 0; i < kids.size(); i++) {
-        const kid = kids.get(i)
-        const kidDict = (pdfDoc as any).context?.lookup?.(kid, PDFDict) ?? kid
-        if (kidDict) walk(kidDict)
-      }
-    }
-  }
+//   const walk = (node: any) => {
+//     const names = node.lookup?.(PDFName.of('Names'), PDFArray)
+//     if (names) {
+//       for (let i = 0; i < names.size(); i += 2) {
+//         //const _key = names.get(i) // usually PDFString filename
+//         const fileSpec = names.get(i + 1)
+//         const spec = readFileSpec((pdfDoc as any).context?.lookup?.(fileSpec, PDFDict) ?? fileSpec)
+//         if (spec) out.push(spec)
+//       }
+//     }
+//     const kids = node.lookup?.(PDFName.of('Kids'), PDFArray)
+//     if (kids) {
+//       for (let i = 0; i < kids.size(); i++) {
+//         const kid = kids.get(i)
+//         const kidDict = (pdfDoc as any).context?.lookup?.(kid, PDFDict) ?? kid
+//         if (kidDict) walk(kidDict)
+//       }
+//     }
+//   }
 
-  walk(embeddedRoot)
-  return out
-}
+//   walk(embeddedRoot)
+//   return out
+// }
 
 // Extract from Associated Files (AF) on the Catalog (and optionally pages)
-function extractFromAF(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
-  const out: { name: string; bytes: Uint8Array | null }[] = []
-  const catalogDict = (pdfDoc as any).catalog?.dict
-  const afArray = catalogDict?.lookup?.(PDFName.of('AF'), PDFArray)
-  if (afArray) {
-    for (let i = 0; i < afArray.size(); i++) {
-      const specDict = (pdfDoc as any).context?.lookup?.(afArray.get(i), PDFDict)
-      const spec = readFileSpec(specDict)
-      if (spec) out.push(spec)
-    }
-  }
-  return out
-}
+// function extractFromAF(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
+//   const out: { name: string; bytes: Uint8Array | null }[] = []
+//   const catalogDict = (pdfDoc as any).catalog?.dict
+//   const afArray = catalogDict?.lookup?.(PDFName.of('AF'), PDFArray)
+//   if (afArray) {
+//     for (let i = 0; i < afArray.size(); i++) {
+//       const specDict = (pdfDoc as any).context?.lookup?.(afArray.get(i), PDFDict)
+//       const spec = readFileSpec(specDict)
+//       if (spec) out.push(spec)
+//     }
+//   }
+//   return out
+// }
 
 // Decode XML strings from attachments
-function toXmlStrings(entries: { name: string; bytes: Uint8Array | null }[]): { name: string; xml: string }[] {
-  const dec = new TextDecoder('utf-8', { fatal: false })
-  const xmls: { name: string; xml: string }[] = []
-  for (const e of entries) {
-    if (!e.bytes) continue
-    const text = dec.decode(e.bytes)
-    // Heuristic: filename ends with .xml OR content contains an XML prolog/root tag
-    if (e.name.toLowerCase().endsWith('.xml') || text.trimStart().startsWith('<?xml') || text.includes('<biotronik-ieee11073-export')) {
-      xmls.push({ name: e.name, xml: text })
-    }
-  }
-  return xmls
-}
+// function toXmlStrings(entries: { name: string; bytes: Uint8Array | null }[]): { name: string; xml: string }[] {
+//   const dec = new TextDecoder('utf-8', { fatal: false })
+//   const xmls: { name: string; xml: string }[] = []
+//   for (const e of entries) {
+//     if (!e.bytes) continue
+//     const text = dec.decode(e.bytes)
+//     // Heuristic: filename ends with .xml OR content contains an XML prolog/root tag
+//     if (e.name.toLowerCase().endsWith('.xml') || text.trimStart().startsWith('<?xml') || text.includes('<biotronik-ieee11073-export')) {
+//       xmls.push({ name: e.name, xml: text })
+//     }
+//   }
+//   return xmls
+// }
 
 
-export async function parsePdfFile(file: File): Promise<ParsedData> {
-  const arrayBuffer = await file.arrayBuffer()
-  const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
+// export async function parsePdfFile(file: File): Promise<ParsedData> {
+//   const arrayBuffer = await file.arrayBuffer()
+//   const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
 
-  const attachments = [
-    ...extractFromEmbeddedFiles(pdfDoc),
-    ...extractFromAF(pdfDoc),
-  ]
+//   const attachments = [
+//     ...extractFromEmbeddedFiles(pdfDoc),
+//     ...extractFromAF(pdfDoc),
+//   ]
 
-  const xmls = toXmlStrings(attachments)
+//   const xmls = toXmlStrings(attachments)
 
-  // Return the first XML (and list) so you can parse/map later
-  return {
-    fileType: 'pdf',
-    fileName: file.name,
-    xmlFound: xmls.length > 0,
-    embeddedXml: xmls[0]?.xml ?? null,
-    embeddedXmlFiles: xmls, // [{ name, xml }]
-  }
-}
+//   // Return the first XML (and list) so you can parse/map later
+//   return {
+//     fileType: 'pdf',
+//     fileName: file.name,
+//     xmlFound: xmls.length > 0,
+//     embeddedXml: xmls[0]?.xml ?? null,
+//     embeddedXmlFiles: xmls, // [{ name, xml }]
+//   }
+// }

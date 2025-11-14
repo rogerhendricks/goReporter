@@ -72,7 +72,7 @@ func main() {
 
     // Configure CORS properly
     app.Use(cors.New(cors.Config{
-        AllowOrigins:     "https://dev.nuttynarwhal.com, https://dev-mini.nuttynarwhal.com, https://nuttynarwhal.com, http://localhost:3000,  http://localhost:8000",
+        AllowOrigins:     "https://dev.nuttynarwhal.com, https://dev-mini.nuttynarwhal.com, https://nuttynarwhal.com, https://fiber.nuttynarwhal.com, http://localhost:3000, http://localhost:8000",
         AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
         AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
         AllowCredentials: true,
