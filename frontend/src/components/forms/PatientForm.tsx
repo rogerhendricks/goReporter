@@ -847,7 +847,7 @@ export default function PatientForm() {
             </div>
 
             {/* Implanted Devices */}
-            <Card>
+            <Card className="bg-sky-500/50">
               <CardHeader>
                 <CardTitle>Implanted Devices</CardTitle>
               </CardHeader>
@@ -979,7 +979,7 @@ export default function PatientForm() {
             </Card>
 
             {/* Implanted Leads */}
-            <Card>
+            <Card className="bg-fuchsia-500/50">
               <CardHeader>
                 <CardTitle>Implanted Leads</CardTitle>
               </CardHeader>

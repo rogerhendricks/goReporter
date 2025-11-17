@@ -186,7 +186,7 @@ export default function PatientDetail() {
         </Card>
 
         {currentPatient.devices && currentPatient.devices.length > 0 && (
-          <Card className ="md:col-span-2">
+          <Card className ="md:col-span-2 bg-sky-500/50">
             <CardHeader>
               <CardTitle>Implanted Devices ({currentPatient.devices?.length || 0})</CardTitle>
             </CardHeader>
@@ -224,7 +224,7 @@ export default function PatientDetail() {
           </Card>
         )}
 
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 bg-fuchsia-500/50">
           <CardHeader>
             <CardTitle>Implanted Leads ({currentPatient.leads?.length || 0})</CardTitle>
           </CardHeader>
