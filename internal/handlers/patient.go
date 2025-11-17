@@ -109,7 +109,7 @@ func toLeadResponse(lead models.Lead) LeadResponse {
 		ID:           lead.ID,
 		Name:         lead.Name,
 		Manufacturer: lead.Manufacturer,
-		Model:        lead.LeadModel,
+		LeadModel:        lead.LeadModel,
 		Connector:    lead.Connector,
 		IsMri:        lead.IsMri,
 	}

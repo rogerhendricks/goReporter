@@ -18,7 +18,7 @@ type LeadResponse struct {
 	ID           uint   `json:"id"`
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
-	Model        string `json:"model"`
+	LeadModel        string `json:"leadModel"`
 	Connector    string `json:"connector"`
 	Polarity     string `json:"polarity"`
 	IsMri        bool   `json:"isMri"`
