@@ -311,12 +311,12 @@ function parseLogFile(data: string): ParsedData {
       if (mappings[code] && value) {
         let processedValue = value.replace(/V|Ohm|%|bpm/g, '').trim();
         if (mappings[code] === 'VT2_therapy_5_max_num_shocks') {
-        processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
+          processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
         }
         if (mappings[code] === 'VT1_therapy_5_max_num_shocks') {
-        processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
+          processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
         }
-      parsedData[mappings[code]] = processedValue;
+        parsedData[mappings[code]] = processedValue;
       }
     }
   });
@@ -459,7 +459,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     result.report_date = new Date(dateStr).toISOString();
   }
 
-  if (rawData['VTherapyParams.VFATPEnable']){
+  if (rawData['VTherapyParams.VFATPEnable']) {
     const v = rawData['VTherapyParams.VFATPEnable']?.trim();
     result.VF_therapy_1_atp = v && v !== '--' ? 'ATP' : 'Off';
   }
@@ -1016,26 +1016,26 @@ function parseXmlFile(fileContent: string): ParsedData {
   //   }
   //   // return result;
   // }
- 
+
   const msmtSection = findSection(idcSection, 'MSMT');
   console.log('msmtSection', msmtSection);
   if (msmtSection) {
     console.log('msmtSection', msmtSection);
-  
+
     const battSection = findSection(msmtSection, 'BATTERY');
     if (battSection) {
       result.mdc_idc_batt_status = findValue(battSection, 'STATUS') || '';
       result.mdc_idc_batt_percentage = findValue(battSection, 'REMAINING_PERCENTAGE') || '';
     }
-  
+
     // LEADCHNL_RA
     const leadchnl_ra = findSection(msmtSection, 'LEADCHNL_RA');
     if (leadchnl_ra) {
       console.log('leadchnl_ra', leadchnl_ra);
-  
+
       const sensingSection = findSection(leadchnl_ra, 'SENSING');
       result.mdc_idc_msmt_ra_sensing_mean = findValue(sensingSection, 'INTR_AMPL_MEAN') || '';
-  
+
       const pacingSection = findSection(leadchnl_ra, 'PACING_THRESHOLD');
       if (pacingSection) {
         result.mdc_idc_msmt_ra_pacing_threshold = findValue(pacingSection, 'AMPLITUDE') || '';
@@ -1044,29 +1044,29 @@ function parseXmlFile(fileContent: string): ParsedData {
         result.mdc_idc_msmt_ra_pacing_threshold = '';
         result.mdc_idc_msmt_ra_pw = '';
       }
-  
+
       const impedanceSection = findSection(leadchnl_ra, 'IMPEDANCE');
       result.mdc_idc_msmt_ra_impedance_mean = findValue(impedanceSection, 'VALUE') || '';
     }
-  
+
     // LEADCHNL_RV
     const leadchnl_rv = findSection(msmtSection, 'LEADCHNL_RV');
     if (leadchnl_rv) {
       console.log('leadchnl_rv', leadchnl_rv);
-  
+
       const sensingSectionRV = findSection(leadchnl_rv, 'SENSING');
       result.mdc_idc_msmt_rv_sensing_mean = findValue(sensingSectionRV, 'INTR_AMPL_MEAN') || '';
-  
+
       const pacingSectionRV = findSection(leadchnl_rv, 'PACING_THRESHOLD');
       if (pacingSectionRV) {
         result.mdc_idc_msmt_rv_pacing_threshold = findValue(pacingSectionRV, 'AMPLITUDE') || '';
         result.mdc_idc_msmt_rv_pw = findValue(pacingSectionRV, 'PULSEWIDTH') || '';
       }
-  
+
       const impedanceSectionRV = findSection(leadchnl_rv, 'IMPEDANCE');
       result.mdc_idc_msmt_rv_impedance_mean = findValue(impedanceSectionRV, 'VALUE') || '';
     }
-  
+
     // LEADCHNL_LV
     const leadchnl_lv = findSection(msmtSection, 'LEADCHNL_LV');
     if (leadchnl_lv) {
@@ -1078,22 +1078,22 @@ function parseXmlFile(fileContent: string): ParsedData {
         result.mdc_idc_msmt_lv_pacing_threshold = '';
         result.mdc_idc_msmt_lv_pw = '';
       }
-  
+
       const impedanceSectionLV = findSection(leadchnl_lv, 'IMPEDANCE');
       result.mdc_idc_msmt_lv_impedance_mean = findValue(impedanceSectionLV, 'VALUE') || '';
     }
-  
+
     // LEADHVCHNL
     const leadhvchnl = findSection(msmtSection, 'LEADHVCHNL');
     if (leadhvchnl) {
       result.mdc_idc_msmt_hv_impedance_mean = findValue(leadhvchnl, 'IMPEDANCE') || '';
     }
-  
+
     // SET
     const setSection = findSection(idcSection, 'SET');
     if (setSection) {
       console.log('setSection', setSection);
-  
+
       const bradySection = findSection(setSection, 'BRADY');
       if (bradySection) {
         result.mdc_idc_set_brady_lowrate = findValue(bradySection, 'LOWRATE') || '';
@@ -1102,7 +1102,7 @@ function parseXmlFile(fileContent: string): ParsedData {
         result.mdc_idc_set_brady_max_sensor_rate = findValue(bradySection, 'MAX_SENSOR_RATE') || '';
         result.mdc_idc_set_brady_mode_switch_rate = findValue(bradySection, 'AT_MODE_SWITCH_RATE') || '';
       }
-  
+
       const tachyTherapySection = findSection(setSection, 'TACHYTHERAPY');
       const isTachyOn = findValue(tachyTherapySection, 'VSTAT') === 'On';
       if (isTachyOn) {
@@ -1124,7 +1124,7 @@ function parseXmlFile(fileContent: string): ParsedData {
                 result.VT1_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
                 result.VT1_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
                 result.VT1_therapy_5_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
-              } else if (VT1_active === "Monitor"){
+              } else if (VT1_active === "Monitor") {
                 result.VT1_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
                 result.VT1_therapy_1_atp = 'off';
                 result.VT1_therapy_1_no_bursts = '';
@@ -1149,7 +1149,7 @@ function parseXmlFile(fileContent: string): ParsedData {
                 result.VT2_therapy_4_energy = findValue(zone, 'SHOCK_ENERGY_2');
                 result.VT2_therapy_5_energy = findValue(zone, 'SHOCK_ENERGY_3');
                 result.VT2_therapy_5_max_num_shocks = findValue(zone, 'NUM_SHOCKS_3');
-              } else if ( VT2_active === "Monitor"){
+              } else if (VT2_active === "Monitor") {
                 result.VT2_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
                 result.VT2_therapy_1_atp = 'off';
                 result.VT2_therapy_1_no_bursts = '';
@@ -1165,7 +1165,7 @@ function parseXmlFile(fileContent: string): ParsedData {
             case 'BIO-Zone_VF':
               const VF_active = findValue(zone, 'STATUS');
               result.VF_active = VF_active;
-              if (VF_active){
+              if (VF_active) {
                 result.VF_detection_interval = findValue(zone, 'DETECTION_INTERVAL');
                 result.VF_therapy_1_atp = findValue(zone, 'TYPE_ATP_1');
                 result.VF_therapy_2_energy = findValue(zone, 'SHOCK_ENERGY_1');
@@ -1183,7 +1183,7 @@ function parseXmlFile(fileContent: string): ParsedData {
 
   try {
     console.log('Attempting to extract embedded PDF from XML...');
-    const bioSection = Array.isArray(sections) ? sections.find((s: any) => s['@_name'] === 'BIO') : sections;  
+    const bioSection = Array.isArray(sections) ? sections.find((s: any) => s['@_name'] === 'BIO') : sections;
     console.log('bioSection', bioSection);
 
     // Use safe section finder to avoid .find on non-arrays
@@ -1209,15 +1209,15 @@ function parseXmlFile(fileContent: string): ParsedData {
 // parse Medtronic pdf files
 async function parsePdfFile(file: File) {
   const result: Partial<ParsedData> = {};
-  
+
   try {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
+
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      
+
       // Extract items with position data
       const items = textContent.items
         .filter((item): item is TextItem => 'str' in item)
@@ -1263,7 +1263,7 @@ async function parsePdfFile(file: File) {
       const pageText = rows.map(row => {
         let line = '';
         let lastX = 0;
-        
+
         row.forEach(item => {
           // Add spacing based on X position gap
           const gap = item.x - lastX;
@@ -1273,7 +1273,7 @@ async function parsePdfFile(file: File) {
           line += item.text;
           lastX = item.x + item.width;
         });
-        
+
         return line;
       }).join('\n');
 
@@ -1285,7 +1285,7 @@ async function parsePdfFile(file: File) {
         return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
       }
     }
-    
+
     return { fileType: 'pdf', fileName: file.name, xmlFound: false };
   } catch (error) {
     console.error('Error parsing PDF:', error);
@@ -1293,52 +1293,149 @@ async function parsePdfFile(file: File) {
   }
 }
 
-// async function parsePdfFile(file: File) {
-//   const result: Partial<ParsedData> = {};
-  
-//   try {
-//     const arrayBuffer = await file.arrayBuffer();
-//     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    
-//     let targetPageText: string | null = null;
-//     let parserFunction: ((text: string) => Partial<ParsedData>) | null = null;
+// Helper function to parse Pacing Impedance values
+// Helper to find chamber headers (Atrial, RV, LV) above a given index
+function findChambers(text: string, endIndex: number): string[] {
+  const chamberPattern = /(Atrial|RV|LV)\s*(?:\([^)]+\))?/gi;
+  const chambers: string[] = [];
+  let match;
 
-//     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-//       const page = await pdf.getPage(pageNum);
-//       const textContent = await page.getTextContent();
-//       const pageText = textContent.items
-//         .filter((item): item is TextItem => 'str' in item)
-//         .map(item => item.str)
-//         .join(' ');
+  // Search backwards line by line until we find a line with chamber names
+  const textBefore = text.substring(0, endIndex);
+  const lines = textBefore.split('\n');
 
-//       if (pageText.includes('Initial Interrogation: Quick Look II')) {
-//         targetPageText = pageText;
-//         parserFunction = parseMedtronicQuickLookII;
-//         break;
-//       } else if (pageText.includes('Session Summary')) {
-//         console.log('Session Summary found on page', pageNum);
-//         targetPageText = pageText;
-//         parserFunction = parseMedtronicSessionSummary;
-//         break;
-//       }
-//     }
-    
-//     if (targetPageText && parserFunction) {
-//       // Parse the extracted text
-//       const parsedData = parserFunction(targetPageText);
-//       return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
-//     } else {
-//       console.warn(
-//         'Neither "Initial Interrogation: Quick Look II" nor "Session Summary" section found in PDF.'
-//       );
-//       return { fileType: 'pdf', fileName: file.name, xmlFound: false };
-//     }
-//   } catch (error) {
-//     console.error('Error parsing PDF:', error);
-//     throw error;
-//   }
-// }
+  // Look back up to 20 lines
+  for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
+    const line = lines[i];
+    // Only consider lines that START with a chamber name (ignoring whitespace)
+    // This avoids matching lines like "Pace Polarity Bipolar LV1 to LV2"
+    if (line.match(/^\s*(Atrial|RV|LV)/i)) {
+      while ((match = chamberPattern.exec(line)) !== null) {
+        chambers.push(match[1].toUpperCase());
+      }
+      break; // Found the header line
+    }
+  }
+  return chambers;
+}
 
+// Helper function to parse Pacing Impedance values
+function parseMedtronicPacingImpedance(text: string, result: Partial<ParsedData>) {
+  // Find the impedance line (works with "Pacing Impedance" or "Lead Impedance")
+  const impedanceMatch = text.match(/(?:Pacing|Lead)\s+Impedance\s+([\d,]+)\s*Ω(?:\s+([\d,]+)\s*Ω)?(?:\s+([\d,]+)\s*Ω)?/i);
+
+  if (!impedanceMatch) {
+    return;
+  }
+
+  const chambers = findChambers(text, text.indexOf(impedanceMatch[0]));
+
+  // Extract impedance values (remove commas from numbers)
+  const impedanceValues = [
+    impedanceMatch[1]?.replace(/,/g, ''),
+    impedanceMatch[2]?.replace(/,/g, ''),
+    impedanceMatch[3]?.replace(/,/g, '')
+  ].filter(Boolean);
+
+  // Map chamber names to impedance values
+  chambers.forEach((chamber, index) => {
+    if (impedanceValues[index]) {
+      switch (chamber) {
+        case 'ATRIAL':
+          result.mdc_idc_msmt_ra_impedance_mean = impedanceValues[index];
+          break;
+        case 'RV':
+          result.mdc_idc_msmt_rv_impedance_mean = impedanceValues[index];
+          break;
+        case 'LV':
+          result.mdc_idc_msmt_lv_impedance_mean = impedanceValues[index];
+          break;
+      }
+    }
+  });
+}
+
+// Helper function to parse Capture Threshold values
+function parseMedtronicCaptureThreshold(text: string, result: Partial<ParsedData>) {
+  const captureMatch = text.match(/Capture Threshold\s+([^\n]+)/i);
+
+  if (!captureMatch) {
+    return;
+  }
+
+  const chambers = findChambers(text, text.indexOf(captureMatch[0]));
+
+  // Extract threshold values (e.g., "0.875 V @ 0.40 ms")
+  // Regex to match "Voltage V @ Width ms"
+  const valuePattern = /([\d.]+)\s*V\s*@\s*([\d.]+)\s*ms/g;
+  const values: { threshold: string, pw: string }[] = [];
+  let match;
+
+  while ((match = valuePattern.exec(captureMatch[1])) !== null) {
+    values.push({
+      threshold: match[1],
+      pw: match[2]
+    });
+  }
+
+  // Map chamber names to values
+  chambers.forEach((chamber, index) => {
+    if (values[index]) {
+      switch (chamber) {
+        case 'ATRIAL':
+          result.mdc_idc_msmt_ra_pacing_threshold = values[index].threshold;
+          result.mdc_idc_msmt_ra_pw = values[index].pw;
+          break;
+        case 'RV':
+          result.mdc_idc_msmt_rv_pacing_threshold = values[index].threshold;
+          result.mdc_idc_msmt_rv_pw = values[index].pw;
+          break;
+        case 'LV':
+          result.mdc_idc_msmt_lv_pacing_threshold = values[index].threshold;
+          result.mdc_idc_msmt_lv_pw = values[index].pw;
+          break;
+      }
+    }
+  });
+}
+
+// Helper function to parse Sensing values (Measured P/R Wave)
+function parseMedtronicSensing(text: string, result: Partial<ParsedData>) {
+  const sensingMatch = text.match(/Measured P\/R Wave\s+([^\n]+)/i);
+
+  if (!sensingMatch) {
+    return;
+  }
+
+  const chambers = findChambers(text, text.indexOf(sensingMatch[0]));
+
+  // Extract sensing values (e.g., "4.3 mV", ">20.0 mV")
+  // Regex to match value with optional > or < prefix
+  const valuePattern = /([<>[\d.]+)\s*mV/g;
+  const values: string[] = [];
+  let match;
+
+  while ((match = valuePattern.exec(sensingMatch[1])) !== null) {
+    values.push(match[1]);
+  }
+
+  // Map chamber names to values
+  chambers.forEach((chamber, index) => {
+    if (values[index]) {
+      switch (chamber) {
+        case 'ATRIAL':
+          result.mdc_idc_msmt_ra_sensing_mean = values[index];
+          break;
+        case 'RV':
+          result.mdc_idc_msmt_rv_sensing_mean = values[index];
+          break;
+        case 'LV':
+          result.mdc_idc_msmt_lv_sensing_mean = values[index];
+          break;
+      }
+    }
+  });
+}
 
 // Helper function to parse the Medtronic Session Summary section
 function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
@@ -1369,68 +1466,17 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
   if (longevityMatch) {
     result.mdc_idc_batt_remaining = longevityMatch[1];
   }
-  
-  // Pacing Impedance values
-  const chamberHeaderMatch = text.match(/(Atrial|RV|LV)\s*\([\w\d]+\)(?:\s+(Atrial|RV|LV)\s*\([\w\d]+\))?(?:\s+(Atrial|RV|LV))?/i);
-  
-  // Find the impedance line (works with "Pacing Impedance" or "Lead Impedance")
-  const impedanceMatch = text.match(/(?:Pacing|Lead)\s+Impedance\s+([\d,]+)\s*Ω(?:\s+([\d,]+)\s*Ω)?(?:\s+([\d,]+)\s*Ω)?/i);
-  
-  if (!impedanceMatch) {
-    return result;
-  }
-  
-  // Extract chamber names from the text above the impedance line
-  const chamberPattern = /(Atrial|RV|LV)\s*(?:\([^)]+\))?/gi;
-  const chambers: string[] = [];
-  let match;
-  
-  // Find all chamber mentions before the impedance line
-  const textBeforeImpedance = text.substring(0, text.indexOf(impedanceMatch[0]));
-  const lastLine = textBeforeImpedance.split('\n').slice(-2).join('\n'); // Get last 2 lines before impedance
-  
-  while ((match = chamberPattern.exec(lastLine)) !== null) {
-    chambers.push(match[1].toUpperCase());
-  }
-  
-  // Extract impedance values (remove commas from numbers)
-  const impedanceValues = [
-    impedanceMatch[1]?.replace(/,/g, ''),
-    impedanceMatch[2]?.replace(/,/g, ''),
-    impedanceMatch[3]?.replace(/,/g, '')
-  ].filter(Boolean);
-  
-  // Map chamber names to impedance values
-  chambers.forEach((chamber, index) => {
-    if (impedanceValues[index]) {
-      switch (chamber) {
-        case 'ATRIAL':
-          result.mdc_idc_msmt_ra_impedance_mean = impedanceValues[index];
-          break;
-        case 'RV':
-          result.mdc_idc_msmt_rv_impedance_mean = impedanceValues[index];
-          break;
-        case 'LV':
-          result.mdc_idc_msmt_lv_impedance_mean = impedanceValues[index];
-          break;
-      }
-    }
-  });
-  
+
+  parseMedtronicPacingImpedance(text, result);
+
   // Defibrillation Impedance
   const defibImpedanceMatch = text.match(/Defibrillation Impedance\s+RV=(\d+)\s+ohms/);
   if (defibImpedanceMatch) {
     result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
   }
-  
-  // Capture Threshold - Atrial
-  const captureThresholdMatch = text.match(/Capture Threshold\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms/);
-  if (captureThresholdMatch) {
-    result.mdc_idc_msmt_ra_pacing_threshold = captureThresholdMatch[1];
-    result.mdc_idc_msmt_ra_pw = captureThresholdMatch[2];
-    result.mdc_idc_msmt_rv_pacing_threshold = captureThresholdMatch[3];
-    result.mdc_idc_msmt_rv_pw = captureThresholdMatch[4];
-  }
+
+  parseMedtronicCaptureThreshold(text, result);
+  parseMedtronicSensing(text, result);
 
   // Mode and rates
   const modeMatch = text.match(/Mode\s+(\w+)\s+Lower Rate\s+(\d+)\s+bpm/i);
@@ -1457,45 +1503,45 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
 // Helper function to parse the Medtronic Quick Look II section
 function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
   const result: Partial<ParsedData> = {};
-  
+
   // Device info
   const deviceMatch = text.match(/Device:\s*([^\n]+?)\s+Serial Number:\s*(\S+)/);
   if (deviceMatch) {
     result.mdc_idc_dev_model = deviceMatch[1].trim();
     result.mdc_idc_dev_serial_number = deviceMatch[2];
   }
-  
+
   // Date of Visit
   const dateMatch = text.match(/Date of Visit:\s*(\d{1,2}-\w+-\d{4})/);
   if (dateMatch) {
     result.report_date = convertMedtronicDate(dateMatch[1]);
   }
-  
+
   // Implant Date
   const implantMatch = text.match(/Implanted:\s*(\d{1,2}-\w+-\d{4})/);
   if (implantMatch) {
     result.mdc_idc_dev_implant_date = convertMedtronicDate(implantMatch[1]);
   }
-  
+
   // Remaining Longevity (Battery)
   const longevityMatch = text.match(/Remaining Longevity\s+([\d.]+)\s+years/);
   if (longevityMatch) {
     result.mdc_idc_batt_remaining = longevityMatch[1];
   }
-  
+
   // Pacing Impedance values
   const pacingImpedanceMatch = text.match(/Pacing Impedance\s+([^o]+?)\s+(\d+)\s+ohms\s+(\d+)\s+ohms/);
   if (pacingImpedanceMatch) {
     result.mdc_idc_msmt_ra_impedance_mean = pacingImpedanceMatch[2];
     result.mdc_idc_msmt_lv_impedance_mean = pacingImpedanceMatch[3];
   }
-  
+
   // Defibrillation Impedance
   const defibImpedanceMatch = text.match(/Defibrillation Impedance\s+RV=(\d+)\s+ohms/);
   if (defibImpedanceMatch) {
     result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
   }
-  
+
   // Capture Threshold - Atrial
   const captureThresholdMatch = text.match(/Capture Threshold\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms/);
   if (captureThresholdMatch) {
@@ -1504,35 +1550,35 @@ function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
     result.mdc_idc_msmt_rv_pacing_threshold = captureThresholdMatch[3];
     result.mdc_idc_msmt_rv_pw = captureThresholdMatch[4];
   }
-  
+
   // Mode and rates
   const modeMatch = text.match(/Mode\s+(\w+)\s+Lower Rate\s+(\d+)\s+bpm/);
   if (modeMatch) {
     result.mdc_idc_set_brady_mode = modeMatch[1];
     result.mdc_idc_set_brady_lowrate = modeMatch[2];
   }
-  
+
   const upperSensorMatch = text.match(/Upper Sensor\s+(\d+)\s+bpm/);
   if (upperSensorMatch) {
     result.mdc_idc_set_brady_max_tracking_rate = upperSensorMatch[1];
   }
-  
+
   // VF/VT/AT detection rates
   const vfMatch = text.match(/VF\s+On\s+>(\d+)\s+bpm/);
   if (vfMatch) {
     result.VF_detection_interval = vfMatch[1];
   }
-  
+
   const fvtMatch = text.match(/FVT via VF\s+(\d+)-(\d+)\s+bpm/);
   if (fvtMatch) {
     // Note: This might be a combined rate, adjust as needed
   }
-  
+
   const vtMatch = text.match(/VT\s+On\s+(\d+)-(\d+)\s+bpm/);
   if (vtMatch) {
     result.VT2_detection_interval = vtMatch[1];
   }
-  
+
   // Therapy settings - ATP
   const atpMatch = text.match(/ATP During Charging,\s*([\d.]+)J,\s*([\d.]+)J\s+x\s+(\d+)/);
   if (atpMatch) {
@@ -1541,26 +1587,26 @@ function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
     result.VF_therapy_3_energy = atpMatch[2];
     result.VF_therapy_4_max_num_shocks = atpMatch[3];
   }
-  
+
   // Clinical Status - Treated episodes
   const treatedVFMatch = text.match(/Treated[\s\S]*?VF\s+(\d+)/);
   if (treatedVFMatch) {
     result.treated_vf_count = treatedVFMatch[1];
   }
-  
+
   const treatedVTMatch = text.match(/Treated[\s\S]*?VT\s+(\d+)/);
   if (treatedVTMatch) {
     result.treated_vt_count = treatedVTMatch[1];
   }
-  
+
   // Pacing percentages
   const totalVPMatch = text.match(/Total VP\s+([\d.]+)\s+%/);
   if (totalVPMatch) {
     result.total_vp_percent = totalVPMatch[1];
   }
-  
+
   result.mdc_idc_dev_manufacturer = "Medtronic";
-  
+
   return result;
 }
 
@@ -1571,101 +1617,3 @@ function convertMedtronicDate(dateStr: string, separator = '-') {
   const date = new Date(formattedDateStr);
   return date.toISOString().split('T')[0];
 }
-
-// Extract FileSpec bytes (and name) -> used for EmbeddedFiles/AF
-// function readFileSpec(dict: any): { name: string; bytes: Uint8Array | null } | null {
-//   if (!dict) return null
-//   const ef = dict.lookup?.(PDFName.of('EF'), PDFDict) ?? dict.get?.(PDFName.of('EF'))
-//   const fileNameObj = dict.get?.(PDFName.of('UF')) ?? dict.get?.(PDFName.of('F'))
-//   const name = pdfObjToString(fileNameObj) || 'attachment.xml'
-//   const fStream =
-//     ef?.lookup?.(PDFName.of('UF'), PDFStream) ??
-//     ef?.lookup?.(PDFName.of('F'), PDFStream) ??
-//     ef?.get?.(PDFName.of('UF')) ??
-//     ef?.get?.(PDFName.of('F'))
-//   const bytes = getStreamBytes(fStream)
-//   return { name, bytes }
-// }
-
-// Walk the Names/EmbeddedFiles name tree and collect attachments
-// function extractFromEmbeddedFiles(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
-//   const out: { name: string; bytes: Uint8Array | null }[] = []
-//   const namesDict = (pdfDoc as any).catalog?.dict?.lookup?.(PDFName.of('Names'), PDFDict)
-//   const embeddedRoot = namesDict?.lookup?.(PDFName.of('EmbeddedFiles'), PDFDict)
-//   if (!embeddedRoot) return out
-
-//   const walk = (node: any) => {
-//     const names = node.lookup?.(PDFName.of('Names'), PDFArray)
-//     if (names) {
-//       for (let i = 0; i < names.size(); i += 2) {
-//         //const _key = names.get(i) // usually PDFString filename
-//         const fileSpec = names.get(i + 1)
-//         const spec = readFileSpec((pdfDoc as any).context?.lookup?.(fileSpec, PDFDict) ?? fileSpec)
-//         if (spec) out.push(spec)
-//       }
-//     }
-//     const kids = node.lookup?.(PDFName.of('Kids'), PDFArray)
-//     if (kids) {
-//       for (let i = 0; i < kids.size(); i++) {
-//         const kid = kids.get(i)
-//         const kidDict = (pdfDoc as any).context?.lookup?.(kid, PDFDict) ?? kid
-//         if (kidDict) walk(kidDict)
-//       }
-//     }
-//   }
-
-//   walk(embeddedRoot)
-//   return out
-// }
-
-// Extract from Associated Files (AF) on the Catalog (and optionally pages)
-// function extractFromAF(pdfDoc: PDFDocument): { name: string; bytes: Uint8Array | null }[] {
-//   const out: { name: string; bytes: Uint8Array | null }[] = []
-//   const catalogDict = (pdfDoc as any).catalog?.dict
-//   const afArray = catalogDict?.lookup?.(PDFName.of('AF'), PDFArray)
-//   if (afArray) {
-//     for (let i = 0; i < afArray.size(); i++) {
-//       const specDict = (pdfDoc as any).context?.lookup?.(afArray.get(i), PDFDict)
-//       const spec = readFileSpec(specDict)
-//       if (spec) out.push(spec)
-//     }
-//   }
-//   return out
-// }
-
-// Decode XML strings from attachments
-// function toXmlStrings(entries: { name: string; bytes: Uint8Array | null }[]): { name: string; xml: string }[] {
-//   const dec = new TextDecoder('utf-8', { fatal: false })
-//   const xmls: { name: string; xml: string }[] = []
-//   for (const e of entries) {
-//     if (!e.bytes) continue
-//     const text = dec.decode(e.bytes)
-//     // Heuristic: filename ends with .xml OR content contains an XML prolog/root tag
-//     if (e.name.toLowerCase().endsWith('.xml') || text.trimStart().startsWith('<?xml') || text.includes('<biotronik-ieee11073-export')) {
-//       xmls.push({ name: e.name, xml: text })
-//     }
-//   }
-//   return xmls
-// }
-
-
-// export async function parsePdfFile(file: File): Promise<ParsedData> {
-//   const arrayBuffer = await file.arrayBuffer()
-//   const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true })
-
-//   const attachments = [
-//     ...extractFromEmbeddedFiles(pdfDoc),
-//     ...extractFromAF(pdfDoc),
-//   ]
-
-//   const xmls = toXmlStrings(attachments)
-
-//   // Return the first XML (and list) so you can parse/map later
-//   return {
-//     fileType: 'pdf',
-//     fileName: file.name,
-//     xmlFound: xmls.length > 0,
-//     embeddedXml: xmls[0]?.xml ?? null,
-//     embeddedXmlFiles: xmls, // [{ name, xml }]
-//   }
-// }
