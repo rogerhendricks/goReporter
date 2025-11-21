@@ -1277,11 +1277,91 @@ async function parsePdfFile(file: File) {
         return line;
       }).join('\n');
 
-      if (pageText.includes('Initial Interrogation: Quick Look II')) {
-        const parsedData = parseMedtronicQuickLookII(pageText);
+      // Check if the page title (first non-empty line) matches
+      const trimmedText = pageText.trim();
+      let fullText = pageText;
+
+      // Check for multi-page report
+      const pageMatch = pageText.match(/Page:\s*(\d+)\s*of\s*(\d+)/);
+      if (pageMatch) {
+        const currentPage = parseInt(pageMatch[1], 10);
+        const totalPages = parseInt(pageMatch[2], 10);
+
+        if (totalPages > currentPage) {
+          console.log(`Found multi-page report: ${currentPage} of ${totalPages}`);
+          // Read subsequent pages
+          for (let i = 1; i < totalPages; i++) {
+            const nextPageNum = pageNum + i;
+            if (nextPageNum <= pdf.numPages) {
+              const nextPage = await pdf.getPage(nextPageNum);
+              const nextTextContent = await nextPage.getTextContent();
+
+              // Extract items with position data (same logic as above)
+              const nextItems = nextTextContent.items
+                .filter((item): item is TextItem => 'str' in item)
+                .map(item => ({
+                  text: item.str,
+                  x: item.transform[4],
+                  y: item.transform[5],
+                  width: item.width,
+                  height: item.height
+                }));
+
+              // Sort by Y (top to bottom), then X (left to right)
+              nextItems.sort((a, b) => {
+                const yDiff = b.y - a.y;
+                if (Math.abs(yDiff) < 2) {
+                  return a.x - b.x;
+                }
+                return yDiff;
+              });
+
+              // Group items by rows
+              const nextRows: Array<Array<typeof nextItems[0]>> = [];
+              let nextCurrentRow: Array<typeof nextItems[0]> = [];
+              let nextLastY = nextItems[0]?.y;
+
+              nextItems.forEach(item => {
+                if (Math.abs(item.y - nextLastY) > 2) {
+                  if (nextCurrentRow.length > 0) {
+                    nextRows.push(nextCurrentRow);
+                  }
+                  nextCurrentRow = [item];
+                  nextLastY = item.y;
+                } else {
+                  nextCurrentRow.push(item);
+                }
+              });
+              if (nextCurrentRow.length > 0) {
+                nextRows.push(nextCurrentRow);
+              }
+
+              // Reconstruct text
+              const nextPageText = nextRows.map(row => {
+                let line = '';
+                let lastX = 0;
+                row.forEach(item => {
+                  const gap = item.x - lastX;
+                  if (gap > 10 && line.length > 0) {
+                    line += '  ';
+                  }
+                  line += item.text;
+                  lastX = item.x + item.width;
+                });
+                return line;
+              }).join('\n');
+
+              fullText += '\n' + nextPageText;
+            }
+          }
+        }
+      }
+
+      if (trimmedText.startsWith('Quick Look')) {
+        const parsedData = parseMedtronicQuickLook(fullText);
         return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
-      } else if (pageText.includes('Session Summary')) {
-        const parsedData = parseMedtronicSessionSummary(pageText);
+      } else if (trimmedText.startsWith('Session Summary')) {
+        const parsedData = parseMedtronicSessionSummary(fullText);
         return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
       }
     }
@@ -1500,10 +1580,10 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
   return result;
 }
 
-// Helper function to parse the Medtronic Quick Look II section
-function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
+// Helper function to parse the Medtronic Quick Look section
+function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
   const result: Partial<ParsedData> = {};
-
+  console.log('parseMedtronicQuickLook', text);
   // Device info
   const deviceMatch = text.match(/Device:\s*([^\n]+?)\s+Serial Number:\s*(\S+)/);
   if (deviceMatch) {
@@ -1529,12 +1609,7 @@ function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
     result.mdc_idc_batt_remaining = longevityMatch[1];
   }
 
-  // Pacing Impedance values
-  const pacingImpedanceMatch = text.match(/Pacing Impedance\s+([^o]+?)\s+(\d+)\s+ohms\s+(\d+)\s+ohms/);
-  if (pacingImpedanceMatch) {
-    result.mdc_idc_msmt_ra_impedance_mean = pacingImpedanceMatch[2];
-    result.mdc_idc_msmt_lv_impedance_mean = pacingImpedanceMatch[3];
-  }
+  parseMedtronicPacingImpedance(text, result);
 
   // Defibrillation Impedance
   const defibImpedanceMatch = text.match(/Defibrillation Impedance\s+RV=(\d+)\s+ohms/);
@@ -1542,50 +1617,54 @@ function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
     result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
   }
 
-  // Capture Threshold - Atrial
-  const captureThresholdMatch = text.match(/Capture Threshold\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms\s+([\d.]+)\s+V\s+@\s+([\d.]+)\s+ms/);
-  if (captureThresholdMatch) {
-    result.mdc_idc_msmt_ra_pacing_threshold = captureThresholdMatch[1];
-    result.mdc_idc_msmt_ra_pw = captureThresholdMatch[2];
-    result.mdc_idc_msmt_rv_pacing_threshold = captureThresholdMatch[3];
-    result.mdc_idc_msmt_rv_pw = captureThresholdMatch[4];
-  }
+  parseMedtronicCaptureThreshold(text, result);
+  parseMedtronicSensing(text, result);
 
   // Mode and rates
-  const modeMatch = text.match(/Mode\s+(\w+)\s+Lower Rate\s+(\d+)\s+bpm/);
+  const modeMatch = text.match(/Mode\s+([\w\s]+?)\s+Lower Rate\s+(\d+)\s+bpm/i);
   if (modeMatch) {
-    result.mdc_idc_set_brady_mode = modeMatch[1];
+    result.mdc_idc_set_brady_mode = modeMatch[1].trim();
     result.mdc_idc_set_brady_lowrate = modeMatch[2];
   }
 
-  const upperSensorMatch = text.match(/Upper Sensor\s+(\d+)\s+bpm/);
+  const upperSensorMatch = text.match(/Upper Sensor\s+(\d+)\s+bpm/i);
   if (upperSensorMatch) {
-    result.mdc_idc_set_brady_max_tracking_rate = upperSensorMatch[1];
+    result.mdc_idc_set_brady_max_sensor_rate = upperSensorMatch[1];
   }
 
-  // VF/VT/AT detection rates
-  const vfMatch = text.match(/VF\s+On\s+>(\d+)\s+bpm/);
+  const upperTrackMatch = text.match(/Upper Track\s+(\d+)\s+bpm/i);
+  if (upperTrackMatch) {
+    result.mdc_idc_set_brady_max_tracking_rate = upperTrackMatch[1];
+  }
+
+  // Tachycardia Parameters
+  // VF
+  const vfMatch = text.match(/VF\s+(On|Monitor|Off)\s+>(\d+)\s+bpm\s+(.*)/);
   if (vfMatch) {
-    result.VF_detection_interval = vfMatch[1];
+    result.VF_active = vfMatch[1];
+    result.VF_detection_interval = vfMatch[2];
+    parseMedtronicTherapies(vfMatch[3], 'VF', result);
   }
 
-  const fvtMatch = text.match(/FVT via VF\s+(\d+)-(\d+)\s+bpm/);
+  // FVT (VT2)
+  const fvtMatch = text.match(/FVT\s+(via VF|On|Monitor|Off)\s+(?:([\d-]+)\s+bpm\s+(.*)|All Rx Off)/);
   if (fvtMatch) {
-    // Note: This might be a combined rate, adjust as needed
+    const status = fvtMatch[1];
+    if (status === 'via VF' || status === 'On') {
+        result.VT2_active = 'On';
+        if (fvtMatch[2]) result.VT2_detection_interval = fvtMatch[2];
+        if (fvtMatch[3]) parseMedtronicTherapies(fvtMatch[3], 'VT2', result);
+    } else {
+        result.VT2_active = status;
+    }
   }
 
-  const vtMatch = text.match(/VT\s+On\s+(\d+)-(\d+)\s+bpm/);
+  // VT (VT1)
+  const vtMatch = text.match(/VT\s+(On|Monitor|Off)\s+([\d-]+)\s+bpm\s+(.*)/);
   if (vtMatch) {
-    result.VT2_detection_interval = vtMatch[1];
-  }
-
-  // Therapy settings - ATP
-  const atpMatch = text.match(/ATP During Charging,\s*([\d.]+)J,\s*([\d.]+)J\s+x\s+(\d+)/);
-  if (atpMatch) {
-    result.VF_therapy_1_atp = 'ATP';
-    result.VF_therapy_2_energy = atpMatch[1];
-    result.VF_therapy_3_energy = atpMatch[2];
-    result.VF_therapy_4_max_num_shocks = atpMatch[3];
+    result.VT1_active = vtMatch[1];
+    result.VT1_detection_interval = vtMatch[2];
+    parseMedtronicTherapies(vtMatch[3], 'VT1', result);
   }
 
   // Clinical Status - Treated episodes
@@ -1600,9 +1679,16 @@ function parseMedtronicQuickLookII(text: string): Partial<ParsedData> {
   }
 
   // Pacing percentages
-  const totalVPMatch = text.match(/Total VP\s+([\d.]+)\s+%/);
-  if (totalVPMatch) {
-    result.total_vp_percent = totalVPMatch[1];
+  // Matches "Total VP 100.0 %", "VP 99.8 %", "VP <0.1 %", "Total VP* 100.0 %"
+  const vpMatch = text.match(/(?:Total\s+)?VP\*?\s+([<>\d.]+)\s*%/);
+  if (vpMatch) {
+    result.mdc_idc_stat_brady_rv_percent_paced = vpMatch[1];
+  }
+
+  // Matches "AP 0.1 %", "AP 29.0 %"
+  const apMatch = text.match(/AP\s+([<>\d.]+)\s*%/);
+  if (apMatch) {
+    result.mdc_idc_stat_brady_ra_percent_paced = apMatch[1];
   }
 
   result.mdc_idc_dev_manufacturer = "Medtronic";
@@ -1616,4 +1702,68 @@ function convertMedtronicDate(dateStr: string, separator = '-') {
   const formattedDateStr = `${parts[0]}-${parts[1]}-${parts[2]}`;
   const date = new Date(formattedDateStr);
   return date.toISOString().split('T')[0];
+}
+
+// Helper to parse Medtronic therapies string
+function parseMedtronicTherapies(therapyStr: string, prefix: 'VT1' | 'VT2' | 'VF', result: Partial<ParsedData>) {
+  if (!therapyStr || therapyStr.trim() === 'All Rx Off') return;
+
+  const parts = therapyStr.split(',').map(s => s.trim());
+  let shockCount = 0;
+
+  parts.forEach(part => {
+    // ATP
+    const atpMatch = part.match(/^(Burst|iATP|ATP)(?:\((\d+)\))?/i);
+    const atpChargingMatch = part.match(/^ATP During Charging/i);
+
+    if (atpMatch) {
+      const type = atpMatch[1];
+      const bursts = atpMatch[2];
+      
+      if (prefix === 'VT1' || prefix === 'VT2') {
+          if (!result[`${prefix}_therapy_1_atp`]) {
+              result[`${prefix}_therapy_1_atp`] = type;
+              if (bursts) result[`${prefix}_therapy_1_no_bursts`] = bursts;
+          } else {
+              result[`${prefix}_therapy_2_atp`] = type;
+              if (bursts) result[`${prefix}_therapy_2_no_bursts`] = bursts;
+          }
+      } else { // VF
+          result[`${prefix}_therapy_1_atp`] = type;
+          if (bursts) result[`${prefix}_therapy_1_no_bursts`] = bursts;
+      }
+    } else if (atpChargingMatch) {
+        if (prefix === 'VF') {
+            result[`${prefix}_therapy_1_atp`] = 'ATP During Charging';
+        }
+    } else {
+        // Shocks
+        const shockMatch = part.match(/([\d.]+)\s*J(?:\s*[x×]\s*(\d+))?/i);
+        if (shockMatch) {
+            const energy = shockMatch[1] + ' J';
+            const numShocks = shockMatch[2] ? shockMatch[2] : '1';
+            
+            shockCount++;
+            
+            if (prefix === 'VT1' || prefix === 'VT2') {
+                if (shockCount === 1) {
+                    result[`${prefix}_therapy_3_energy`] = energy;
+                }
+                // If it's the last part or has multiplier, treat as max shock
+                if (shockMatch[2] || parts.length === 1 || (parts.length > 1 && part === parts[parts.length-1])) {
+                     result[`${prefix}_therapy_5_energy`] = energy;
+                     result[`${prefix}_therapy_5_max_num_shocks`] = numShocks;
+                }
+            } else { // VF
+                if (shockCount === 1) {
+                    result[`${prefix}_therapy_2_energy`] = energy;
+                }
+                if (shockMatch[2] || (parts.length > 1 && part === parts[parts.length-1])) {
+                     result[`${prefix}_therapy_4_energy`] = energy;
+                     result[`${prefix}_therapy_4_max_num_shocks`] = numShocks;
+                }
+            }
+        }
+    }
+  });
 }

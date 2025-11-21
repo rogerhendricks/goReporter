@@ -1,0 +1,311 @@
+EXAMPLE OUTPUT FILE 1:
+
+parseMedtronicQuickLook Quick Look
+Device: Cobalt XT HF Quad DTPA2QQ   Serial Number: RTC686703S   Date of Visit:13/Nov/2025, 9:16:05 am
+Patient: WALKER, Andrew   ID:   Physician:A/Prof Saurabh Kumar
+Device Status   (Implanted: 07/Nov/2025)
+Remaining Longevity   8.7 years  (13/Nov/2025)
+RRT   > 5 years
+(based on initial interrogation)
+Atrial(4574)   RV(6935M)   LV(4398)
+Pacing Impedance  589 Ω   608 Ω   855 Ω
+Defibrillation Impedance   RV = 55 Ω
+Pace Polarity  Bipolar   Bipolar   LV1 to LV2
+Capture Threshold   0.750 V @ 0.40 ms   0.500 V @ 0.40 ms  2.000 V @ 0.40 ms
+Measured On  13/Nov/2025   13/Nov/2025   13/Nov/2025
+Programmed Amplitude/Pulse Width 1.50 V   / 0.40 ms   2.00 V   / 0.40 ms   3.50 V   /0.40 ms
+Measured P/R Wave   4.3 mV  ---
+Programmed Sensitivity  0.30 mV   0.30 mV
+Parameter Summary
+Mode  DDD  Lower Rate  50 bpm  AdaptivCRT  Adaptive Bi-V and LV
+Mode Switch  171 bpm  Upper Track  130 bpm  V. Pacing  LV->RV
+Upper Sensor  120 bpm  Paced AV  150 ms
+Sensed AV  130 ms
+MPP  Off
+Detection   Rates   Therapies
+AT/AF   Monitor   > 171 bpm  All Rx Off
+VF   On   >222 bpm   iATP(3), 40 Jx6
+FVT  Off   All Rx Off
+VT   On   182-222 bpm  iATP(7), 20 J, 40 Jx4
+Enhancements On:
+VT Monitor, AF/Afl, Sinus Tach, 1:1 SVT, Wavelet, Onset(Monitor), TWave, Noise
+Clinical Status   Since 07/Nov/2025  Cardiac Compass Trends (Nov/2025 to Nov/2025)
+Treated
+VF  0
+FVT (Off)
+VT  0  >5
+Treated
+AT/AF(Monitor)  4
+VT/VF
+3
+(#/day)
+Monitored
+2
+VT (140-182 bpm)  0
+1
+VT-NS (>4 beats, >182 bpm)  0
+High Rate-NS  0  0
+SVT: VT/VF Rx Withheld  0
+AT/AF  0
+60
+AT/AF
+50
+Time in AT/AF   0.0 h/d  (0.0 %)
+(min/d)
+40
+Functional   Last Week  30
+Patient Activity   NA < 1 week  20
+10
+0
+4
+Patient
+Activity  3
+(h/d)
+2
+1
+0
+Dec/25 Feb/26 Apr/26 Jun/26 Aug/26 Oct/26 Dec/26
+Medtronic Software D00U005, 9.5.2   Confidential Patient Information  13/Nov/2025, 9:21:30 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 1 of 2
+Quick Look
+Device: Cobalt XT HF Quad DTPA2QQ   Serial Number: RTC686703S   Date of Visit:13/Nov/2025, 9:16:05 am
+Patient: WALKER, Andrew   ID:   Physician:A/Prof Saurabh Kumar
+Therapy Summary   VT/VF   AT/AF  Pacing   (% of Time Since 07/Nov/2025)
+Pace-Terminated Episodes  0   0  Total VP*   100.0 %(MVP Off)
+Effective  100.0 %
+Shock-Terminated Episodes  0   0
+AP  0.1 %
+Total Shocks  0   0
+Aborted Charges  0   0
+* Total VP may decrease 1% to 2% due to
+periodic AdaptivCRT sensing.
+Observations (2)
+- RV Capture Management: Actual safety margin (4.0 X) > programmed margin (1.5 X).
+- VF detection may be delayed: VF Detection Interval is faster than 300 ms (200 bpm).
+Medtronic Software D00U005, 9.5.2   Confidential Patient Information  13/Nov/2025, 9:21:30 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 2 of 2 fileParser.ts:1586:11
+
+EXAMPLE OUTPUT FILE 2:
+parseMedtronicQuickLook Quick Look
+Device: Percepta Quad CRT-P W4TR04 Serial Number: RNV629680S   Date of Visit:13/Nov/2025, 10:18:59 am
+Patient: RYAN Paul Allen   ID: MB00180665   Physician:Dr Gopal SIVAGANGABA
+History: Normal Sinus
+Device Status   (Implanted: 28/May/2024)
+Remaining Longevity   10.5 years  (13/Nov/2025)
+RRT   > 5 years
+(based on initial interrogation)
+Atrial(5076)   RV(3830)   LV
+Lead Impedance  475 Ω   532 Ω   1,026 Ω
+Pace Polarity  Bipolar   LV1 to LV2
+Capture Threshold   0.875 V @ 0.40 ms  1.250 V @ 0.40 ms
+Measured On  13/Nov/2025   13/Nov/2025
+Programmed Amplitude/Pulse Width   1.50 V   / 0.40 ms   1.75 V   /  0.40 ms
+Measured P/R Wave  4.3 mV   >20.0 mV
+Programmed Sensitivity  Off   0.90 mV
+Parameter Summary
+Mode   VVIR   Lower Rate  70 bpm  AdaptivCRT  Nonadaptive CRT
+Upper Sensor  120 bpm  V. Pacing  RV->LV
+MPP  Off
+Detection   Rates   Therapies
+VT   Monitor   >150 bpm
+Clinical Status   Since 03/Apr/2025  Cardiac Compass Trends (Sep/2024 to Nov/2025)
+Treated
+AT/AF  0
+Monitored  60
+VT(>4 beats)  3  50
+Fast A&V  0  40
+AT/AF  0  30
+20
+AT/AF
+Time in AT/AF   Off
+10
+(min/d)
+0
+Functional   Last Week
+Patient Activity  2.0 h/d
+4
+Patient
+3
+Activity
+(h/d)  2
+1
+0
+Oct/24 Dec/24 Feb/25 Apr/25 Jun/25 Aug/25 Oct/25
+Therapy Summary   AT/AF  Pacing   (% of Time Since 03/Apr/2025)
+Pace-Terminated Episodes  0   VP   99.8 %  (MVP Off)
+AP  0.0 %
+Medtronic Software D00U004, 6.5.5   Confidential Patient Information  13/Nov/2025, 10:22:31 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 1 of 2
+Quick Look
+Device: Percepta Quad CRT-P W4TR04 Serial Number: RNV629680S   Date of Visit:13/Nov/2025, 10:18:59 am
+Patient: RYAN Paul Allen   ID: MB00180665   Physician:Dr Gopal SIVAGANGABA
+OBSERVATIONS (1)
+- Atrial Sensitivity is Off. AT/AF monitoring is disabled.
+Medtronic Software D00U004, 6.5.5   Confidential Patient Information  13/Nov/2025, 10:22:31 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 2 of 2 fileParser.ts:1586:11
+
+EXAMPLE OUTPUT FILE 3:
+parseMedtronicQuickLook Quick Look
+Device: Crome DR DDPC3D4   Serial Number: RSQ604003S   Date of Visit:19/Nov/2025, 9:36:20 am
+Patient: LIANG Xiao Chu   ID: 2224125   Physician:Dr Gopal SIVAGANGABA
+History:
+Primary Prevention
+Device Status   (Implanted: 10/Apr/2024)
+Remaining Longevity   11.1 years  (19/Nov/2025)
+RRT   > 5 years
+(based on initial interrogation)
+Atrial(5076)   RV(6935M)
+Pacing Impedance  532 Ω   494 Ω
+Defibrillation Impedance   RV = 61 Ω
+Pace Polarity  Bipolar   Bipolar
+Capture Threshold  0.500 V @ 0.40 ms   0.625 V @ 0.40 ms
+Measured On  19/Nov/2025   19/Nov/2025
+Programmed Amplitude/Pulse Width 1.00 V   / 0.40 ms   1.50 V   /0.40 ms
+Measured P/R Wave  4.4 mV   6.4 mV
+Programmed Sensitivity  0.30 mV   0.30 mV
+Parameter Summary
+Mode  AAIR DDDR  Lower Rate  60 bpm  Paced AV   180 ms
+Mode Switch  171 bpm  Upper Track  130 bpm  Sensed AV   150 ms
+Upper Sensor  130 bpm
+Detection   Rates
+AT/AF   Monitor   >171 bpm
+VF   On   >214 bpm   Burst(1), 40 Jx6
+FVT   via VF   214-250 bpm  Burst(1), 40 Jx5
+VT   On   162-214 bpm  Burst(3), 20 J, 40 Jx4
+Enhancements On:
+VT Monitor, AF/Afl, Sinus Tach, Wavelet, TWave, Noise
+Clinical Status   Since 01/May/2025  Cardiac Compass Trends (Sep/2024 to Nov/2025)
+Treated
+VF  0
+FVT  0
+VT  0  >5
+Treated
+4
+Monitored  VT/VF
+3
+(#/day)
+VT (140-162 bpm)  0
+2
+VT-NS (>4 beats, >162 bpm)  8
+1
+High Rate-NS  0
+SVT: VT/VF Rx Withheld  0  0
+AT/AF  0
+Time in AT/AF   <0.1 h/d  (<0.1 %)  60
+AT/AF
+50
+(min/d)
+Functional   Last Week  40
+Patient Activity  2.5 h/d  30
+20
+10
+0
+4
+Patient
+Activity  3
+(h/d)
+2
+1
+0
+Oct/24 Dec/24 Feb/25 Apr/25 Jun/25 Aug/25 Oct/25
+Medtronic Software D00U005, 9.5.2   Confidential Patient Information  19/Nov/2025, 9:45:26 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 1 of 2
+Quick Look
+Device: Crome DR DDPC3D4   Serial Number: RSQ604003S   Date of Visit:19/Nov/2025, 9:36:20 am
+Patient: LIANG Xiao Chu   ID: 2224125   Physician:Dr Gopal SIVAGANGABA
+Therapy Summary   VT/VF  Pacing   (% of Time Since 01/May/2025)
+Pace-Terminated Episodes  0  VP   0.5 %  (MVP On)
+AP  29.0 %
+Shock-Terminated Episodes  0
+Total Shocks  0
+Aborted Charges  0
+Observations (2)
+- Patient Activity less than 1 h/d for 1 weeks.
+- VF detection may be delayed: VF Detection Interval is faster than 300 ms (200 bpm).
+Medtronic Software D00U005, 9.5.2   Confidential Patient Information  19/Nov/2025, 9:45:26 am
+© 2022 Medtronic   Application ID: PRD2-1SNR-KRZJ-3X5Z-4FK2   Page: 2 of 2 fileParser.ts:1586:11
+
+EXAMPLE OUTPUT FILE 4:
+parseMedtronicQuickLook Quick Look
+Device: Visia AF MRI S VR DVFC3D4   Serial Number: PMX619249S   Date of Visit:14/Nov/2025, 1:43:01 pm
+Patient: SMART, Ian   ID:   Physician:Prof Sy
+Device Status   (Implanted: 12/Apr/2023)
+Remaining Longevity   9.8 years  (14/Nov/2025)
+RRT   > 5 years
+(based on initial interrogation)
+RV(6935M)
+Pacing Impedance  342 Ω
+Defibrillation Impedance   RV = 70 Ω
+Capture Threshold   0.750 V @ 0.40 ms
+Measured On  13/Nov/2025
+Programmed Amplitude/Pulse Width   1.50 V   /0.40 ms
+Measured R Wave  8.4 mV
+Programmed Sensitivity  0.30 mV
+Parameter Summary
+Mode   VVI   Lower Rate  40 bpm
+Detection   Rates   Therapies
+AF  Monitor
+VF   On   >200 bpm   ATP During Charging, 35 J × 6
+FVT   via VF   200-250 bpm  Burst(2), 35 J × 5
+VT   On   176-200 bpm  Burst(3), 20 J, 35 J × 4
+Enhancements On:
+VT Monitor, Wavelet, High Rate Timeout, TWave, Noise(Timeout)
+Clinical Status   Since 10/Sep/2024  Cardiac Compass Trends (Sep/2024 to Nov/2025)
+Treated
+VF  0
+FVT  0
+VT  0  >5
+Treated
+4
+VT/VF
+Monitored  3
+(#/day)
+VT (133-176 bpm)  2  2
+VT-NS (>4 beats, >176 bpm)  699  1
+High Rate-NS  0
+0
+SVT: VT/VF Rx Withheld  0
+V. Oversensing-TWave Rx Withheld  0
+24
+V. Oversensing-Noise Rx Withheld  0
+AF
+20
+AF  5,776
+(h/d)
+16
+12
+Time in AF   4.8 h/d  (19.9 %)
+8
+4
+Functional   Last Week
+0
+Patient Activity  0.8 h/d
+4
+Patient
+Activity  3
+(h/d)
+2
+1
+0
+Oct/24 Dec/24 Feb/25 Apr/25 Jun/25 Aug/25 Oct/25
+Therapy Summary   VT/VF  Pacing   (% of Time Since 10/Sep/2024)
+Pace-Terminated Episodes  0  VS  100.0 %
+Shock-Terminated Episodes  0  VP  <0.1 %
+Total Shocks  0
+Aborted Charges  0
+Medtronic Software D00U011, 3.4.2   Confidential Patient Information  14/Nov/2025, 1:47:00 pm
+© 2022 Medtronic   Application ID: PRD2-5MCD-3J4C-VWDX-18DR   Page: 1 of 2
+Quick Look
+Device: Visia AF MRI S VR DVFC3D4   Serial Number: PMX619249S   Date of Visit:14/Nov/2025, 1:43:01 pm
+Patient: SMART, Ian   ID:   Physician:Prof Sy
+Observations (6)
+- Some VF/FVT/VT therapies have 1 or more AX>B pathways programmed. AX>B pathway is not recommended for this
+device.
+- AF >= 6 h for 131 d.
+- Avg. Ventricular Rate >= 100 bpm during AF (>= 6 h) for 1 days.
+- Patient Activity less than 1 h/d for 25 weeks.
+- 2 monitored VT episodes, longest was 11 seconds.
+- VF ATP + Charging therapies will not be delivered. "Deliver ATP if last 8 R-R >=" in PARAMETERS/VF Therapies/VF ATP is
+outside of the VF detection zone or overlapped by the FVT Interval.
+Medtronic Software D00U011, 3.4.2   Confidential Patient Information  14/Nov/2025, 1:47:00 pm
+© 2022 Medtronic   Application ID: PRD2-5MCD-3J4C-VWDX-18DR   Page: 2 of 2

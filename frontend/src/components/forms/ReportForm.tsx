@@ -881,6 +881,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                 <SelectItem value="DDDR">DDDR</SelectItem>
                 <SelectItem value="DDI">DDI</SelectItem>
                 <SelectItem value="DDIR">DDIR</SelectItem>
+                <SelectItem value="AAI DDD">AAI DDD</SelectItem>
+                <SelectItem value="AAIR DDDR">AAIR DDDR</SelectItem>
               </SelectContent>
             </Select>
           </div>
