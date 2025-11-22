@@ -79,7 +79,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/reports/:id", middleware.RequireAdminOrUser, handlers.DeleteReport)
 
 	// Search routes
-	app.Get("/api/search/patients", middleware.AuthorizeDoctorPatientAccess, handlers.SearchPatientsComplex)
+	app.Get("/api/search/patients", middleware.SetUserRole, handlers.SearchPatientsComplex)
 
 	// File routes
 	app.Get("/api/files/*", handlers.ServeFile)

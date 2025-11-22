@@ -57,6 +57,7 @@ type PatientSearchParams struct {
 	DeviceModel        string `query:"deviceModel"`
 	LeadManufacturer   string `query:"leadManufacturer"`
 	LeadName           string `query:"leadName"`
+	Tags               []int  `query:"tags"`
 }
 
 // Patient model methods
@@ -230,6 +231,11 @@ func SearchPatientsComplex(params PatientSearchParams) ([]Patient, error) {
 	}
 	if params.LeadName != "" {
 		tx = tx.Where("LOWER(leads.name) LIKE ?", "%"+strings.ToLower(params.LeadName)+"%")
+	}
+
+	if len(params.Tags) > 0 {
+		tx = tx.Joins("JOIN patient_tags ON patient_tags.patient_id = patients.id").
+			Where("patient_tags.tag_id IN ?", params.Tags)
 	}
 
 	// Group by patient fields to get distinct patients and preload necessary data for the response.

@@ -115,26 +115,26 @@ function convertThreshold(threshold: string | number): number {
   return parseFloat(threshold.toString()) / 1000;
 }
 
-function pdfObjToString(obj: any): string {
-  if (!obj) return ''
-  const tryFns = ['decodeText', 'asString', 'toString']
-  for (const fn of tryFns) {
-    if (typeof obj[fn] === 'function') {
-      try { return obj[fn]() } catch { /* ignore */ }
-    }
-  }
-  return String(obj?.value ?? '')
-}
+// function pdfObjToString(obj: any): string {
+//   if (!obj) return ''
+//   const tryFns = ['decodeText', 'asString', 'toString']
+//   for (const fn of tryFns) {
+//     if (typeof obj[fn] === 'function') {
+//       try { return obj[fn]() } catch { /* ignore */ }
+//     }
+//   }
+//   return String(obj?.value ?? '')
+// }
 
-// Read bytes from a PDFStream
-function getStreamBytes(stream: any): Uint8Array | null {
-  if (!stream) return null
-  try {
-    if (typeof stream.getContents === 'function') return stream.getContents()
-    if (stream.contents instanceof Uint8Array) return stream.contents
-  } catch { /* ignore */ }
-  return null
-}
+// // Read bytes from a PDFStream
+// function getStreamBytes(stream: any): Uint8Array | null {
+//   if (!stream) return null
+//   try {
+//     if (typeof stream.getContents === 'function') return stream.getContents()
+//     if (stream.contents instanceof Uint8Array) return stream.contents
+//   } catch { /* ignore */ }
+//   return null
+// }
 
 // Small helper: normalize to array
 // const toArr = <T>(x: T | T[] | undefined): T[] => (x ? (Array.isArray(x) ? x : [x]) : [])

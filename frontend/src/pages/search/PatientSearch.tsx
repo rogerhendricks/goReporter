@@ -1,13 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { usePatientStore } from '@/stores/patientStore'
+import { tagService, type Tag } from '@/services/tagService'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { User, FileDown } from 'lucide-react'
+import { User, FileDown, Plus, Check, X } from 'lucide-react'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import * as XLSX from 'xlsx'
 import { toast } from 'sonner'
 
@@ -24,10 +38,13 @@ interface SearchFilters {
   deviceModel: string
   leadManufacturer: string
   leadName: string
+  tags: number[]
 }
 
 export default function PatientSearch() {
   const { searchResults, loading, error, searchPatientsComplex, clearError } = usePatientStore()
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [openTagSearch, setOpenTagSearch] = useState(false)
   const [filters, setFilters] = useState<SearchFilters>({
     firstName: '',
     lastName: '',
@@ -40,18 +57,44 @@ export default function PatientSearch() {
     deviceModel: '',
     leadManufacturer: '',
     leadName: '',
+    tags: [],
   })
+
+  useEffect(() => {
+    loadTags()
+  }, [])
+
+  const loadTags = async () => {
+    try {
+      const tags = await tagService.getAll()
+      setAvailableTags(tags)
+    } catch (error) {
+      console.error("Failed to load tags:", error)
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFilters(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleToggleTag = (tagId: number) => {
+    setFilters(prev => {
+      const newTags = prev.tags.includes(tagId)
+        ? prev.tags.filter(id => id !== tagId)
+        : [...prev.tags, tagId]
+      return { ...prev, tags: newTags }
+    })
+  }
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     // Create a clean object with only non-empty filters
-    const activeFilters = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => value.trim() !== '')
+    const activeFilters: any = Object.fromEntries(
+      Object.entries(filters).filter(([key, value]) => {
+        if (key === 'tags') return (value as number[]).length > 0
+        return (value as string).trim() !== ''
+      })
     )
     await searchPatientsComplex(activeFilters)
   }
@@ -60,7 +103,7 @@ export default function PatientSearch() {
     setFilters({
       firstName: '', lastName: '', mrn: '', dob: '', doctorName: '',
       deviceSerial: '', deviceManufacturer: '', deviceName: '', deviceModel: '',
-      leadManufacturer: '', leadName: ''
+      leadManufacturer: '', leadName: '', tags: []
     })
     // Optionally clear results when resetting
     // usePatientStore.setState({ searchResults: [] }) 
@@ -79,7 +122,7 @@ export default function PatientSearch() {
       'MRN': patient.mrn,
       'DOB': new Date(patient.dob).toLocaleDateString(),
       'Street': patient.street,
-      'Assigned Doctors': patient.patientDoctors?.map(pd => pd.doctor.name).join(', ') || 'N/A',
+      'Assigned Doctors': patient.patientDoctors?.map(pd => pd.doctor.fullName).join(', ') || 'N/A',
     }));
 
     // Create a new worksheet from the formatted data
@@ -125,6 +168,85 @@ export default function PatientSearch() {
               <Input name="leadManufacturer" placeholder="Lead Manufacturer" value={filters.leadManufacturer} onChange={handleInputChange} />
               <Input name="leadName" placeholder="Lead Name" value={filters.leadName} onChange={handleInputChange} />
             </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Filter by Tags</span>
+                <Popover open={openTagSearch} onOpenChange={setOpenTagSearch}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 border-dashed">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Select Tags
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search tags..." />
+                      <CommandList>
+                        <CommandEmpty>No tags found.</CommandEmpty>
+                        <CommandGroup>
+                          {availableTags.map((tag) => {
+                            const isSelected = filters.tags.includes(tag.ID)
+                            return (
+                              <CommandItem
+                                key={tag.ID}
+                                onSelect={() => handleToggleTag(tag.ID)}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: tag.color }}
+                                  />
+                                  <span>{tag.name}</span>
+                                  {isSelected && <Check className="ml-auto h-4 w-4" />}
+                                </div>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-wrap gap-2 min-h-[2rem] p-2 border rounded-md bg-background">
+                {filters.tags.length > 0 ? (
+                  filters.tags.map((tagId) => {
+                    const tag = availableTags.find(t => t.ID === tagId)
+                    if (!tag) return null
+                    return (
+                      <Badge
+                        key={tag.ID}
+                        variant="outline"
+                        className="flex items-center gap-1 pr-1"
+                        style={{ 
+                          borderColor: tag.color, 
+                          color: tag.color,
+                          backgroundColor: `${tag.color}10`
+                        }}
+                      >
+                        {tag.name}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleTag(tag.ID)
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    )
+                  })
+                ) : (
+                  <span className="text-sm text-muted-foreground italic self-center">No tags selected</span>
+                )}
+              </div>
+            </div>
+
             <div className="flex gap-2 mt-4">
               <Button type="submit" disabled={loading}>
                 {loading ? 'Searching...' : 'Search'}
@@ -175,7 +297,7 @@ export default function PatientSearch() {
                     <TableCell>
                       {patient.patientDoctors?.map(pd => (
                         <Badge key={pd.id} variant="secondary" className="mr-1">
-                          {pd.doctor.name}
+                          {pd.doctor.fullName}
                         </Badge>
                       ))}
                     </TableCell>

@@ -110,7 +110,7 @@ interface PatientState {
   updatePatient: (id: number, data: Partial<Patient>) => Promise<Patient>
   deletePatient: (id: number) => Promise<void>
   searchPatients: (query: string) => Promise<void>
-  searchPatientsComplex: (params: Record<string, string>) => Promise<void>
+  searchPatientsComplex: (params: Record<string, any>) => Promise<void>
   clearError: () => void
 }
 
@@ -232,7 +232,7 @@ export const usePatientStore = create<PatientState>((set) => ({
     }
   },
 
-  searchPatientsComplex: async (params: Record<string, string>) => {
+  searchPatientsComplex: async (params: Record<string, any>) => {
     set({ loading: true, error: null })
     try {
       const response = await api.get('/search/patients', { params })
