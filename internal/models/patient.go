@@ -29,6 +29,7 @@ type Patient struct {
 	ImplantedLeads   []ImplantedLead   `json:"leads"`
 	Medications      []Medication      `json:"medications" gorm:"many2many:patient_medications;"`
 	PatientDoctors   []PatientDoctor   `json:"patientDoctors"`
+	Tags             []Tag             `json:"tags" gorm:"many2many:patient_tags;"`
 }
 
 type PatientDoctor struct {
@@ -67,6 +68,7 @@ func GetAllPatients() ([]Patient, error) {
 		Preload("PatientDoctors.Address").
 		Preload("Reports").
 		Preload("Medications").
+		Preload("Tags").
 		Find(&patients).Error
 	return patients, err
 }
@@ -79,6 +81,7 @@ func GetMostRecentPatientList() ([]Patient, error) {
 		Preload("PatientDoctors.Address").
 		Preload("Reports").
 		Preload("Medications").
+		Preload("Tags").
 		Order("created_at DESC").
 		Limit(10).
 		Find(&patients).Error
@@ -93,6 +96,7 @@ func GetPatientByID(patientID uint) (*Patient, error) {
 		Preload("PatientDoctors.Address").
 		Preload("Reports").
 		Preload("Medications").
+		Preload("Tags").
 		First(&patient, patientID).Error
 	if err != nil {
 		return nil, err
@@ -145,6 +149,7 @@ func SearchPatients(query string) ([]Patient, error) {
 		Preload("PatientDoctors.Doctor").
 		Preload("PatientDoctors.Address").
 		Preload("Medications").
+		Preload("Tags").
 		Where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ?",
 				searchTerm, searchTerm, searchTerm).
 		Limit(10). // Add a limit here as a safeguard
@@ -230,6 +235,7 @@ func SearchPatientsComplex(params PatientSearchParams) ([]Patient, error) {
 	// Group by patient fields to get distinct patients and preload necessary data for the response.
 	err := tx.Preload("PatientDoctors.Doctor").
 		Preload("PatientDoctors.Address").
+		Preload("Tags").
 		Group("patients.id, patients.created_at, patients.updated_at, patients.deleted_at, patients.mrn, patients.first_name, patients.last_name, patients.dob, patients.gender, patients.email, patients.phone, patients.street, patients.city, patients.state, patients.country, patients.postal").
 		Find(&patients).Error
 

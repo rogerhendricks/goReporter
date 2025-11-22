@@ -90,6 +90,7 @@ type Report struct {
 
 	// Relational Data
 	Arrhythmias []Arrhythmia `json:"arrhythmias" gorm:"foreignKey:ReportID;constraint:OnDelete:CASCADE"`
+	Tags        []Tag        `json:"tags" gorm:"many2many:report_tags;"`
 }
 
 // GetReportsByPatientID retrieves all reports for a specific patient.
@@ -110,7 +111,7 @@ func GetReportsByPatientID(patientID uint) ([]Report, error) {
 // GetReportByID retrieves a single report by its ID, preloading related data.
 func GetReportByID(reportID uint) (*Report, error) {
 	var report Report
-	err := config.DB.Preload("Arrhythmias").First(&report, reportID).Error
+	err := config.DB.Preload("Arrhythmias").Preload("Tags").First(&report, reportID).Error
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +126,7 @@ func GetRecentReports(limit int) ([]Report, error) {
 	err := config.DB.
 		Preload("Patient").
 		Preload("User").
+		Preload("Tags").
 		Order("report_date DESC").
 		Limit(limit).
 		Find(&reports).Error

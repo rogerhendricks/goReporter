@@ -20,6 +20,7 @@ import LeadIndex from '@/pages/leads/LeadIndex'
 import LeadDetail from '@/pages/leads/LeadDetail'
 import LeadForm from '@/components/forms/LeadForm'
 import PatientSearch from '@/pages/search/PatientSearch'
+import { TagManagement } from '@/components/admin/TagManagement'
 
 export interface RouteConfig {
   path: string
@@ -211,6 +212,21 @@ export const routes: RouteConfig[] = [
   {
     path: '/leads/:id/edit',
     element: <LeadForm />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+  {
+    path: '/tags',
+    element: <TagManagement />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+  // Tag management - admin only
+  {
+    path: '/admin/tags',
+    element: <TagManagement />,
     requiresAuth: true,
     layout: 'default',
     roles: ['admin']

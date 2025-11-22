@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import api from '../utils/axios'
 import { toast } from 'sonner'
 import type { Report } from './reportStore' 
+import type { Tag } from '../services/tagService'
+
 // const api = axios.create({
 //   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
 //   withCredentials: true,
@@ -91,6 +93,7 @@ export interface Patient {
   reportCount: number
   createdAt: string
   updatedAt: string
+  tags: Tag[]
 }
 
 interface PatientState {

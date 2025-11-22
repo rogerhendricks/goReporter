@@ -61,6 +61,7 @@ type PatientResponse struct {
 	ReportCount    int                       `json:"reportCount"`
 	CreatedAt      time.Time                 `json:"createdAt"`
 	UpdatedAt      time.Time                 `json:"updatedAt"`
+	Tags           []models.Tag              `json:"tags"`
 }
 
 type PatientDoctorResponse struct {
@@ -109,7 +110,7 @@ func toLeadResponse(lead models.Lead) LeadResponse {
 		ID:           lead.ID,
 		Name:         lead.Name,
 		Manufacturer: lead.Manufacturer,
-		LeadModel:        lead.LeadModel,
+		LeadModel:    lead.LeadModel,
 		Connector:    lead.Connector,
 		IsMri:        lead.IsMri,
 	}
@@ -174,6 +175,13 @@ func toPatientResponse(patient models.Patient) PatientResponse {
 	// for _, r := range patient.Reports {
 	// 	resp.Report = append(resp.Report, toReportResponse(r))
 	// }
+
+	// Map tags
+	if len(patient.Tags) > 0 {
+		resp.Tags = patient.Tags
+	} else {
+		resp.Tags = []models.Tag{}
+	}
 
 	return resp
 }
@@ -358,6 +366,7 @@ func CreatePatient(c *fiber.Ctx) error {
 			ExplantedAt string `json:"explantedAt"` // Accept date as string
 		} `json:"leads"`
 		Medications []interface{} `json:"medications"`
+		Tags        []uint        `json:"tags"` // Array of Tag IDs
 	}
 
 	// 2. Parse the request body into the temporary struct
@@ -489,6 +498,15 @@ func CreatePatient(c *fiber.Ctx) error {
 		})
 	}
 
+	// Handle Tags
+	if len(input.Tags) > 0 {
+		var tags []models.Tag
+		if err := config.DB.Where("id IN ?", input.Tags).Find(&tags).Error; err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch tags"})
+		}
+		newPatient.Tags = tags
+	}
+
 	// Create patient and all associations in one transaction
 	if err := config.DB.Session(&gorm.Session{FullSaveAssociations: true}).Create(&newPatient).Error; err != nil {
 		log.Printf("Error creating patient with associations: %v", err)
@@ -518,31 +536,32 @@ func UpdatePatient(c *fiber.Ctx) error {
 	}
 
 	// Define an input struct that captures addressId as raw JSON
+	// Use pointers to distinguish between missing fields (nil) and empty values
 	var input struct {
-		MRN            int    `json:"mrn"`
-		Fname          string `json:"fname"`
-		Lname          string `json:"lname"`
-		Dob            string `json:"dob"`
-		Phone          string `json:"phone"`
-		Email          string `json:"email"`
-		Street         string `json:"street"`
-		City           string `json:"city"`
-		State          string `json:"state"`
-		Country        string `json:"country"`
-		Postal         string `json:"postal"`
-		PatientDoctors []struct {
+		MRN            *int    `json:"mrn"`
+		Fname          *string `json:"fname"`
+		Lname          *string `json:"lname"`
+		Dob            *string `json:"dob"`
+		Phone          *string `json:"phone"`
+		Email          *string `json:"email"`
+		Street         *string `json:"street"`
+		City           *string `json:"city"`
+		State          *string `json:"state"`
+		Country        *string `json:"country"`
+		Postal         *string `json:"postal"`
+		PatientDoctors *[]struct {
 			DoctorID  uint             `json:"doctorId"`
 			AddressID *json.RawMessage `json:"addressId"` // Capture as raw JSON
 			IsPrimary bool             `json:"isPrimary"`
 		} `json:"patientDoctors"`
-		Devices []struct {
+		Devices *[]struct {
 			DeviceID    uint   `json:"deviceId"`
 			Serial      string `json:"serial"`
 			Status      string `json:"status"`
 			ImplantedAt string `json:"implantedAt"`
 			ExplantedAt string `json:"explantedAt"`
 		} `json:"devices"`
-		Leads []struct {
+		Leads *[]struct {
 			LeadID      uint   `json:"leadId"`
 			Serial      string `json:"serial"`
 			Chamber     string `json:"chamber"`
@@ -550,6 +569,7 @@ func UpdatePatient(c *fiber.Ctx) error {
 			ImplantedAt string `json:"implantedAt"`
 			ExplantedAt string `json:"explantedAt"`
 		} `json:"leads"`
+		Tags *[]uint `json:"tags"`
 	}
 
 	if err := json.Unmarshal(c.Body(), &input); err != nil {
@@ -570,89 +590,143 @@ func UpdatePatient(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve patient for update"})
 	}
 
-	// Update main patient fields
-	existingPatient.MRN = input.MRN
-	existingPatient.FirstName = input.Fname
-	existingPatient.LastName = input.Lname
-	existingPatient.DOB = input.Dob
-	existingPatient.Phone = input.Phone
-	existingPatient.Email = input.Email
-	existingPatient.Street = input.Street
-	existingPatient.City = input.City
-	existingPatient.State = input.State
-	existingPatient.Country = input.Country
-	existingPatient.Postal = input.Postal
+	// Update main patient fields only if they are present in the request
+	if input.MRN != nil {
+		existingPatient.MRN = *input.MRN
+	}
+	if input.Fname != nil {
+		existingPatient.FirstName = *input.Fname
+	}
+	if input.Lname != nil {
+		existingPatient.LastName = *input.Lname
+	}
+	if input.Dob != nil {
+		existingPatient.DOB = *input.Dob
+	}
+	if input.Phone != nil {
+		existingPatient.Phone = *input.Phone
+	}
+	if input.Email != nil {
+		existingPatient.Email = *input.Email
+	}
+	if input.Street != nil {
+		existingPatient.Street = *input.Street
+	}
+	if input.City != nil {
+		existingPatient.City = *input.City
+	}
+	if input.State != nil {
+		existingPatient.State = *input.State
+	}
+	if input.Country != nil {
+		existingPatient.Country = *input.Country
+	}
+	if input.Postal != nil {
+		existingPatient.Postal = *input.Postal
+	}
 
 	if err := tx.Save(&existingPatient).Error; err != nil {
 		tx.Rollback()
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
 	}
 
-	// Clear existing associations
-	tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
-	tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
-	tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
+	// Update associations only if they are present in the request
 
-	// Create new associations from the payload
-	for _, pd := range input.PatientDoctors {
-		// Manually parse the addressId from the raw JSON
-		var addrID *uint
-		if pd.AddressID != nil && string(*pd.AddressID) != "null" {
-			var id uint
-			if err := json.Unmarshal(*pd.AddressID, &id); err == nil {
-				addrID = &id
+	// Patient Doctors
+	if input.PatientDoctors != nil {
+		// Clear existing associations
+		tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
+
+		// Create new associations from the payload
+		for _, pd := range *input.PatientDoctors {
+			// Manually parse the addressId from the raw JSON
+			var addrID *uint
+			if pd.AddressID != nil && string(*pd.AddressID) != "null" {
+				var id uint
+				if err := json.Unmarshal(*pd.AddressID, &id); err == nil {
+					addrID = &id
+				}
+			}
+			newPatientDoctor := models.PatientDoctor{
+				PatientID: existingPatient.ID,
+				DoctorID:  pd.DoctorID,
+				AddressID: addrID, // Use the manually parsed ID
+				IsPrimary: pd.IsPrimary,
+			}
+			if err := tx.Create(&newPatientDoctor).Error; err != nil {
+				tx.Rollback()
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new doctor association"})
 			}
 		}
-		newPatientDoctor := models.PatientDoctor{
-			PatientID: existingPatient.ID,
-			DoctorID:  pd.DoctorID,
-			AddressID: addrID, // Use the manually parsed ID
-			IsPrimary: pd.IsPrimary,
-		}
-		if err := tx.Create(&newPatientDoctor).Error; err != nil {
-			tx.Rollback()
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new doctor association"})
+	}
+
+	// Devices
+	if input.Devices != nil {
+		tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
+
+		for _, d := range *input.Devices {
+			implAt, err := parseRFC3339OrDate(d.ImplantedAt)
+			if err != nil {
+				implAt = time.Now().UTC()
+			}
+			expAt, _ := parseOptionalTimePtr(d.ExplantedAt)
+			dev := models.ImplantedDevice{
+				PatientID:   existingPatient.ID,
+				DeviceID:    d.DeviceID,
+				Serial:      d.Serial,
+				Status:      d.Status,
+				ImplantedAt: implAt,
+				ExplantedAt: expAt,
+			}
+			if err := tx.Create(&dev).Error; err != nil {
+				tx.Rollback()
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
+			}
 		}
 	}
 
-	for _, d := range input.Devices {
-		implAt, err := parseRFC3339OrDate(d.ImplantedAt)
-		if err != nil {
-			implAt = time.Now().UTC()
-		}
-		expAt, _ := parseOptionalTimePtr(d.ExplantedAt)
-		dev := models.ImplantedDevice{
-			PatientID:   existingPatient.ID,
-			DeviceID:    d.DeviceID,
-			Serial:      d.Serial,
-			Status:      d.Status,
-			ImplantedAt: implAt,
-			ExplantedAt: expAt,
-		}
-		if err := tx.Create(&dev).Error; err != nil {
-			tx.Rollback()
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
+	// Leads
+	if input.Leads != nil {
+		tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
+
+		for _, l := range *input.Leads {
+			implAt, err := parseRFC3339OrDate(l.ImplantedAt)
+			if err != nil {
+				implAt = time.Now().UTC()
+			}
+			expAt, _ := parseOptionalTimePtr(l.ExplantedAt)
+			lead := models.ImplantedLead{
+				PatientID:   existingPatient.ID,
+				LeadID:      l.LeadID,
+				Serial:      l.Serial,
+				Chamber:     l.Chamber,
+				Status:      l.Status,
+				ImplantedAt: implAt,
+				ExplantedAt: expAt,
+			}
+			if err := tx.Create(&lead).Error; err != nil {
+				tx.Rollback()
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
+			}
 		}
 	}
 
-	for _, l := range input.Leads {
-		implAt, err := parseRFC3339OrDate(l.ImplantedAt)
-		if err != nil {
-			implAt = time.Now().UTC()
-		}
-		expAt, _ := parseOptionalTimePtr(l.ExplantedAt)
-		lead := models.ImplantedLead{
-			PatientID:   existingPatient.ID,
-			LeadID:      l.LeadID,
-			Serial:      l.Serial,
-			Chamber:     l.Chamber,
-			Status:      l.Status,
-			ImplantedAt: implAt,
-			ExplantedAt: expAt,
-		}
-		if err := tx.Create(&lead).Error; err != nil {
+	// Handle Tags
+	if input.Tags != nil {
+		if err := tx.Model(&existingPatient).Association("Tags").Clear(); err != nil {
 			tx.Rollback()
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to clear tags"})
+		}
+		if len(*input.Tags) > 0 {
+			var tags []models.Tag
+			if err := tx.Where("id IN ?", *input.Tags).Find(&tags).Error; err != nil {
+				tx.Rollback()
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch tags"})
+			}
+			if err := tx.Model(&existingPatient).Association("Tags").Replace(tags); err != nil {
+				tx.Rollback()
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update tags"})
+			}
 		}
 	}
 

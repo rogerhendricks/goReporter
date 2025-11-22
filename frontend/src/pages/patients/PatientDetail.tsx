@@ -1,11 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { usePatientStore } from '@/stores/patientStore'
+import { usePatientStore, type Patient } from '@/stores/patientStore'
+import { tagService, type Tag } from '@/services/tagService'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Edit, Trash2, Phone, Mail, MapPin, Plus } from 'lucide-react'
+import { Edit, Trash2, Phone, Mail, MapPin, Plus, Check, X } from 'lucide-react'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { toast } from "sonner"
 import {
   Table,
   TableBody,
@@ -20,13 +35,47 @@ import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { currentPatient, loading, fetchPatient, deletePatient } = usePatientStore()
+  const { currentPatient, loading, fetchPatient, deletePatient, updatePatient } = usePatientStore()
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [openTagSearch, setOpenTagSearch] = useState(false)
 
   useEffect(() => {
+    loadTags()
     if (id) {
       fetchPatient(parseInt(id))
     }
   }, [id])
+
+  const loadTags = async () => {
+    try {
+      const tags = await tagService.getAll()
+      setAvailableTags(tags)
+    } catch (error) {
+      console.error("Failed to load tags:", error)
+    }
+  }
+
+  const handleToggleTag = async (tagId: number) => {
+    if (!currentPatient) return
+
+    const currentTags = currentPatient.tags || []
+    const isSelected = currentTags.some((t: any) => t.ID === tagId)
+    
+    let newTags: number[]
+    if (isSelected) {
+      newTags = currentTags.filter((t: any) => t.ID !== tagId).map((t: any) => t.ID)
+    } else {
+      newTags = [...currentTags.map((t: any) => t.ID), tagId]
+    }
+
+    try {
+      await updatePatient(currentPatient.id, { tags: newTags } as unknown as Partial<Patient>)
+      toast.success("Tags updated successfully")
+    } catch (error) {
+      console.error("Failed to update tags:", error)
+      toast.error("Failed to update tags")
+    }
+  }
 
   const handleDelete = async () => {
     if (currentPatient && window.confirm(`Are you sure you want to delete ${currentPatient.fname} ${currentPatient.lname}?`)) {
@@ -145,6 +194,79 @@ export default function PatientDetail() {
                 {currentPatient.street}<br />
                 {currentPatient.city}, {currentPatient.state}<br />
                 {currentPatient.country} {currentPatient.postal}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold">Tags</span>
+                <Popover open={openTagSearch} onOpenChange={setOpenTagSearch}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Plus className="h-4 w-4" />
+                      <span className="sr-only">Add Tag</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="end">
+                    <Command>
+                      <CommandInput placeholder="Search tags..." />
+                      <CommandList>
+                        <CommandEmpty>No tags found.</CommandEmpty>
+                        <CommandGroup>
+                          {availableTags.map((tag) => {
+                            const isSelected = currentPatient.tags?.some((t: any) => t.ID === tag.ID)
+                            return (
+                              <CommandItem
+                                key={tag.ID}
+                                onSelect={() => handleToggleTag(tag.ID)}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div 
+                                    className="w-3 h-3 rounded-full" 
+                                    style={{ backgroundColor: tag.color }}
+                                  />
+                                  <span>{tag.name}</span>
+                                  {isSelected && <Check className="ml-auto h-4 w-4" />}
+                                </div>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {currentPatient.tags && currentPatient.tags.length > 0 ? (
+                  currentPatient.tags.map((tag: any) => (
+                    <Badge
+                      key={tag.ID}
+                      variant="outline"
+                      className="flex items-center gap-1 pr-1"
+                      style={{ 
+                        borderColor: tag.color, 
+                        color: tag.color,
+                        backgroundColor: `${tag.color}10`
+                      }}
+                    >
+                      {tag.name}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleTag(tag.ID)
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">No tags assigned</span>
+                )}
               </div>
             </div>
           </CardContent>

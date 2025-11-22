@@ -86,4 +86,11 @@ func SetupRoutes(app *fiber.App) {
 
 	// Analytics routes
 	app.Get("/api/analytics/summary", handlers.GetAnalyticsSummary)
+
+	// Tag routes
+	tags := app.Group("/api/tags")
+	tags.Get("/", handlers.GetAllTags)
+	tags.Post("/", middleware.RequireAdminOrUser, handlers.CreateTag)
+	tags.Put("/:id", middleware.RequireAdminOrUser, handlers.UpdateTag)
+	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
 }

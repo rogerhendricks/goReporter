@@ -3,13 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { usePatientStore } from "@/stores/patientStore";
 import type { Doctor } from "@/stores/patientStore";
 import type { Device } from "@/stores/patientStore";
-import type { Lead } from "@/stores/patientStore";
+// import type { Lead } from "@/stores/patientStore";
 import type { ImplantedDevice } from "@/stores/patientStore";
 import type { ImplantedLead } from "@/stores/patientStore";
 import type { Patient, Address, PatientDoctor } from "@/stores/patientStore";
+import { tagService, type Tag } from "@/services/tagService";
 import { useDoctorStore } from "@/stores/doctorStore";
 import { useDeviceStore } from "@/stores/deviceStore";
-import { useLeadStore } from "@/stores/leadStore";
+import { useLeadStore, type Lead as StoreLead } from "@/stores/leadStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ interface PatientFormData {
   patientDoctors: PatientDoctor[];
   devices: ImplantedDevice[];
   leads: ImplantedLead[];
+  tags: number[];
 }
 
 export default function PatientForm() {
@@ -80,6 +82,7 @@ export default function PatientForm() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [isPrimary, setIsPrimary] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
   const [formData, setFormData] = useState<PatientFormData>({
     mrn: "",
@@ -96,6 +99,7 @@ export default function PatientForm() {
     patientDoctors: [],
     devices: [],
     leads: [],
+    tags: [],
   });
 
   useEffect(() => {
@@ -128,10 +132,20 @@ export default function PatientForm() {
     fetchDoctors();
     fetchAllDevices();
     fetchAllLeads();
+    loadTags();
     if (isEdit && id) {
       fetchPatient(parseInt(id));
     }
   }, [isEdit, id]);
+
+  const loadTags = async () => {
+    try {
+      const tags = await tagService.getAll();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error("Failed to load tags:", error);
+    }
+  };
 
   useEffect(() => {
     if (isEdit && currentPatient) {
@@ -158,6 +172,7 @@ export default function PatientForm() {
           implantedAt: toDateInput(l.implantedAt as any),
           explantedAt: toDateInput(l.explantedAt as any),
         })),
+        tags: (currentPatient.tags || []).map((t: any) => t.ID),
       });
     }
   }, [currentPatient, isEdit]);
@@ -297,7 +312,7 @@ export default function PatientForm() {
     setDeviceSearch("");
   };
 
-  const addLead = (lead: Lead) => {
+  const addLead = (lead: StoreLead) => {
     setFormData((prev) => ({
       ...prev,
       leads: [
@@ -340,6 +355,15 @@ export default function PatientForm() {
     }));
   };
 
+  const toggleTag = (tagId: number) => {
+    setFormData((prev) => {
+      const newTags = prev.tags.includes(tagId)
+        ? prev.tags.filter((id) => id !== tagId)
+        : [...prev.tags, tagId];
+      return { ...prev, tags: newTags };
+    });
+  };
+
   const removeDevice = (index: number) => {
     const devices = [...formData.devices];
     devices.splice(index, 1);
@@ -380,6 +404,7 @@ export default function PatientForm() {
           implantedAt: l.implantedAt,
         })),
         medications: [],
+        tags: formData.tags,
       };
 
       let patientId: number;
@@ -575,6 +600,31 @@ export default function PatientForm() {
                 value={formData.country}
                 onChange={handleInputChange}
               />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {availableTags.map((tag) => {
+                  const isSelected = formData.tags.includes(tag.ID);
+                  return (
+                    <Badge
+                      key={tag.ID}
+                      variant={isSelected ? "default" : "outline"}
+                      className="cursor-pointer select-none"
+                      style={
+                        isSelected
+                          ? { backgroundColor: tag.color, borderColor: tag.color }
+                          : { borderColor: tag.color, color: tag.color }
+                      }
+                      onClick={() => toggleTag(tag.ID)}
+                    >
+                      {tag.name}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Doctor Assignment with Address Selection */}

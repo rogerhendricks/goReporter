@@ -72,6 +72,7 @@ type ReportResponse struct {
 	FilePath                       *string              `json:"file_path"`
 	FileUrl                        *string              `json:"file_url"`
 	Arrhythmias                    []ArrhythmiaResponse `json:"arrhythmias"`
+	Tags                           []models.Tag         `json:"tags"`
 	CreatedAt                      time.Time            `json:"createdAt"`
 	UpdatedAt                      time.Time            `json:"updatedAt"`
 }
@@ -149,6 +150,12 @@ func toReportResponse(report models.Report) ReportResponse {
 			Duration: arrhythmia.Duration,
 			Count:    arrhythmia.Count,
 		})
+	}
+
+	if len(report.Tags) > 0 {
+		resp.Tags = report.Tags
+	} else {
+		resp.Tags = []models.Tag{}
 	}
 
 	return resp
@@ -279,6 +286,22 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 		}
 	}
 
+	// Parse tags from JSON string in form data (expecting array of Tag IDs)
+	tagsJSON := c.FormValue("tags")
+	if tagsJSON != "" {
+		var tagIDs []uint
+		if err := json.Unmarshal([]byte(tagsJSON), &tagIDs); err == nil && len(tagIDs) > 0 {
+			var tags []models.Tag
+			if err := config.DB.Where("id IN ?", tagIDs).Find(&tags).Error; err == nil {
+				report.Tags = tags
+			} else {
+				log.Printf("Warning: could not fetch tags: %v", err)
+			}
+		} else {
+			log.Printf("Warning: could not unmarshal tags JSON: %v", err)
+		}
+	}
+
 	// Get file paths from the UploadFile middleware (if a file was uploaded)
 	if filePath, ok := c.Locals("filePath").(string); ok {
 		report.FilePath = &filePath
@@ -397,6 +420,12 @@ func UpdateReport(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update arrhythmias"})
 	}
 	existingReport.Arrhythmias = updatedData.Arrhythmias
+
+	// Update Tags association
+	if err := tx.Model(&existingReport).Association("Tags").Replace(updatedData.Tags); err != nil {
+		tx.Rollback()
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update tags"})
+	}
 
 	// Save the updated report and its new associations
 	if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(&existingReport).Error; err != nil {

@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import api from '../utils/axios'
 
-interface Lead {
+export interface Lead {
   id: number
   name: string
   manufacturer: string
-  model: string
+  leadModel: string
   connector: string
   polarity: string
   isMri: boolean

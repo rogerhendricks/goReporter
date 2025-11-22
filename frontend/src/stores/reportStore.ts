@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import api from '../utils/axios'
+import type { Tag } from '../services/tagService'
 
 // Interface for Arrhythmia based on schema
 export interface Arrhythmia {
@@ -105,6 +106,7 @@ export interface Report {
   createdAt: string
   // Relational data
   arrhythmias: Arrhythmia[]
+  tags: Tag[]
 }
 
 // The rest of the store remains largely the same

@@ -27,6 +27,8 @@ import { FileImporter } from '@/components/FileImporter';
 import type { ParsedData } from '@/utils/fileParser';
 import { AutocompleteTextarea } from '@/components/ui/autocomplete-textarea'
 import { REPORT_COMMENT_SUGGESTIONS } from '@/data/commentSuggestions'
+import { tagService } from '@/services/tagService'
+import type { Tag } from '@/services/tagService'
 
 
 const initialFormData: Partial<Report> = {
@@ -110,6 +112,7 @@ const initialFormData: Partial<Report> = {
   VF_therapy_3_energy: undefined,
   VF_therapy_4_energy: undefined,
   VF_therapy_4_max_num_shocks: undefined,
+  tags: [],
 }
 
 const initialArrhythmia: Arrhythmia = {
@@ -133,6 +136,41 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await tagService.getAll()
+        setAvailableTags(tags)
+      } catch (error) {
+        console.error('Failed to load tags:', error)
+        toast.error('Failed to load tags')
+      }
+    }
+    loadTags()
+  }, [])
+
+  const toggleTag = (tagId: number) => {
+    setFormData(prev => {
+      const currentTags = prev.tags || []
+      const exists = currentTags.some(t => t.ID === tagId)
+      
+      let newTags: Tag[]
+      if (exists) {
+        newTags = currentTags.filter(t => t.ID !== tagId)
+      } else {
+        const tagToAdd = availableTags.find(t => t.ID === tagId)
+        if (tagToAdd) {
+          newTags = [...currentTags, tagToAdd]
+        } else {
+          newTags = currentTags
+        }
+      }
+      
+      return { ...prev, tags: newTags }
+    })
+  }
   console.log('Rendering ReportForm with patient:', patient)
 
   const handleDataImported = (data: ParsedData) => {
@@ -594,6 +632,8 @@ export function ReportForm({ patient }: ReportFormProps) {
     Object.entries(formData).forEach(([key, value]) => {
       if (key === 'arrhythmias') {
         submissionData.append(key, JSON.stringify(value))
+      } else if (key === 'tags') {
+        submissionData.append(key, JSON.stringify(value))
       } else if (value instanceof Date) {
         submissionData.append(key, value.toISOString())
       } else if (value !== null && value !== undefined) {
@@ -859,6 +899,39 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tags</CardTitle>
+          <CardDescription>Select tags for this report.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map(tag => {
+              const isSelected = (formData.tags || []).some(t => t.ID === tag.ID)
+              return (
+                <div
+                  key={tag.ID}
+                  onClick={() => toggleTag(tag.ID)}
+                  className={`
+                    cursor-pointer px-3 py-1 rounded-full text-sm font-medium transition-colors
+                    ${isSelected 
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}
+                  `}
+                  style={isSelected && tag.color ? { backgroundColor: tag.color, color: '#fff' } : {}}
+                >
+                  {tag.name}
+                </div>
+              )
+            })}
+            {availableTags.length === 0 && (
+              <p className="text-sm text-muted-foreground">No tags available.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
