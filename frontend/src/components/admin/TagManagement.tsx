@@ -171,7 +171,7 @@ export const TagManagement = () => {
             </TableHeader>
             <TableBody>
               {tags.map((tag) => (
-                <TableRow key={tag.ID}>
+                <TableRow key={tag.ID} className="text-left">
                   <TableCell>
                     <span
                       className="px-2 py-1 rounded-full text-xs font-medium text-white"
