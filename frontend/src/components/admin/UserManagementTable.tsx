@@ -116,108 +116,110 @@ const handleSave = async () => {
                         <Plus className="mr-2 h-4 w-4" /> Add New User
                     </Button>
                 </div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-left">Full Name</TableHead>
-                            <TableHead className="text-left">Username</TableHead>
-                            <TableHead className="text-left">Email</TableHead>
-                            <TableHead className="text-left">Password</TableHead>
-                            <TableHead className="text-left">Role</TableHead>
-                            <TableHead className="text-left">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading && users.length === 0 ? (
-                            <TableRow className="text-left">
-                                <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                <div className="border rounded-lg">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="text-left">Full Name</TableHead>
+                                <TableHead className="text-left">Username</TableHead>
+                                <TableHead className="text-left">Email</TableHead>
+                                <TableHead className="text-left">Password</TableHead>
+                                <TableHead className="text-left">Role</TableHead>
+                                <TableHead className="text-left">Actions</TableHead>
                             </TableRow>
-                        ) : (
-                            <>
-                                {/* Row for adding a new user appears here when isAdding is true */}
-                                {isAdding && editedUser && (
-                                    <TableRow key="add-new-user-row" className="text-left">
-                                        <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} placeholder="Full Name" /></TableCell>
-                                        <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="Username" /></TableCell>
-                                        <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email" /></TableCell>
-                                        <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Password" /></TableCell>
-                                        <TableCell>
-                                            <Select value={editedUser.role} onValueChange={(value) => handleInputChange('role', value)}>
-                                                <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="admin">Admin</SelectItem>
-                                                    <SelectItem value="doctor">Doctor</SelectItem>
-                                                    <SelectItem value="user">User</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex gap-2">
-                                                <Button onClick={handleSave} size="sm" disabled={saving}>
-                                                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                                </Button>
-                                                <Button onClick={handleCancel} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
+                        </TableHeader>
+                        <TableBody>
+                            {loading && users.length === 0 ? (
+                                <TableRow className="text-left">
+                                    <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                                </TableRow>
+                            ) : (
+                                <>
+                                    {/* Row for adding a new user appears here when isAdding is true */}
+                                    {isAdding && editedUser && (
+                                        <TableRow key="add-new-user-row" className="text-left">
+                                            <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} placeholder="Full Name" /></TableCell>
+                                            <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="Username" /></TableCell>
+                                            <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email" /></TableCell>
+                                            <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Password" /></TableCell>
+                                            <TableCell>
+                                                <Select value={editedUser.role} onValueChange={(value) => handleInputChange('role', value)}>
+                                                    <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="admin">Admin</SelectItem>
+                                                        <SelectItem value="doctor">Doctor</SelectItem>
+                                                        <SelectItem value="user">User</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex gap-2">
+                                                    <Button onClick={handleSave} size="sm" disabled={saving}>
+                                                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                                    </Button>
+                                                    <Button onClick={handleCancel} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
 
-                                {/* Map over existing users and render rows conditionally */}
-                                {users.map((user) => {
-                                    // This is the crucial check: is this specific row the one being edited?
-                                    const isEditing = editingRowId === user.ID;
+                                    {/* Map over existing users and render rows conditionally */}
+                                    {users.map((user) => {
+                                        // This is the crucial check: is this specific row the one being edited?
+                                        const isEditing = editingRowId === user.ID;
 
-                                    // Render the editable row if 'isEditing' is true for this user
-                                    if (isEditing && editedUser) {
+                                        // Render the editable row if 'isEditing' is true for this user
+                                        if (isEditing && editedUser) {
+                                            return (
+                                                <TableRow key={user.ID} className="text-left">
+                                                    <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} /></TableCell>
+                                                    <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} /></TableCell>
+                                                    <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} /></TableCell>
+                                                    <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="New password (optional)" /></TableCell>
+                                                    <TableCell>
+                                                        <Select value={editedUser.role} onValueChange={(value) => handleInputChange('role', value)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="admin">Admin</SelectItem>
+                                                                <SelectItem value="doctor">Doctor</SelectItem>
+                                                                <SelectItem value="user">User</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex gap-2">
+                                                            <Button onClick={handleSave} size="sm" disabled={saving}>
+                                                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                                            </Button>
+                                                            <Button onClick={handleCancel} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        }
+                                        
+                                        // Otherwise, render the standard display row
                                         return (
                                             <TableRow key={user.ID} className="text-left">
-                                                <TableCell><Input value={editedUser.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} /></TableCell>
-                                                <TableCell><Input value={editedUser.username} onChange={(e) => handleInputChange('username', e.target.value)} /></TableCell>
-                                                <TableCell><Input type="email" value={editedUser.email} onChange={(e) => handleInputChange('email', e.target.value)} /></TableCell>
-                                                <TableCell><Input type="password" value={editedUser.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="New password (optional)" /></TableCell>
-                                                <TableCell>
-                                                    <Select value={editedUser.role} onValueChange={(value) => handleInputChange('role', value)}>
-                                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="admin">Admin</SelectItem>
-                                                            <SelectItem value="doctor">Doctor</SelectItem>
-                                                            <SelectItem value="user">User</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
+                                                <TableCell>{user.fullName}</TableCell>
+                                                <TableCell>{user.username}</TableCell>
+                                                <TableCell>{user.email}</TableCell>
+                                                <TableCell>******</TableCell>
+                                                <TableCell>{user.role}</TableCell>
                                                 <TableCell>
                                                     <div className="flex gap-2">
-                                                        <Button onClick={handleSave} size="sm" disabled={saving}>
-                                                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                                        </Button>
-                                                        <Button onClick={handleCancel} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
+                                                        <Button onClick={() => handleEdit(user)} variant="outline" size="sm" disabled={isAdding || !!editingRowId}><Edit className="h-4 w-4" /></Button>
+                                                        <Button onClick={() => handleDelete(user)} variant="destructive" size="sm" disabled={isAdding || !!editingRowId}><Trash2 className="h-4 w-4" /></Button>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
-                                    }
-                                    
-                                    // Otherwise, render the standard display row
-                                    return (
-                                        <TableRow key={user.ID} className="text-left">
-                                            <TableCell>{user.fullName}</TableCell>
-                                            <TableCell>{user.username}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell>******</TableCell>
-                                            <TableCell>{user.role}</TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-2">
-                                                    <Button onClick={() => handleEdit(user)} variant="outline" size="sm" disabled={isAdding || !!editingRowId}><Edit className="h-4 w-4" /></Button>
-                                                    <Button onClick={() => handleDelete(user)} variant="destructive" size="sm" disabled={isAdding || !!editingRowId}><Trash2 className="h-4 w-4" /></Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </>
-                        )}
-                    </TableBody>
-                </Table>
+                                    })}
+                                </>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );

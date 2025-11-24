@@ -93,12 +93,12 @@ export const TagManagement = () => {
   return (
     <Card className="hover:shadow-lg transition-shadow mt-6">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
             <CardTitle>Tag Management</CardTitle>
             <CardDescription>Create and manage tags for patients and reports.</CardDescription>
-          </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-end mb-4">
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingTag(null);
@@ -159,8 +159,6 @@ export const TagManagement = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </CardHeader>
-      <CardContent>
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
