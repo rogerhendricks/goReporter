@@ -96,12 +96,13 @@ export default function AdminDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="list-disc list-inside space-y-2 text-sm">
-            <li>Create, read, update, and delete all patient records</li>
+          <ul className="list-disc list-inside space-y-2 text-sm text-left">
+            <li>Create, update and delete all patient records</li>
             <li>Manage doctor accounts and assignments</li>
             <li>Configure medical devices and leads</li>
             <li>Access all reports and data across the system</li>
             <li>Manage system users and their roles</li>
+            <li>Create, update and delete tags for categorization</li>
           </ul>
         </CardContent>
       </Card>
