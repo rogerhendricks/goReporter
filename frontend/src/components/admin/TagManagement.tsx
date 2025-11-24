@@ -163,9 +163,9 @@ export const TagManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Color</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead className="text-left">Name</TableHead>
+                <TableHead className="text-left">Color</TableHead>
+                <TableHead className="text-left">Description</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
