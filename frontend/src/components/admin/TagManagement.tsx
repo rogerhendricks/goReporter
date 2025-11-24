@@ -91,7 +91,7 @@ export const TagManagement = () => {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow mt-6">
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>

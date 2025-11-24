@@ -105,7 +105,7 @@ const handleSave = async () => {
     };
 
     return (
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="hover:shadow-lg transition-shadow mt-6">
             <CardHeader>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Create, edit, and manage system users.</CardDescription>
