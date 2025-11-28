@@ -79,7 +79,19 @@ go-fiber-backend
    
 7. **Todo**
    * Remove soft deletes for updating implanted devices and implanted leads in database
-   
+
+8.
+### Task Management
+
+Task Model: Create tasks linked to patients with tags
+Due Dates: Add priority levels and due dates
+Status Tracking: Track task status (pending, in progress, completed)
+Notifications: Email/SMS reminders for upcoming tasks
+Task Templates: Pre-defined task templates for common workflows
+Assignment: Assign tasks to staff members
+Notes/Comments: Add progress notes to tasks
+Dashboard: Visual overview of all tasks by status/priority
+
 ## Usage
 
 The API provides various endpoints for managing users, devices, doctors, patients, medications, leads, and reports. Refer to the individual handler files for specific route details and request formats.

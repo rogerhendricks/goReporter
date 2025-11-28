@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Edit, Trash2, Phone, Mail, MapPin, Plus, Check, X } from 'lucide-react'
+import { Edit, Trash2, Phone, Mail, MapPin, Plus, Check, X, ClipboardList } from 'lucide-react'
 import {
   Command,
   CommandEmpty,
@@ -20,6 +20,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 import {
   Table,
@@ -30,6 +38,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
+import { TaskForm } from '@/components/forms/TaskForm'
+import { TaskList } from '@/components/tasks/TaskList'
 // import { QRSDurationTable } from '@/components/tables/QRSDurationTable'
 
 export default function PatientDetail() {
@@ -38,6 +48,7 @@ export default function PatientDetail() {
   const { currentPatient, loading, fetchPatient, deletePatient, updatePatient } = usePatientStore()
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [openTagSearch, setOpenTagSearch] = useState(false)
+  const [openTaskDialog, setOpenTaskDialog] = useState(false)
 
   useEffect(() => {
     loadTags()
@@ -84,22 +95,18 @@ export default function PatientDetail() {
     }
   }
 
+  const handleTaskCreated = () => {
+    setOpenTaskDialog(false)
+    toast.success('Task created successfully')
+    // Refresh patient data to update task list
+    if (id) {
+      fetchPatient(parseInt(id))
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
   }
-
-  // const getLastReportDate = () => {
-  //   if (!currentPatient?.report || currentPatient.report.length === 0) {
-  //     return null
-  //   }
-    
-  //   // Sort reports by date and get the most recent one
-  //   const sortedReports = currentPatient.report.sort((a, b) => 
-  //     new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime()
-  //   )
-    
-  //   return sortedReports[0].reportDate
-  // }
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -110,46 +117,64 @@ export default function PatientDetail() {
   if (loading) {
     return (
       <div className="container mx-auto py-6">
-      <BreadcrumbNav items={[
-        { label: 'Home', href: '/' },
-        { label: 'Patients', href: '/patients' },
-        { label: 'Loading...', current: true }
-      ]} />
-      <div className="text-center py-8">Loading...</div>
-    </div>
+        <BreadcrumbNav items={[
+          { label: 'Home', href: '/' },
+          { label: 'Patients', href: '/patients' },
+          { label: 'Loading...', current: true }
+        ]} />
+        <div className="text-center py-8">Loading...</div>
+      </div>
     )
   }
 
   if (!currentPatient) {
     return (
       <div className="container mx-auto py-6">
-      <BreadcrumbNav items={[
-        { label: 'Home', href: '/' },
-        { label: 'Patients', href: '/patients' },
-        { label: 'Not Found', current: true }
-      ]} />
-      <div className="text-center py-8">Patient not found</div>
-    </div>
+        <BreadcrumbNav items={[
+          { label: 'Home', href: '/' },
+          { label: 'Patients', href: '/patients' },
+          { label: 'Not Found', current: true }
+        ]} />
+        <div className="text-center py-8">Patient not found</div>
+      </div>
     )
   }
-
-  // const lastReportDate = getLastReportDate()
 
   return (
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
-
         <h1 className="text-3xl font-bold">
           {currentPatient.fname} {currentPatient.lname}
         </h1>
         <div className="ml-auto flex gap-2">
+          <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                New Task
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Task for {currentPatient.fname} {currentPatient.lname}</DialogTitle>
+                <DialogDescription>
+                  Create a new task associated with this patient
+                </DialogDescription>
+              </DialogHeader>
+              <TaskForm 
+                patientId={currentPatient.id} 
+                onSuccess={handleTaskCreated}
+                onCancel={() => setOpenTaskDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
           <Button asChild>
             <Link to={`/patients/${currentPatient.id}/reports/new`}>
               <Plus className="mr-2 h-4 w-4" /> Create New Report
             </Link>
           </Button>
-          <Button asChild variant="secondary" >
+          <Button asChild variant="secondary">
             <Link to={`/patients/${currentPatient.id}/reports`} className="flex items-center gap-2">
               View All
               <Badge variant="outline" className="bg-background">
@@ -416,7 +441,40 @@ export default function PatientDetail() {
         {/* <div className="md:col-span-2">
           <QRSDurationTable reports={currentPatient.report || []} />
         </div> */}
-        
+        {/* Patient Tasks */}
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Tasks</CardTitle>
+                <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create Task for {currentPatient.fname} {currentPatient.lname}</DialogTitle>
+                      <DialogDescription>
+                        Create a new task associated with this patient
+                      </DialogDescription>
+                    </DialogHeader>
+                    <TaskForm 
+                      patientId={currentPatient.id} 
+                      onSuccess={handleTaskCreated}
+                      onCancel={() => setOpenTaskDialog(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <TaskList patientId={currentPatient.id} showFilters={false} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

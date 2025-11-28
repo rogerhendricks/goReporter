@@ -33,6 +33,7 @@ export function Navbar() {
     { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
     { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
     { href: '/search/patients', label: '+Search', icon: Users, roles: ['admin', 'doctor', 'user'] },
+    { href: '/tasks', label: 'Tasks', icon: Check, roles: ['admin', 'doctor', 'user'] },
     { href: '/admin', label: 'Admin Dashboard', icon: Settings, roles: ['admin'] },
     { href: '/doctor', label: 'Doctor Dashboard', icon: Stethoscope, roles: ['doctor'] }
   ]

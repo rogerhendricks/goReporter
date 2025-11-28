@@ -165,16 +165,15 @@ export const TagManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Color</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead className="text-left">Name</TableHead>
+                <TableHead className="text-left">Color</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tags.map((tag) => (
                 <TableRow key={tag.ID}>
-                  <TableCell>
+                  <TableCell className="text-left">
                     <span
                       className="px-2 py-1 rounded-full text-xs font-medium text-white"
                       style={{ backgroundColor: tag.color }}
@@ -182,7 +181,7 @@ export const TagManagement = () => {
                       {tag.name}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-left">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full border"
@@ -191,7 +190,6 @@ export const TagManagement = () => {
                       {tag.color}
                     </div>
                   </TableCell>
-                  <TableCell>{tag.description}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

@@ -93,4 +93,21 @@ func SetupRoutes(app *fiber.App) {
 	tags.Post("/", middleware.RequireAdminOrUser, handlers.CreateTag)
 	tags.Put("/:id", middleware.RequireAdminOrUser, handlers.UpdateTag)
 	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
+
+// Task routes
+    app.Get("/api/tasks", middleware.RequireAdminOrUser, handlers.GetTasks)
+    app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
+    app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
+    app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
+    app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
+    app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
+    
+    // Patient-specific tasks
+    app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)
+    
+    // Task template routes (if you want to add them)
+    app.Get("/api/task-templates", middleware.RequireAdminOrUser, handlers.GetTaskTemplates)
+    app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)
+    app.Put("/api/task-templates/:id", middleware.RequireAdmin, handlers.UpdateTaskTemplate)
+    app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
 }

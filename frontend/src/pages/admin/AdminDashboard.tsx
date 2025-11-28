@@ -5,6 +5,7 @@ import { Users, Stethoscope, CircuitBoard, Plus } from 'lucide-react'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { UserManagementTable } from '@/components/admin/UserManagementTable'
 import { TagManagement } from '@/components/admin/TagManagement'
+import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
 
 export default function AdminDashboard() {
   const breadcrumbItems = [
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="container py-6 mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       
       <div className="flex flex-col space-y-4">
@@ -83,11 +84,17 @@ export default function AdminDashboard() {
           )
         })}
       </div>
+      <div className="my-6">
+        <UserManagementTable />
+      </div>
 
-      <UserManagementTable />
-
+      <div className="my-6">
       <TagManagement />
+      </div>
 
+      <div className="my-6">
+        <TaskTemplateManager />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Admin Privileges</CardTitle>

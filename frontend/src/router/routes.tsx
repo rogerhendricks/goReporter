@@ -21,6 +21,11 @@ import LeadDetail from '@/pages/leads/LeadDetail'
 import LeadForm from '@/components/forms/LeadForm'
 import PatientSearch from '@/pages/search/PatientSearch'
 import { TagManagement } from '@/components/admin/TagManagement'
+import { TaskList } from '@/components/tasks/TaskList'
+import { TaskForm } from '@/components/forms/TaskForm'
+import { TaskDetail } from '@/components/tasks/TaskDetail'
+import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
+
 
 export interface RouteConfig {
   path: string
@@ -230,5 +235,42 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['admin']
+  },
+
+  // Task management
+  {
+  path: '/tasks',
+  element: <TaskList />,
+  requiresAuth: true,
+  layout: 'default',
+  roles: ['admin', 'doctor', 'user']
+  },
+  {
+    path: 'tasks/new',
+    element: <TaskForm />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
+  },
+  {
+    path: '/tasks/:id',
+    element: <TaskDetail />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
+  },
+  {
+    path: '/task-templates',
+    element: <TaskTemplateManager />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+  {
+    path: '/patients/:patientId/tasks/mew',
+    element: <TaskForm />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
   }
 ]

@@ -54,6 +54,9 @@ func migrate(db *gorm.DB) error {
 		&models.ImplantedLead{},
 		&models.Report{},
 		&models.Tag{},
+		&models.Task{},
+        &models.TaskNote{},
+        &models.TaskTemplate{},
 	)
 }
 
@@ -63,6 +66,10 @@ func shouldSeed(db *gorm.DB) bool {
 		return false
 	}
 	return count == 0
+}
+
+func pointer(i int) *int {
+    return &i
 }
 
 func seed(db *gorm.DB) error {
@@ -319,6 +326,55 @@ func seed(db *gorm.DB) error {
 		return err
 	}
 
+
+	templates := []models.TaskTemplate{
+		{
+			Name:            "Follow-up Appointment",
+			Description:     "Schedule a routine follow-up appointment",
+			Title:           "Schedule Follow-up Appointment",
+			TaskDescription: "Contact patient to schedule their next follow-up appointment. Review previous visit notes and ensure all necessary tests are completed.",
+			Priority:        models.TaskPriorityMedium,
+			DaysUntilDue:    pointer(7),
+		},
+		{
+			Name:            "Device Check Review",
+			Description:     "Review device interrogation results",
+			Title:           "Review Device Interrogation",
+			TaskDescription: "Analyze device data from recent interrogation. Check battery status, lead impedances, and arrhythmia episodes. Document findings.",
+			Priority:        models.TaskPriorityHigh,
+			DaysUntilDue:    pointer(2),
+		},
+		{
+			Name:            "Battery Replacement Planning",
+			Description:     "Plan for upcoming device battery replacement",
+			Title:           "Plan Battery Replacement",
+			TaskDescription: "Device approaching ERI. Schedule pre-operative assessment, coordinate with surgical team, and arrange patient education session.",
+			Priority:        models.TaskPriorityUrgent,
+			DaysUntilDue:    pointer(14),
+		},
+		{
+			Name:            "Lab Results Review",
+			Description:     "Review and follow up on lab results",
+			Title:           "Review Lab Results",
+			TaskDescription: "Review recent laboratory results. Check for any abnormalities that require intervention. Update medication if needed.",
+			Priority:        models.TaskPriorityMedium,
+			DaysUntilDue:    pointer(3),
+		},
+		{
+			Name:            "Patient Education Call",
+			Description:     "Educational call for new device patients",
+			Title:           "Patient Education Follow-up",
+			TaskDescription: "Call patient to review device care instructions, answer questions, and ensure they understand warning signs to watch for.",
+			Priority:        models.TaskPriorityLow,
+			DaysUntilDue:    pointer(5),
+		},
+	}
+
+    for _, template := range templates {
+        db.FirstOrCreate(&template, models.TaskTemplate{Name: template.Name})
+    }
+
 	log.Println("Seeding complete.")
 	return nil
 }
+

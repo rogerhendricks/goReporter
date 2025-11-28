@@ -39,7 +39,17 @@ func AuthenticateJWT(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token"})
 	}
 
+    var user models.User
+    if err := config.DB.First(&user, claims.Subject).Error; err != nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "User not found",
+        })
+    }
 	c.Locals("userID", claims.Subject)
+	c.Locals("user", &user)
+	c.Locals("user_id", user.ID)
+	c.Locals("user_role", user.Role)
+
 	return c.Next()
 }
 
