@@ -91,14 +91,14 @@ export const TagManagement = () => {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow mt-6">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
             <CardTitle>Tag Management</CardTitle>
             <CardDescription>Create and manage tags for patients and reports.</CardDescription>
-          </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-end mb-4">
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingTag(null);
@@ -159,21 +159,28 @@ export const TagManagement = () => {
             </DialogContent>
           </Dialog>
         </div>
-      </CardHeader>
-      <CardContent>
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-left">Name</TableHead>
                 <TableHead className="text-left">Color</TableHead>
+<<<<<<< HEAD
+=======
+                <TableHead className="text-left">Description</TableHead>
+>>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tags.map((tag) => (
+<<<<<<< HEAD
                 <TableRow key={tag.ID}>
                   <TableCell className="text-left">
+=======
+                <TableRow key={tag.ID} className="text-left">
+                  <TableCell>
+>>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
                     <span
                       className="px-2 py-1 rounded-full text-xs font-medium text-white"
                       style={{ backgroundColor: tag.color }}

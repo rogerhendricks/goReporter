@@ -45,10 +45,14 @@ export default function AdminDashboard() {
   ]
 
   return (
+<<<<<<< HEAD
     <div className="container py-6 mx-auto">
+=======
+    <div className="container mx-auto py-6">
+>>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
       <BreadcrumbNav items={breadcrumbItems} />
       
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col space-y-4 pb-2">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
           Manage system resources and configurations. As an admin, you have full access to all features.
@@ -92,10 +96,14 @@ export default function AdminDashboard() {
       <TagManagement />
       </div>
 
+<<<<<<< HEAD
       <div className="my-6">
         <TaskTemplateManager />
       </div>
       <Card>
+=======
+      <Card className="hover:shadow-lg transition-shadow mt-6">
+>>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
         <CardHeader>
           <CardTitle>Admin Privileges</CardTitle>
           <CardDescription>
@@ -103,12 +111,13 @@ export default function AdminDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="list-disc list-inside space-y-2 text-sm">
-            <li>Create, read, update, and delete all patient records</li>
+          <ul className="list-disc list-inside space-y-2 text-sm text-left">
+            <li>Create, update and delete all patient records</li>
             <li>Manage doctor accounts and assignments</li>
             <li>Configure medical devices and leads</li>
             <li>Access all reports and data across the system</li>
             <li>Manage system users and their roles</li>
+            <li>Create, update and delete tags for categorization</li>
           </ul>
         </CardContent>
       </Card>
