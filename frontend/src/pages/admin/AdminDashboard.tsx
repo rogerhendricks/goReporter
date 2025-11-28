@@ -45,11 +45,8 @@ export default function AdminDashboard() {
   ]
 
   return (
-<<<<<<< HEAD
     <div className="container py-6 mx-auto">
-=======
-    <div className="container mx-auto py-6">
->>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
+
       <BreadcrumbNav items={breadcrumbItems} />
       
       <div className="flex flex-col space-y-4 pb-2">
@@ -96,14 +93,12 @@ export default function AdminDashboard() {
       <TagManagement />
       </div>
 
-<<<<<<< HEAD
+
       <div className="my-6">
         <TaskTemplateManager />
       </div>
-      <Card>
-=======
+
       <Card className="hover:shadow-lg transition-shadow mt-6">
->>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
         <CardHeader>
           <CardTitle>Admin Privileges</CardTitle>
           <CardDescription>
