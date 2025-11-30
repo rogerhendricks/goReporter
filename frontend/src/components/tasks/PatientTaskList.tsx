@@ -40,7 +40,7 @@ const statusConfig: Record<TaskStatus, { color: string; label: string; icon: typ
   cancelled: { color: 'bg-red-500', label: 'Cancelled', icon: Circle }
 }
 
-export function TaskList({ patientId, showFilters = true }: TaskListProps) {
+export function PatientTaskList({ patientId, showFilters = true }: TaskListProps) {
   const navigate = useNavigate()
   const { tasks, fetchTasks, fetchTasksByPatient, updateTask, isLoading } = useTaskStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
@@ -120,44 +120,41 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
   return (
     <div className="space-y-4 pt-4">
       {/* Header with Filters */}
-          {showFilters && (
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Tasks</h2>
         <div className="flex items-center gap-2">
-            <>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TaskStatus | 'all')}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+      {showFilters && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TaskStatus | 'all')}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as TaskPriority | 'all')}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Task
-              </Button>
-            </>
+            <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as TaskPriority | 'all')}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-          )}
+      )}
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="text-center py-8">Loading tasks...</div>

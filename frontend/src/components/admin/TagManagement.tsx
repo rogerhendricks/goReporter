@@ -165,22 +165,15 @@ export const TagManagement = () => {
               <TableRow>
                 <TableHead className="text-left">Name</TableHead>
                 <TableHead className="text-left">Color</TableHead>
-<<<<<<< HEAD
-=======
-                <TableHead className="text-left">Description</TableHead>
->>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
+
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tags.map((tag) => (
-<<<<<<< HEAD
-                <TableRow key={tag.ID}>
-                  <TableCell className="text-left">
-=======
+
                 <TableRow key={tag.ID} className="text-left">
                   <TableCell>
->>>>>>> 4a0adce0a132bfc0f8219adc7fa224d7b7866bae
                     <span
                       className="px-2 py-1 rounded-full text-xs font-medium text-white"
                       style={{ backgroundColor: tag.color }}

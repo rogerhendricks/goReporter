@@ -143,14 +143,14 @@ export default function PatientDetail() {
   return (
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {currentPatient.fname} {currentPatient.lname}
         </h1>
-        <div className="ml-auto flex gap-2">
+        <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap gap-2">
           <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="flex-1 sm:flex-initial">
                 <ClipboardList className="mr-2 h-4 w-4" />
                 New Task
               </Button>
@@ -169,12 +169,12 @@ export default function PatientDetail() {
               />
             </DialogContent>
           </Dialog>
-          <Button asChild>
+          <Button asChild className="flex-1 sm:flex-initial">
             <Link to={`/patients/${currentPatient.id}/reports/new`}>
               <Plus className="mr-2 h-4 w-4" /> Create New Report
             </Link>
           </Button>
-          <Button asChild variant="secondary">
+          <Button asChild variant="secondary" className="flex-1 sm:flex-initial">
             <Link to={`/patients/${currentPatient.id}/reports`} className="flex items-center gap-2">
               View All
               <Badge variant="outline" className="bg-background">
@@ -182,11 +182,11 @@ export default function PatientDetail() {
               </Badge>
             </Link>
           </Button>
-          <Button onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}>
+          <Button onClick={() => navigate(`/patients/${currentPatient.id}/edit`)} className="flex-1 sm:flex-initial">
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
+          <Button variant="destructive" onClick={handleDelete} className="flex-1 sm:flex-initial">
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
