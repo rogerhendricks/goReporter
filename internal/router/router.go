@@ -110,4 +110,5 @@ func SetupRoutes(app *fiber.App) {
     app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)
     app.Put("/api/task-templates/:id", middleware.RequireAdmin, handlers.UpdateTaskTemplate)
     app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
+	app.Post("/api/task-templates/:id/assign", middleware.RequireAdminOrUser, handlers.AssignTemplateToPatient)
 }

@@ -40,6 +40,7 @@ import {
 import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
+import { TaskTemplateSelector } from '@/components/tasks/TaskTemplateSelector'
 // import { QRSDurationTable } from '@/components/tables/QRSDurationTable'
 
 export default function PatientDetail() {
@@ -169,6 +170,10 @@ export default function PatientDetail() {
               />
             </DialogContent>
           </Dialog>
+          <TaskTemplateSelector 
+              patientId={currentPatient.id} 
+              onSuccess={handleTaskCreated}
+          />
           <Button asChild className="flex-1 sm:flex-initial">
             <Link to={`/patients/${currentPatient.id}/reports/new`}>
               <Plus className="mr-2 h-4 w-4" /> Create New Report

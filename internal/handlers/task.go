@@ -58,6 +58,11 @@ type CreateTaskFromTemplateRequest struct {
     AssignedToID *uint `json:"assignedToId"`
 }
 
+type AssignTemplateRequest struct {
+    PatientID int    `json:"patientId"`
+    DueDate   string `json:"dueDate,omitempty"`
+}
+
 // GetTasks retrieves all tasks with filters
 func GetTasks(c *fiber.Ctx) error {
     // Safely get user_id from context
@@ -718,6 +723,82 @@ func CreateTaskFromTemplate(c *fiber.Ctx) error {
         config.DB.Model(&task).Association("Tags").Append(template.Tags)
     }
 
+    config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
+
+    return c.Status(fiber.StatusCreated).JSON(task)
+}
+
+// AssignTemplateToPatient assigns a task template to a specific patient, creating a task
+func AssignTemplateToPatient(c *fiber.Ctx) error {
+    templateID, err := strconv.Atoi(c.Params("id"))
+    if err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid template ID",
+        })
+    }
+
+    var req AssignTemplateRequest
+    if err := c.BodyParser(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request body",
+        })
+    }
+
+    // Get the template
+    var template models.TaskTemplate
+    if err := config.DB.Preload("Tags").First(&template, templateID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "Template not found",
+        })
+    }
+
+    // Get user ID from context
+    userID := c.Locals("userID").(uint)
+
+    // Calculate due date
+    var dueDate *time.Time
+    if req.DueDate != "" {
+        parsed, err := time.Parse("2006-01-02", req.DueDate)
+        if err == nil {
+            dueDate = &parsed
+        }
+    } else if template.DaysUntilDue != nil {
+        calculated := time.Now().AddDate(0, 0, *template.DaysUntilDue)
+        dueDate = &calculated
+    }
+
+    // Create task from template
+    var patientID *uint
+    if req.PatientID != 0 {
+        pid := uint(req.PatientID)
+        patientID = &pid
+    }
+    task := models.Task{
+        Title:       template.Title,
+        Description: template.TaskDescription,
+        Status:      "pending",
+        Priority:    template.Priority,
+        PatientID:   patientID,
+        CreatedByID: userID,
+        DueDate:     dueDate,
+    }
+
+    if err := config.DB.Create(&task).Error; err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to create task",
+        })
+    }
+
+    // Associate tags
+    if len(template.Tags) > 0 {
+        if err := config.DB.Model(&task).Association("Tags").Append(template.Tags); err != nil {
+            return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Failed to associate tags",
+            })
+        }
+    }
+
+    // Load the created task with associations
     config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
 
     return c.Status(fiber.StatusCreated).JSON(task)
