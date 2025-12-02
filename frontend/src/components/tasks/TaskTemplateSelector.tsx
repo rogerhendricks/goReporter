@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { taskTemplateService, TaskTemplate } from '@/services/taskTemplateService'
+import { taskTemplateService } from '@/services/taskTemplateService'
+import type { TaskTemplate} from '@/services/taskTemplateService'
 import { useTaskStore } from '@/stores/taskStore'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -24,7 +25,7 @@ export function TaskTemplateSelector({ patientId, onSuccess }: TaskTemplateSelec
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [dueDate, setDueDate] = useState<Date>()
   const [isLoading, setIsLoading] = useState(false)
-  const { fetchTasksForPatient } = useTaskStore()
+  const { fetchTasksByPatient } = useTaskStore()
 
   useEffect(() => {
     if (open) {
@@ -56,7 +57,7 @@ export function TaskTemplateSelector({ patientId, onSuccess }: TaskTemplateSelec
       )
       
       toast.success('Task created from template')
-      await fetchTasksForPatient(patientId)
+      await fetchTasksByPatient(patientId)
       
       setOpen(false)
       setSelectedTemplate('')

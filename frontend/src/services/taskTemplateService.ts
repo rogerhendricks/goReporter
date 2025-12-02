@@ -13,12 +13,12 @@ export interface TaskTemplate {
 
 export const taskTemplateService = {
   async getAll(): Promise<TaskTemplate[]> {
-    const response = await axios.get('/api/task-templates')
+    const response = await axios.get('/task-templates')
     return response.data
   },
 
   async assignToPatient(patientId: number, templateId: number, dueDate?: string): Promise<any> {
-    const response = await axios.post(`/api/task-templates/${templateId}/assign`, {
+    const response = await axios.post(`/task-templates/${templateId}/assign`, {
       patientId,
       dueDate
     })

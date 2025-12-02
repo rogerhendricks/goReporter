@@ -752,8 +752,19 @@ func AssignTemplateToPatient(c *fiber.Ctx) error {
         })
     }
 
-    // Get user ID from context
-    userID := c.Locals("userID").(uint)
+    // Safely get user_id from context
+    userIDVal := c.Locals("user_id")
+    if userIDVal == nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "User not authenticated",
+        })
+    }
+    userID, ok := userIDVal.(uint)
+    if !ok {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid user ID",
+        })
+    }
 
     // Calculate due date
     var dueDate *time.Time
@@ -773,10 +784,11 @@ func AssignTemplateToPatient(c *fiber.Ctx) error {
         pid := uint(req.PatientID)
         patientID = &pid
     }
+    
     task := models.Task{
         Title:       template.Title,
         Description: template.TaskDescription,
-        Status:      "pending",
+        Status:      models.TaskStatusPending,
         Priority:    template.Priority,
         PatientID:   patientID,
         CreatedByID: userID,
