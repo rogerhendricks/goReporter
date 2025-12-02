@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import {
   Card,
@@ -29,8 +29,11 @@ import {
   CardDescription,
 } from '../ui/card';
 
+const ITEMS_PER_PAGE = 5;
+
 export const TagManagement = () => {
   const [tags, setTags] = useState<Tag[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [formData, setFormData] = useState({
@@ -87,6 +90,24 @@ export const TagManagement = () => {
       } catch (error) {
         console.error('Failed to delete tag:', error);
       }
+    }
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil(tags.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentTags = tags.slice(startIndex, endIndex);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
     }
   };
 
@@ -165,55 +186,93 @@ export const TagManagement = () => {
               <TableRow>
                 <TableHead className="text-left">Name</TableHead>
                 <TableHead className="text-left">Color</TableHead>
-
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tags.map((tag) => (
-
-                <TableRow key={tag.ID} className="text-left">
-                  <TableCell>
-                    <span
-                      className="px-2 py-1 rounded-full text-xs font-medium text-white"
-                      style={{ backgroundColor: tag.color }}
-                    >
-                      {tag.name}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-left">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border"
-                        style={{ backgroundColor: tag.color }}
-                      />
-                      {tag.color}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(tag)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDelete(tag.ID)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+              {currentTags.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    No tags found.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                currentTags.map((tag) => (
+                  <TableRow key={tag.ID} className="text-left">
+                    <TableCell>
+                      <span
+                        className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        {tag.name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full border"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.color}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(tag)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDelete(tag.ID)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination Controls */}
+        {tags.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, tags.length)} of {tags.length} tags
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="text-sm">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

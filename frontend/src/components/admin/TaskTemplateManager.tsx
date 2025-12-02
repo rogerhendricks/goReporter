@@ -14,7 +14,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { tagService } from '@/services/tagService'
 
@@ -29,12 +29,15 @@ interface TaskTemplate {
   tags: any[]
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export function TaskTemplateManager() {
   const [templates, setTemplates] = useState<TaskTemplate[]>([])
   const [availableTags, setAvailableTags] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -205,6 +208,24 @@ export function TaskTemplateManager() {
     )
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(templates.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentTemplates = templates.slice(startIndex, endIndex);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -365,14 +386,14 @@ export function TaskTemplateManager() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {templates.length === 0 ? (
+              {currentTemplates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No templates found. Create your first template to get started.
                   </TableCell>
                 </TableRow>
               ) : (
-                templates.map((template) => (
+                currentTemplates.map((template) => (
                   <TableRow key={template.id} className="text-left">
                     <TableCell>
                       <div>
@@ -436,6 +457,38 @@ export function TaskTemplateManager() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination Controls */}
+        {templates.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, templates.length)} of {templates.length} templates
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="text-sm">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

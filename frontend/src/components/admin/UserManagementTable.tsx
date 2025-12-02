@@ -19,12 +19,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Edit, Trash2, Save, X, Plus, Loader2 } from 'lucide-react';
+import { Edit, Trash2, Save, X, Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
+const ITEMS_PER_PAGE = 10;
 
 export function UserManagementTable() {
     const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
     const [saving, setSaving] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // State for tracking which row is being edited
     const [editingRowId, setEditingRowId] = useState<string | null>(null);
@@ -52,37 +55,37 @@ export function UserManagementTable() {
         setIsAdding(false);
     };
 
-const handleSave = async () => {
-    if (!editedUser) return;
+    const handleSave = async () => {
+        if (!editedUser) return;
 
-    try {
-        setSaving(true);
+        try {
+            setSaving(true);
 
-        if (isAdding) {
-            if (!editedUser.username || !editedUser.email || !editedUser.password || !editedUser.role || !editedUser.fullName) {
-                toast.error('All fields are required to create a new user.');
-                return;
-            }
-            const { ID, ...userDataForCreation } = editedUser;
-            const newUser = await createUser(userDataForCreation);
-            if (newUser) {
-                await fetchUsers();
-                handleCancel();
-            }
-        } else if (editingRowId) {
-            const { password, ...userData } = editedUser;
-            const payload = password ? editedUser : userData;
+            if (isAdding) {
+                if (!editedUser.username || !editedUser.email || !editedUser.password || !editedUser.role || !editedUser.fullName) {
+                    toast.error('All fields are required to create a new user.');
+                    return;
+                }
+                const { ID, ...userDataForCreation } = editedUser;
+                const newUser = await createUser(userDataForCreation);
+                if (newUser) {
+                    await fetchUsers();
+                    handleCancel();
+                }
+            } else if (editingRowId) {
+                const { password, ...userData } = editedUser;
+                const payload = password ? editedUser : userData;
 
-            const updatedUser = await updateUser(editingRowId, payload);
-            if (updatedUser) {
-                await fetchUsers();
-                handleCancel();
+                const updatedUser = await updateUser(editingRowId, payload);
+                if (updatedUser) {
+                    await fetchUsers();
+                    handleCancel();
+                }
             }
+        } finally {
+            setSaving(false);
         }
-    } finally {
-        setSaving(false);
-    }
-};
+    };
 
     const handleDelete = (user: User) => {
         if (window.confirm(`Are you sure you want to delete the user "${user.username}"?`)) {
@@ -102,6 +105,24 @@ const handleSave = async () => {
         setIsAdding(true);
         // Initialize an empty user object for the "add" row
         setEditedUser({ username: '', email: '', role: 'user', password: '', fullName: '' });
+    };
+
+    // Pagination logic
+    const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const currentUsers = users.slice(startIndex, endIndex);
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
     };
 
     return (
@@ -131,7 +152,7 @@ const handleSave = async () => {
                         <TableBody>
                             {loading && users.length === 0 ? (
                                 <TableRow className="text-left">
-                                    <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                                    <TableCell colSpan={6} className="text-center">Loading...</TableCell>
                                 </TableRow>
                             ) : (
                                 <>
@@ -164,7 +185,7 @@ const handleSave = async () => {
                                     )}
 
                                     {/* Map over existing users and render rows conditionally */}
-                                    {users.map((user) => {
+                                    {currentUsers.map((user) => {
                                         // This is the crucial check: is this specific row the one being edited?
                                         const isEditing = editingRowId === user.ID;
 
@@ -220,6 +241,38 @@ const handleSave = async () => {
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* Pagination Controls */}
+                {users.length > ITEMS_PER_PAGE && (
+                    <div className="flex items-center justify-between mt-4">
+                        <div className="text-sm text-muted-foreground">
+                            Showing {startIndex + 1} to {Math.min(endIndex, users.length)} of {users.length} users
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={goToPreviousPage}
+                                disabled={currentPage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            <div className="text-sm">
+                                Page {currentPage} of {totalPages}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={goToNextPage}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
