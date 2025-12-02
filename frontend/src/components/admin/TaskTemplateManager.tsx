@@ -8,7 +8,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Edit2, Trash2, FileText } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+import { Plus, Edit2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { tagService } from '@/services/tagService'
 
@@ -134,230 +140,302 @@ export function TaskTemplateManager() {
     }))
   }
 
+  const renderTags = (tags: any[]) => {
+    if (!tags || tags.length === 0) {
+      return <span className="text-sm text-muted-foreground">No tags</span>
+    }
+
+    if (tags.length === 1) {
+      const tag = tags[0]
+      return (
+        <Badge
+          variant="outline"
+          style={{ borderColor: tag.color, color: tag.color }}
+          className="text-xs"
+        >
+          {tag.name}
+        </Badge>
+      )
+    }
+
+    const displayedTag = tags[0]
+    const remainingCount = tags.length - 1
+
+    return (
+      <div className="flex flex-wrap gap-1 items-center">
+        <Badge
+          variant="outline"
+          style={{ borderColor: displayedTag.color, color: displayedTag.color }}
+          className="text-xs"
+        >
+          {displayedTag.name}
+        </Badge>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <Badge 
+              variant="secondary" 
+              className="text-xs cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              +{remainingCount} more
+            </Badge>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold mb-2">All Tags</h4>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag.ID}
+                    variant="outline"
+                    style={{ 
+                      borderColor: tag.color, 
+                      color: tag.color,
+                      backgroundColor: `${tag.color}10`
+                    }}
+                    className="text-xs"
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+      </div>
+    )
+  }
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Task Templates</CardTitle>
-              <CardDescription>
-                Create reusable templates for common tasks
-              </CardDescription>
-          </div>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open)
-              if (!open) resetForm()
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingTemplate ? 'Edit Template' : 'Create New Template'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Create a reusable template for tasks that you perform frequently
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Template Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., Follow-up Appointment"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Template Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe when to use this template"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Task Title *</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Title for tasks created from this template"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="taskDescription">Task Description</Label>
-                    <Textarea
-                      id="taskDescription"
-                      value={formData.taskDescription}
-                      onChange={(e) => setFormData({ ...formData, taskDescription: e.target.value })}
-                      placeholder="Description for tasks created from this template"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="priority">Priority</Label>
-                      <Select
-                        value={formData.priority}
-                        onValueChange={(value) => setFormData({ ...formData, priority: value })}
-                      >
-                        <SelectTrigger id="priority">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="daysUntilDue">Days Until Due</Label>
-                      <Input
-                        id="daysUntilDue"
-                        type="number"
-                        value={formData.daysUntilDue ?? ''}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          daysUntilDue: e.target.value ? parseInt(e.target.value) : undefined 
-                        })}
-                        placeholder="Optional"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Default Tags</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {availableTags.map(tag => (
-                        <Badge
-                          key={tag.ID}
-                          variant={formData.tagIds.includes(tag.ID) ? "default" : "outline"}
-                          style={formData.tagIds.includes(tag.ID) ? { backgroundColor: tag.color } : { borderColor: tag.color, color: tag.color }}
-                          className="cursor-pointer"
-                          onClick={() => toggleTag(tag.ID)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? 'Saving...' : editingTemplate ? 'Update Template' : 'Create Template'}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setIsDialogOpen(false)
-                        resetForm()
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-        </div>
+        <CardTitle>Task Template Management</CardTitle>
+        <CardDescription>
+          Create and manage reusable templates for common tasks
+        </CardDescription>
       </CardHeader>
       <CardContent>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {templates.map((template) => (
-          <Card key={template.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">{template.name}</CardTitle>
-                  {template.description && (
-                    <CardDescription className="mt-1">
-                      {template.description}
-                    </CardDescription>
-                  )}
+        <div className="flex justify-end mb-4">
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Template
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingTemplate ? 'Edit Template' : 'Create New Template'}
+                </DialogTitle>
+                <DialogDescription>
+                  Create a reusable template for tasks that you perform frequently
+                </DialogDescription>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Template Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Follow-up Appointment"
+                    required
+                  />
                 </div>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit(template)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDelete(template.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Template Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe when to use this template"
+                    rows={2}
+                  />
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm font-medium mb-1">Task Preview:</p>
-                <p className="text-sm text-muted-foreground">{template.title}</p>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Badge className={getPriorityColor(template.priority)}>
-                  {template.priority}
-                </Badge>
-                {template.daysUntilDue && (
-                  <Badge variant="outline">
-                    Due in {template.daysUntilDue} days
-                  </Badge>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="title">Task Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Title for tasks created from this template"
+                    required
+                  />
+                </div>
 
-              {template.tags && template.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {template.tags.map((tag) => (
-                    <Badge
-                      key={tag.ID}
-                      variant="outline"
-                      style={{ borderColor: tag.color, color: tag.color }}
-                      className="text-xs"
+                <div className="space-y-2">
+                  <Label htmlFor="taskDescription">Task Description</Label>
+                  <Textarea
+                    id="taskDescription"
+                    value={formData.taskDescription}
+                    onChange={(e) => setFormData({ ...formData, taskDescription: e.target.value })}
+                    placeholder="Description for tasks created from this template"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value) => setFormData({ ...formData, priority: value })}
                     >
-                      {tag.name}
-                    </Badge>
-                  ))}
+                      <SelectTrigger id="priority">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="daysUntilDue">Days Until Due</Label>
+                    <Input
+                      id="daysUntilDue"
+                      type="number"
+                      value={formData.daysUntilDue ?? ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        daysUntilDue: e.target.value ? parseInt(e.target.value) : undefined 
+                      })}
+                      placeholder="Optional"
+                      min="0"
+                    />
+                  </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Default Tags</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map(tag => (
+                      <Badge
+                        key={tag.ID}
+                        variant={formData.tagIds.includes(tag.ID) ? "default" : "outline"}
+                        style={formData.tagIds.includes(tag.ID) ? { backgroundColor: tag.color } : { borderColor: tag.color, color: tag.color }}
+                        className="cursor-pointer"
+                        onClick={() => toggleTag(tag.ID)}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Saving...' : editingTemplate ? 'Update Template' : 'Create Template'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsDialogOpen(false)
+                      resetForm()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-left">Template Name</TableHead>
+                <TableHead className="text-left">Task Title</TableHead>
+                <TableHead className="text-left">Priority</TableHead>
+                <TableHead className="text-left">Due In</TableHead>
+                <TableHead className="text-left">Tags</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No templates found. Create your first template to get started.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                templates.map((template) => (
+                  <TableRow key={template.id} className="text-left">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{template.name}</div>
+                        {template.description && (
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {template.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{template.title}</div>
+                        {template.taskDescription && (
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {template.taskDescription}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getPriorityColor(template.priority)}>
+                        {template.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {template.daysUntilDue ? (
+                        <Badge variant="outline">
+                          {template.daysUntilDue} days
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {renderTags(template.tags)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(template)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDelete(template.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      {templates.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              No templates yet. Create your first template to get started.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )

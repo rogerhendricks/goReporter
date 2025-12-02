@@ -21,6 +21,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -40,8 +45,6 @@ import {
 import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
-import { TaskTemplateSelector } from '@/components/tasks/TaskTemplateSelector'
-// import { QRSDurationTable } from '@/components/tables/QRSDurationTable'
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -99,7 +102,6 @@ export default function PatientDetail() {
   const handleTaskCreated = () => {
     setOpenTaskDialog(false)
     toast.success('Task created successfully')
-    // Refresh patient data to update task list
     if (id) {
       fetchPatient(parseInt(id))
     }
@@ -141,17 +143,21 @@ export default function PatientDetail() {
     )
   }
 
+  const patientTags = currentPatient.tags || []
+  const displayedTags = patientTags.slice(0, 2)
+  const remainingTagsCount = patientTags.length -2
+
   return (
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {currentPatient.fname} {currentPatient.lname}
         </h1>
-        <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap gap-2">
+        <div className="ml-auto flex gap-2">
           <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-initial">
+              <Button variant="outline">
                 <ClipboardList className="mr-2 h-4 w-4" />
                 New Task
               </Button>
@@ -170,16 +176,12 @@ export default function PatientDetail() {
               />
             </DialogContent>
           </Dialog>
-          <TaskTemplateSelector 
-              patientId={currentPatient.id} 
-              onSuccess={handleTaskCreated}
-          />
-          <Button asChild className="flex-1 sm:flex-initial">
+          <Button asChild>
             <Link to={`/patients/${currentPatient.id}/reports/new`}>
               <Plus className="mr-2 h-4 w-4" /> Create New Report
             </Link>
           </Button>
-          <Button asChild variant="secondary" className="flex-1 sm:flex-initial">
+          <Button asChild variant="secondary">
             <Link to={`/patients/${currentPatient.id}/reports`} className="flex items-center gap-2">
               View All
               <Badge variant="outline" className="bg-background">
@@ -187,11 +189,11 @@ export default function PatientDetail() {
               </Badge>
             </Link>
           </Button>
-          <Button onClick={() => navigate(`/patients/${currentPatient.id}/edit`)} className="flex-1 sm:flex-initial">
+          <Button onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="destructive" onClick={handleDelete} className="flex-1 sm:flex-initial">
+          <Button variant="destructive" onClick={handleDelete}>
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
@@ -267,33 +269,79 @@ export default function PatientDetail() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {currentPatient.tags && currentPatient.tags.length > 0 ? (
-                  currentPatient.tags.map((tag: any) => (
-                    <Badge
-                      key={tag.ID}
-                      variant="outline"
-                      className="flex items-center gap-1 pr-1"
-                      style={{ 
-                        borderColor: tag.color, 
-                        color: tag.color,
-                        backgroundColor: `${tag.color}10`
-                      }}
-                    >
-                      {tag.name}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 ml-1 hover:bg-transparent text-current"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleTag(tag.ID)
+              <div className="flex flex-wrap gap-2 items-center">
+                {patientTags.length > 0 ? (
+                  <>
+                    {displayedTags.map((tag: any) => (
+                      <Badge
+                        key={tag.ID}
+                        variant="outline"
+                        className="flex items-center gap-1 pr-1"
+                        style={{ 
+                          borderColor: tag.color, 
+                          color: tag.color,
+                          backgroundColor: `${tag.color}10`
                         }}
                       >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  ))
+                        {tag.name}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleTag(tag.ID)
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                    {remainingTagsCount > 0 && (
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Badge 
+                            variant="secondary" 
+                            className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                          >
+                            +{remainingTagsCount} more
+                          </Badge>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold mb-2">All Tags</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {patientTags.map((tag: any) => (
+                                <Badge
+                                  key={tag.ID}
+                                  variant="outline"
+                                  className="flex items-center gap-1 pr-1"
+                                  style={{ 
+                                    borderColor: tag.color, 
+                                    color: tag.color,
+                                    backgroundColor: `${tag.color}10`
+                                  }}
+                                >
+                                  {tag.name}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleToggleTag(tag.ID)
+                                    }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )}
+                  </>
                 ) : (
                   <span className="text-sm text-muted-foreground italic">No tags assigned</span>
                 )}
@@ -338,7 +386,7 @@ export default function PatientDetail() {
         </Card>
 
         {currentPatient.devices && currentPatient.devices.length > 0 && (
-          <Card className ="md:col-span-2 bg-sky-500/50">
+          <Card className="md:col-span-2 bg-sky-500/50">
             <CardHeader>
               <CardTitle>Implanted Devices ({currentPatient.devices?.length || 0})</CardTitle>
             </CardHeader>
@@ -413,8 +461,6 @@ export default function PatientDetail() {
           </CardContent>
         </Card>
 
-
-
         {currentPatient.medications && currentPatient.medications.length > 0 && (
           <Card>
             <CardHeader>
@@ -442,10 +488,6 @@ export default function PatientDetail() {
           />
         </div>
 
-        {/* QRS Duration Table */}
-        {/* <div className="md:col-span-2">
-          <QRSDurationTable reports={currentPatient.report || []} />
-        </div> */}
         {/* Patient Tasks */}
         <div className="md:col-span-2">
           <Card>
