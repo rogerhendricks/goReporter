@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type Doctor struct {
@@ -126,4 +127,33 @@ func UpdateDoctorAddresses(doctorID uint, addresses []Address) error {
 	}
 
 	return tx.Commit().Error
+}
+
+// GetDoctorsPaginated retrieves doctors with pagination and search
+func GetDoctorsPaginated(search string, page, limit int) ([]Doctor, int64, error) {
+    var doctors []Doctor
+    var total int64
+    
+    tx := config.DB.Model(&Doctor{}).Preload("Addresses")
+    
+    // Apply search filter if provided
+    if search != "" {
+        searchQuery := "%" + strings.ToLower(search) + "%"
+        tx = tx.Where("LOWER(full_name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(specialty) LIKE ?", 
+            searchQuery, searchQuery, searchQuery)
+    }
+    
+    // Get total count
+    if err := tx.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+    
+    // Get paginated results
+    offset := (page - 1) * limit
+    err := tx.Offset(offset).Limit(limit).Order("full_name ASC").Find(&doctors).Error
+    if err != nil {
+        return nil, 0, err
+    }
+    
+    return doctors, total, nil
 }

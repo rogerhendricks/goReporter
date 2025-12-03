@@ -59,6 +59,8 @@ export default function DeviceIndex() {
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete device ${name}?`)) {
       await deleteDevice(id)
+      // Refresh current page after deletion
+      await fetchDevices(currentPage, ITEMS_PER_PAGE, searchQuery)
     }
   }
 

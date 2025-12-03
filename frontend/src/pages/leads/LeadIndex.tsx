@@ -62,6 +62,8 @@ export default function LeadIndex() {
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete lead ${name}?`)) {
       await deleteLead(id)
+      // Refresh current page after deletion
+      await fetchLeads(currentPage, ITEMS_PER_PAGE, searchQuery)
     }
   }
 

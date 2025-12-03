@@ -88,8 +88,6 @@ func GetDoctors(c *fiber.Ctx) error {
 }
 
 func GetDoctorsBasic(c *fiber.Ctx) error {
-
-    // Check if user is authenticated (no admin requirement)
     userID := c.Locals("userID").(string)
     
     _, err := models.GetUserByID(userID)
@@ -97,43 +95,89 @@ func GetDoctorsBasic(c *fiber.Ctx) error {
         return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
     }
 
-    doctors, err := models.GetAllDoctors()
+    // Parse pagination parameters
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "25"))
+    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
+
+    if page < 1 {
+        page = 1
+    }
+    if limit < 1 || limit > 100 {
+        limit = 25
+    }
+
+    doctors, total, err := models.GetDoctorsPaginated(search, page, limit)
     if err != nil {
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+        log.Printf("Error fetching doctors: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch doctors"})
     }
 
-    // Ensure we return an empty array if no devices
-    if doctors == nil {
-        return c.JSON([]interface{}{})
+    // Map to response format
+    var doctorResponses []DoctorResponse
+    for _, d := range doctors {
+        doctorResponses = append(doctorResponses, toDoctorResponse(d))
     }
 
-    if len(doctors) == 0 {
-        return c.JSON([]interface{}{})
-    }
-
-    // Create a simplified response with consistent field names
-    type DoctorBasic struct {
-        ID        uint   `json:"id"`
-        FullName  string `json:"fullName"`
-        Email     string `json:"email"`
-        Phone     string `json:"phone"`
-        Specialty string `json:"specialty"`
-    }
-
-    var basicDoctors []DoctorBasic
-    for _, doctor := range doctors {
-        basicDoctors = append(basicDoctors, DoctorBasic{
-            ID:        doctor.ID,
-            FullName:  doctor.FullName,
-            Email:     doctor.Email,
-            Phone:     doctor.Phone,
-            Specialty: doctor.Specialty,
-        })
-    }
-
-    log.Printf("Returning %d basic doctors", len(basicDoctors)) // Add this debug line
-    return c.JSON(basicDoctors)
+    // Return paginated response with data wrapper
+    return c.JSON(fiber.Map{
+        "data": doctorResponses,  // ← Make sure it's wrapped in "data"
+        "pagination": fiber.Map{
+            "page":       page,
+            "limit":      limit,
+            "total":      total,
+            "totalPages": (total + int64(limit) - 1) / int64(limit),
+        },
+    })
 }
+
+// func GetDoctorsBasic(c *fiber.Ctx) error {
+
+//     // Check if user is authenticated (no admin requirement)
+//     userID := c.Locals("userID").(string)
+    
+//     _, err := models.GetUserByID(userID)
+//     if err != nil {
+//         return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+//     }
+
+//     doctors, err := models.GetAllDoctors()
+//     if err != nil {
+//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+//     }
+
+//     // Ensure we return an empty array if no devices
+//     if doctors == nil {
+//         return c.JSON([]interface{}{})
+//     }
+
+//     if len(doctors) == 0 {
+//         return c.JSON([]interface{}{})
+//     }
+
+//     // Create a simplified response with consistent field names
+//     type DoctorBasic struct {
+//         ID        uint   `json:"id"`
+//         FullName  string `json:"fullName"`
+//         Email     string `json:"email"`
+//         Phone     string `json:"phone"`
+//         Specialty string `json:"specialty"`
+//     }
+
+//     var basicDoctors []DoctorBasic
+//     for _, doctor := range doctors {
+//         basicDoctors = append(basicDoctors, DoctorBasic{
+//             ID:        doctor.ID,
+//             FullName:  doctor.FullName,
+//             Email:     doctor.Email,
+//             Phone:     doctor.Phone,
+//             Specialty: doctor.Specialty,
+//         })
+//     }
+
+//     log.Printf("Returning %d basic doctors", len(basicDoctors)) // Add this debug line
+//     return c.JSON(basicDoctors)
+// }
 
 // GetDoctor retrieves a specific doctor by ID
 func GetDoctor(c *fiber.Ctx) error {

@@ -20,12 +20,20 @@ export interface Doctor {
   patients?: any[]
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface DoctorState {
   doctors: Doctor[]
   currentDoctor: Doctor | null
+  pagination: PaginationInfo | null
   loading: boolean
   error: string | null
-  fetchDoctors: () => Promise<void>
+  fetchDoctors: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchDoctor: (id: number) => Promise<void>
   createDoctor: (data: Partial<Doctor>) => Promise<Doctor | undefined>
   updateDoctor: (id: number, data: Partial<Doctor>) => Promise<Doctor | undefined>
@@ -37,26 +45,45 @@ interface DoctorState {
 export const useDoctorStore = create<DoctorState>((set) => ({
   doctors: [],
   currentDoctor: null,
+  pagination: null,
   loading: false,
   error: null,
 
   clearError: () => set({ error: null }),
 
-  fetchDoctors: async () => {
+  fetchDoctors: async (page = 1, limit = 25, search = '') => {
     set({ loading: true, error: null })
     try {
-      console.log('Fetching doctors with addresses...')
-      const response = await api.get('/doctors/all')
-      console.log('Doctors response:', response.data)
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('limit', limit.toString())
+      if (search) params.append('search', search)
       
-      const doctorsData = Array.isArray(response.data) ? response.data : []
-      set({ doctors: doctorsData, loading: false })
+      const response = await api.get(`/doctors/all?${params.toString()}`)
+      
+      // Check if response has the paginated structure
+      if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+        // Backend returns { data: [...], pagination: {...} }
+        set({ 
+          doctors: response.data.data || [], 
+          pagination: response.data.pagination || null,
+          loading: false 
+        })
+      } else {
+        // Backend returns array directly (fallback)
+        set({ 
+          doctors: Array.isArray(response.data) ? response.data : [], 
+          pagination: null,
+          loading: false 
+        })
+      }
     } catch (error: any) {
       console.error('Error fetching doctors:', error)
       set({ 
         error: error.response?.data?.error || 'Failed to fetch doctors', 
         loading: false,
-        doctors: []
+        doctors: [],
+        pagination: null
       })
     }
   },
