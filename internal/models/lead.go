@@ -75,3 +75,32 @@ func LeadHasImplantedLeads(leadID uint) (bool, error) {
 	err := config.DB.Model(&ImplantedLead{}).Where("lead_id = ?", leadID).Count(&count).Error
 	return count > 0, err
 }
+
+// GetLeadsPaginated retrieves leads with pagination and search
+func GetLeadsPaginated(search string, page, limit int) ([]Lead, int64, error) {
+    var leads []Lead
+    var total int64
+    
+    tx := config.DB.Model(&Lead{})
+    
+    // Apply search filter if provided
+    if search != "" {
+        searchQuery := "%" + strings.ToLower(search) + "%"
+        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?", 
+            searchQuery, searchQuery, searchQuery)
+    }
+    
+    // Get total count
+    if err := tx.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+    
+    // Get paginated results
+    offset := (page - 1) * limit
+    err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&leads).Error
+    if err != nil {
+        return nil, 0, err
+    }
+    
+    return leads, total, nil
+}

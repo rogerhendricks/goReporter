@@ -11,35 +11,59 @@ export interface Lead {
   isMri: boolean
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface LeadState {
   leads: Lead[]
   currentLead: Lead | null
+  pagination: PaginationInfo | null
   loading: boolean
   error: string | null
-  fetchLeads: () => Promise<void>
+  fetchLeads: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchLead: (id: number) => Promise<void>
   createLead: (data: Omit<Lead, 'id'>) => Promise<Lead | undefined>
   updateLead: (id: number, data: Partial<Lead>) => Promise<Lead | undefined>
   deleteLead: (id: number) => Promise<void>
-  searchLeads: (query: string) => Promise<void>
+  // searchLeads: (query: string) => Promise<void>
   clearError: () => void
 }
 
 export const useLeadStore = create<LeadState>((set) => ({
   leads: [],
   currentLead: null,
+  pagination: null,
   loading: false,
   error: null,
 
   clearError: () => set({ error: null }),
 
-  fetchLeads: async () => {
+  fetchLeads: async (page = 1, limit = 25, search = '') => {
     set({ loading: true, error: null })
     try {
-      const response = await api.get('/leads/all')
-      set({ leads: response.data, loading: false })
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('limit', limit.toString())
+      if (search) params.append('search', search)
+      
+      const response = await api.get(`/leads/all?${params.toString()}`)
+      set({ 
+        leads: response.data.data, 
+        pagination: response.data.pagination,
+        loading: false 
+      })
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Failed to fetch leads', loading: false, leads: [] })
+      console.error('Error fetching devices:', error)
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch leads', 
+        loading: false, 
+        leads: [],
+        pagination: null
+      })
     }
   },
 
@@ -100,13 +124,13 @@ export const useLeadStore = create<LeadState>((set) => ({
     }
   },
 
-  searchLeads: async (query) => {
-    set({ loading: true, error: null })
-    try {
-      const response = await api.get('/leads/search', { params: { search: query } })
-      set({ leads: response.data, loading: false })
-    } catch (error: any) {
-      set({ error: error.response?.data?.error || 'No leads found', loading: false, leads: [] })
-    }
-  },
+  // searchLeads: async (query) => {
+  //   set({ loading: true, error: null })
+  //   try {
+  //     const response = await api.get('/leads/search', { params: { search: query } })
+  //     set({ leads: response.data, loading: false })
+  //   } catch (error: any) {
+  //     set({ error: error.response?.data?.error || 'No leads found', loading: false, leads: [] })
+  //   }
+  // },
 }))

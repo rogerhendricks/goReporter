@@ -57,7 +57,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/patients/:id", middleware.RequireAdminOrUser, handlers.DeletePatient)
 
 	// Lead routes - admin only for CUD operations
-	app.Get("/api/leads/all", handlers.GetleadsBasic)
+	app.Get("/api/leads/all", handlers.GetLeadsBasic)
 	app.Get("/api/leads/search", handlers.SearchLeads)
 	app.Get("/api/leads/:id", handlers.GetLead)
 	app.Post("/api/leads", middleware.RequireAdmin, handlers.CreateLead)

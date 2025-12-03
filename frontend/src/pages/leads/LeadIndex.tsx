@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, Edit, Plus, Search } from 'lucide-react'
+
 import {
   Table,
   TableBody,
@@ -17,30 +18,45 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
+
 export default function LeadIndex() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 25
+
   const { 
-    leads, 
+    leads,
+    pagination, 
     loading, 
     error, 
     fetchLeads, 
     deleteLead, 
-    searchLeads,
+    // searchLeads,
     clearError 
   } = useLeadStore()
 
   useEffect(() => {
-    fetchLeads()
-  }, [fetchLeads])
+    fetchLeads(currentPage, ITEMS_PER_PAGE, searchQuery)
+  }, [currentPage, fetchLeads, searchQuery])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      await searchLeads(searchQuery)
-    } else {
-      await fetchLeads()
-    }
+    setCurrentPage(1)
+    await fetchLeads(1, ITEMS_PER_PAGE, searchQuery)
+  }
+
+    const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
   }
 
   const handleDelete = async (id: number, name: string) => {
@@ -48,6 +64,75 @@ export default function LeadIndex() {
       await deleteLead(id)
     }
   }
+
+  const renderPaginationItems = () => {
+    if (!pagination) return null
+
+    const items = []
+    const totalPages = pagination.totalPages
+    const current = currentPage
+
+    // Always show first page
+    items.push(
+      <PaginationItem key={1}>
+        <PaginationLink
+          onClick={() => handlePageChange(1)}
+          isActive={current === 1}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    )
+
+    // Show ellipsis if needed
+    if (current > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-start">
+          <PaginationEllipsis />
+        </PaginationItem>
+      )
+    }
+
+    // Show pages around current page
+    for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            onClick={() => handlePageChange(i)}
+            isActive={current === i}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      )
+    }
+
+    // Show ellipsis if needed
+    if (current < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-end">
+          <PaginationEllipsis />
+        </PaginationItem>
+      )
+    }
+
+    // Always show last page if more than 1 page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            onClick={() => handlePageChange(totalPages)}
+            isActive={current === totalPages}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      )
+    }
+
+    return items
+  }
+
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -98,6 +183,7 @@ export default function LeadIndex() {
           ) : leads.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No leads found.</div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -139,6 +225,38 @@ export default function LeadIndex() {
                 ))}
               </TableBody>
             </Table>
+            {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                      {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                      {pagination.total} devices
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        
+                        {renderPaginationItems()}
+                        
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className={currentPage === pagination.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

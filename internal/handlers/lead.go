@@ -43,55 +43,94 @@ func GetLeads(c *fiber.Ctx) error {
 }
 
 // GetleadsBasic retrieves basic device information (name, manufacturer, connector, model)
-func GetleadsBasic(c *fiber.Ctx) error {
+func GetLeadsBasic(c *fiber.Ctx) error {
+    userID := c.Locals("userID").(string)
+    
+    _, err := models.GetUserByID(userID)
+    if err != nil {
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+    }
 
-	// Check if user is authenticated (no admin requirement)
-	userID := c.Locals("userID").(string)
+    // Parse pagination parameters
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "25"))
+    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
 
-	_, err := models.GetUserByID(userID)
-	if err != nil {
-		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-	}
+    if page < 1 {
+        page = 1
+    }
+    if limit < 1 || limit > 100 {
+        limit = 25
+    }
 
-	leads, err := models.GetAllLeads()
-	if err != nil {
-		log.Printf("Error fetching leads: %v", err)
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch leads"})
-	}
+    leads, total, err := models.GetLeadsPaginated(search, page, limit)
+    if err != nil {
+        log.Printf("Error fetching leads: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch leads"})
+    }
 
-	// Ensure we return an empty array if no devices
-	if leads == nil {
-		return c.JSON([]interface{}{})
-	}
-
-	if len(leads) == 0 {
-		return c.JSON([]interface{}{})
-	}
-
-	// Return only basic information
-	type LeadBasic struct {
-		ID           uint   `json:"id"`
-		Name         string `json:"name"`
-		Manufacturer string `json:"manufacturer"`
-		LeadModel    string `json:"leadModel"`
-		IsMri        bool   `json:"isMri"`
-		Polarity     string `json:"polarity"`
-		Connector    string `json:"connector"`
-	}
-	var basicLeads []LeadBasic
-	for _, lead := range leads {
-		basicLeads = append(basicLeads, LeadBasic{
-			ID:           lead.ID,
-			Name:         lead.Name,
-			Manufacturer: lead.Manufacturer,
-			LeadModel:    lead.LeadModel,
-			IsMri:        lead.IsMri,
-			Polarity:     lead.Polarity,
-			Connector:    lead.Connector,
-		})
-	}
-	return c.JSON(basicLeads)
+    // Return paginated response
+    return c.JSON(fiber.Map{
+        "data": leads,
+        "pagination": fiber.Map{
+            "page":       page,
+            "limit":      limit,
+            "total":      total,
+            "totalPages": (total + int64(limit) - 1) / int64(limit),
+        },
+    })
 }
+
+
+// func GetleadsBasic(c *fiber.Ctx) error {
+
+// 	// Check if user is authenticated (no admin requirement)
+// 	userID := c.Locals("userID").(string)
+
+// 	_, err := models.GetUserByID(userID)
+// 	if err != nil {
+// 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+// 	}
+
+// 	leads, err := models.GetAllLeads()
+// 	if err != nil {
+// 		log.Printf("Error fetching leads: %v", err)
+// 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch leads"})
+// 	}
+
+// 	// Ensure we return an empty array if no devices
+// 	if leads == nil {
+// 		return c.JSON([]interface{}{})
+// 	}
+
+// 	if len(leads) == 0 {
+// 		return c.JSON([]interface{}{})
+// 	}
+
+// 	// Return only basic information
+// 	type LeadBasic struct {
+// 		ID           uint   `json:"id"`
+// 		Name         string `json:"name"`
+// 		Manufacturer string `json:"manufacturer"`
+// 		LeadModel    string `json:"leadModel"`
+// 		IsMri        bool   `json:"isMri"`
+// 		Polarity     string `json:"polarity"`
+// 		Connector    string `json:"connector"`
+// 	}
+// 	var basicLeads []LeadBasic
+// 	for _, lead := range leads {
+// 		basicLeads = append(basicLeads, LeadBasic{
+// 			ID:           lead.ID,
+// 			Name:         lead.Name,
+// 			Manufacturer: lead.Manufacturer,
+// 			LeadModel:    lead.LeadModel,
+// 			IsMri:        lead.IsMri,
+// 			Polarity:     lead.Polarity,
+// 			Connector:    lead.Connector,
+// 		})
+// 	}
+// 	return c.JSON(basicLeads)
+// }
 
 func SearchLeads(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
