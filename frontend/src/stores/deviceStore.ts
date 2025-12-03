@@ -11,12 +11,20 @@ interface Device {
   isMri: boolean
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface DeviceState {
   devices: Device[]
   currentDevice: Device | null
+  pagination: PaginationInfo | null
   loading: boolean
   error: string | null
-  fetchDevices: () => Promise<void>
+  fetchDevices: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchDevice: (id: number) => Promise<void>
   createDevice: (data: Omit<Device, 'id'>) => Promise<Device | undefined>
   updateDevice: (id: number, data: Partial<Device>) => Promise<Device | undefined>
@@ -28,19 +36,34 @@ interface DeviceState {
 export const useDeviceStore = create<DeviceState>((set) => ({
   devices: [],
   currentDevice: null,
+  pagination: null,
   loading: false,
   error: null,
 
   clearError: () => set({ error: null }),
 
-  fetchDevices: async () => {
+  fetchDevices: async (page = 1, limit = 25, search = '') => {
     set({ loading: true, error: null })
     try {
-      const response = await api.get('/devices/all')
-      set({ devices: response.data, loading: false })
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('limit', limit.toString())
+      if (search) params.append('search', search)
+      
+      const response = await api.get(`/devices/all?${params.toString()}`)
+      set({ 
+        devices: response.data.data, 
+        pagination: response.data.pagination,
+        loading: false 
+      })
     } catch (error: any) {
       console.error('Error fetching devices:', error)
-      set({ error: error.response?.data?.error || 'Failed to fetch devices', loading: false, devices: [] })
+      set({ 
+        error: error.response?.data?.error || 'Failed to fetch devices', 
+        loading: false, 
+        devices: [],
+        pagination: null
+      })
     }
   },
 

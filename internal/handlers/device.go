@@ -41,10 +41,8 @@ func GetDevices(c *fiber.Ctx) error {
     return c.JSON(devices)
 }
 
-// GetDevicesBasic retrieves basic device information (name, manufacturer, type, model)
+// GetDevicesBasic retrieves basic device information with pagination
 func GetDevicesBasic(c *fiber.Ctx) error {
-
-    // Check if user is authenticated (no admin requirement)
     userID := c.Locals("userID").(string)
     
     _, err := models.GetUserByID(userID)
@@ -52,44 +50,34 @@ func GetDevicesBasic(c *fiber.Ctx) error {
         return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
     }
 
-    devices, err := models.GetAllDevices()
+    // Parse pagination parameters
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "25"))
+    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
+
+    if page < 1 {
+        page = 1
+    }
+    if limit < 1 || limit > 100 {
+        limit = 25
+    }
+
+    devices, total, err := models.GetDevicesPaginated(search, page, limit)
     if err != nil {
+        log.Printf("Error fetching devices: %v", err)
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
     }
 
-    // Ensure we return an empty array if no devices
-    if devices == nil {
-        return c.JSON([]interface{}{})
-    }
-
-    if len(devices) == 0 {
-        return c.JSON([]interface{}{})
-    }
-
-    // Create a simplified response with consistent field names
-    type DeviceBasic struct {
-        ID           uint   `json:"id"`
-        Name         string `json:"name"`
-        Manufacturer string `json:"manufacturer"`
-        Type         string `json:"type"`
-        Model        string `json:"model"`
-        IsMri        bool   `json:"isMri"`
-    }
-
-    var basicDevices []DeviceBasic
-    for _, device := range devices {
-        basicDevices = append(basicDevices, DeviceBasic{
-            ID:           device.ID,
-            Name:         device.Name,
-            Manufacturer: device.Manufacturer,
-            Type:         device.Type,
-            Model:        device.DevModel,
-            IsMri:        device.IsMri,
-        })
-    }
-
-    log.Printf("Returning %d basic devices", len(basicDevices)) // Add this debug line
-    return c.JSON(basicDevices)
+    // Return paginated response
+    return c.JSON(fiber.Map{
+        "data": devices,
+        "pagination": fiber.Map{
+            "page":       page,
+            "limit":      limit,
+            "total":      total,
+            "totalPages": (total + int64(limit) - 1) / int64(limit),
+        },
+    })
 }
 
 

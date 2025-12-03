@@ -75,3 +75,32 @@ func DeviceHasImplantedDevices(deviceID uint) (bool, error) {
 	err := config.DB.Model(&ImplantedDevice{}).Where("device_id = ?", deviceID).Count(&count).Error
 	return count > 0, err
 }
+
+// GetDevicesPaginated retrieves devices with pagination and search
+func GetDevicesPaginated(search string, page, limit int) ([]Device, int64, error) {
+    var devices []Device
+    var total int64
+    
+    tx := config.DB.Model(&Device{})
+    
+    // Apply search filter if provided
+    if search != "" {
+        searchQuery := "%" + strings.ToLower(search) + "%"
+        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?", 
+            searchQuery, searchQuery, searchQuery)
+    }
+    
+    // Get total count
+    if err := tx.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+    
+    // Get paginated results
+    offset := (page - 1) * limit
+    err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&devices).Error
+    if err != nil {
+        return nil, 0, err
+    }
+    
+    return devices, total, nil
+}
