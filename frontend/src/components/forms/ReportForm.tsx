@@ -973,6 +973,7 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
         </CardContent>
       </Card>
+      {/* tachy settings card */}
       <Card>
         <CardHeader>
           <CardTitle>Tachy Settings</CardTitle>
@@ -987,9 +988,9 @@ export function ReportForm({ patient }: ReportFormProps) {
                 <TableHead>Detection</TableHead>
                 <TableHead>1. ATP</TableHead>
                 <TableHead>2. ATP</TableHead>
-                <TableHead>1. Shock[J]</TableHead>
-                <TableHead>2. Shock[J]</TableHead>
-                <TableHead>3. nth[J]</TableHead>
+                <TableHead>1. Shock</TableHead>
+                <TableHead>2. Shock</TableHead>
+                <TableHead>3. nth</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

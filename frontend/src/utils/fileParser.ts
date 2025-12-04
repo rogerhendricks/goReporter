@@ -285,19 +285,27 @@ function parseLogFile(data: string): ParsedData {
     '2102': 'VT2_detection_interval',
     '2354': 'VT2_therapy_1_atp',
     '2341': 'VT2_therapy_1_no_bursts',
+    '2355': 'VT2_therapy_2_atp',
+    '2804': 'VT2_therapy_2_no_bursts',
     // '2355': 'VT2_therapy_3_cvrt',
     '2361': 'VT2_therapy_3_energy',
     // '2356': 'VT2_therapy_4_cvrt',
+    // '2362': 'VT2_therapy_4_energy',
+    '2362': 'VT2_therapy_4_energy',
     '2363': 'VT2_therapy_4_energy',
     // '2357': 'VT2_therapy_5_cvrt',
+    '2364': 'VT2_therapy_5_energy',
     '2365': 'VT2_therapy_5_energy',
     '2357': 'VT2_therapy_5_max_num_shocks',
     //VF
     '2101': 'VF_detection_interval',
     '2387': 'VF_therapy_1_atp',
     '2392': 'VF_therapy_1_no_bursts',
+    '2381': 'VF_therapy_2_energy',
     '2382': 'VF_therapy_2_energy',
+    '2383': 'VF_therapy_3_energy',
     '2384': 'VF_therapy_3_energy',
+    '2385': 'VF_therapy_4_energy',
     '2386': 'VF_therapy_4_energy',
     // '2388': 'VF_therapy_4_max_num_shocks', // doesn't exist in log?
   };
@@ -309,7 +317,7 @@ function parseLogFile(data: string): ParsedData {
       const value = parts[2];
 
       if (mappings[code] && value) {
-        let processedValue = value.replace(/V|Ohm|%|bpm/g, '').trim();
+        let processedValue = value.replace(/(?<!\bV)V(?!V)|Ohm|%|bpm/g, '').trim();
         if (mappings[code] === 'VT2_therapy_5_max_num_shocks') {
           processedValue = processedValue.replace(/^CRT\s*/i, '').trim();
         }
@@ -343,6 +351,7 @@ function parseLogFile(data: string): ParsedData {
 
   parsedData.mdc_idc_dev_manufacturer = "Abbott";
   parsedData.VF_therapy_4_max_num_shocks = "x 4";
+  parsedData.VT2_therapy_2_atp === "ATP" ? parsedData.VT2_therapy_2_atp = "ATP" : parsedData.VT2_therapy_2_atp = "";
   console.log('Parsed log file:', parsedData);
   return parsedData;
 }

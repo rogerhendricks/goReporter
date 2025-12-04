@@ -257,7 +257,7 @@ export function TaskDetail() {
                       <p className="whitespace-pre-wrap mb-2">{note.content}</p>
                       <div className="text-sm text-muted-foreground">
                         <span className="font-semibold">
-                          {note.createdBy.fname} {note.createdBy.lname}
+                          {note.createdBy.username}
                         </span>
                         {' • '}
                         {format(new Date(note.createdAt), 'PPp')}

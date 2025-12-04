@@ -12,8 +12,8 @@ export interface TaskNote {
   createdBy: {
     id: number
     email: string
-    fname: string
-    lname: string
+    username: string
+    role: string
   }
   createdAt: string
   updatedAt: string
