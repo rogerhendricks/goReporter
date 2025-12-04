@@ -47,9 +47,10 @@ func SetupRoutes(app *fiber.App) {
 	app.Delete("/api/doctors/:id", middleware.RequireAdmin, handlers.DeleteDoctor)
 
 	// Patient routes - admin and doctor access with role-based filtering
-	app.Get("/api/patients/all", middleware.SetUserRole, handlers.GetAllPatients)
-	app.Get("/api/patients/list", middleware.SetUserRole, handlers.GetMostRecentPatientList)
 	app.Get("/api/patients", middleware.SetUserRole, handlers.GetPatients)
+	app.Get("/api/patients/all", middleware.SetUserRole, handlers.GetPatientsPaginated)
+	app.Get("/api/patients/list", middleware.SetUserRole, handlers.GetAllPatients)
+	app.Get("/api/patients/recent", middleware.SetUserRole, handlers.GetMostRecentPatientList)
 	app.Get("/api/patients/search", middleware.SetUserRole, handlers.SearchPatients)
 	app.Post("/api/patients", middleware.RequireAdminOrUser, handlers.CreatePatient)
 	app.Get("/api/patients/:id", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatient)

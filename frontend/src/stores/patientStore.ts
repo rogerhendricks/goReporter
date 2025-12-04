@@ -4,10 +4,6 @@ import { toast } from 'sonner'
 import type { Report } from './reportStore' 
 import type { Tag } from '../services/tagService'
 
-// const api = axios.create({
-//   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
-//   withCredentials: true,
-// })
 
 export interface Doctor {
   id: number
@@ -96,15 +92,23 @@ export interface Patient {
   tags: Tag[]
 }
 
+interface PaginationInfo {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface PatientState {
   patients: Patient[]
   searchResults: Patient[]
   currentPatient: Patient | null
+  pagination: PaginationInfo | null
   loading: boolean
   error: string | null
   
   // Actions
-  fetchPatients: () => Promise<void>
+  fetchPatients: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchPatient: (id: number) => Promise<void>
   createPatient: (data: Partial<Patient>) => Promise<Patient>
   updatePatient: (id: number, data: Partial<Patient>) => Promise<Patient>
@@ -118,6 +122,7 @@ export const usePatientStore = create<PatientState>((set) => ({
   patients: [],
   searchResults: [],
   currentPatient: null,
+  pagination: null,
   loading: false,
   error: null,
 

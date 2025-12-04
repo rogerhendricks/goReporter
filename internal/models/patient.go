@@ -250,3 +250,89 @@ func SearchPatientsComplex(params PatientSearchParams) ([]Patient, error) {
 	}
 	return patients, nil
 }
+
+// GetPatientsPaginated retrieves patients with pagination and search
+func GetPatientsPaginated(search string, page, limit int) ([]Patient, int64, error) {
+    var patients []Patient
+    var total int64
+
+    tx := config.DB.Model(&Patient{}).
+        Preload("PatientDoctors.Doctor").
+        Preload("PatientDoctors.Address").
+        Preload("ImplantedDevices.Device").
+        Preload("ImplantedLeads.Lead").
+        Preload("Tags")
+
+    // Apply search filter if provided
+    if search != "" {
+        searchQuery := "%" + strings.ToLower(search) + "%"
+        tx = tx.Where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ?", 
+            searchQuery, searchQuery, searchQuery)
+    }
+
+    // Get total count
+    if err := tx.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+
+    // Get paginated results
+    offset := (page - 1) * limit
+    err := tx.Offset(offset).Limit(limit).Order("last_name ASC, first_name ASC").Find(&patients).Error
+    if err != nil {
+        return nil, 0, err
+    }
+
+    return patients, total, nil
+}
+
+// GetPatientsPaginatedForDoctor retrieves patients for a specific doctor with pagination
+func GetPatientsPaginatedForDoctor(userID string, search string, page, limit int) ([]Patient, int64, error) {
+    var patients []Patient
+    var total int64
+
+    // First, find the doctor associated with this user
+    var doctor Doctor
+    if err := config.DB.Where("user_id = ?", userID).First(&doctor).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return []Patient{}, 0, nil // No doctor profile means no patients
+        }
+        return nil, 0, err
+    }
+
+    // Query patients associated with this doctor
+    tx := config.DB.Model(&Patient{}).
+        Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
+        Where("patient_doctors.doctor_id = ?", doctor.ID).
+        Preload("PatientDoctors.Doctor").
+        Preload("PatientDoctors.Address").
+        Preload("ImplantedDevices.Device").
+        Preload("ImplantedLeads.Lead").
+        Preload("Tags")
+
+    // Apply search filter if provided
+    if search != "" {
+        searchQuery := "%" + strings.ToLower(search) + "%"
+        tx = tx.Where("LOWER(patients.first_name) LIKE ? OR LOWER(patients.last_name) LIKE ? OR CAST(patients.mrn AS TEXT) LIKE ?", 
+            searchQuery, searchQuery, searchQuery)
+    }
+
+    // Get total count - need to use distinct count for patients
+    var patientIDs []uint
+    if err := tx.Distinct("patients.id").Pluck("patients.id", &patientIDs).Error; err != nil {
+        return nil, 0, err
+    }
+    total = int64(len(patientIDs))
+
+    // Get paginated results
+    offset := (page - 1) * limit
+    err := tx.Group("patients.id").
+        Offset(offset).
+        Limit(limit).
+        Order("patients.last_name ASC, patients.first_name ASC").
+        Find(&patients).Error
+    if err != nil {
+        return nil, 0, err
+    }
+
+    return patients, total, nil
+}

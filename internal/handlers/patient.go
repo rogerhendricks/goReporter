@@ -6,7 +6,7 @@ import (
 	"html"
 	"log"
 	"net/http"
-	"regexp"
+	// "regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -236,6 +236,30 @@ func GetPatients(c *fiber.Ctx) error {
 	return c.JSON(patients)
 }
 
+// func GetPatientsBasic(c *fiber.Ctx) error {
+// 	userID := c.Locals("userID").(string)
+// 	userRole := c.Locals("userRole").(string)
+// 	var patients []models.Patient
+// 	var err error
+
+// 	// Admin
+// 	switch userRole {
+// 	case "admin", "user":
+// 		patients, err = models.GetAllPatientsBasic()
+// 	case "doctor":
+// 		patients, err = models.GetPatientsForDoctorBasic(userID)
+// 	default:
+// 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+// 	}
+// 	if err != nil {
+// 		log.Printf("Error fetching basic patients: %v", err)
+// 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+// 	}
+// 	return c.JSON(patients)
+// }
+
+
+
 // GetAllPatients retrieves all patients (alternative endpoint)
 func GetAllPatients(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
@@ -308,6 +332,60 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(patientResponses)
+}
+
+// GetPatientsPaginated retrieves patients with pagination based on user role
+func GetPatientsPaginated(c *fiber.Ctx) error {
+    userID := c.Locals("userID").(string)
+    userRole := c.Locals("userRole").(string)
+
+    // Parse pagination parameters
+    page, _ := strconv.Atoi(c.Query("page", "1"))
+    limit, _ := strconv.Atoi(c.Query("limit", "25"))
+    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
+
+    if page < 1 {
+        page = 1
+    }
+    if limit < 1 || limit > 100 {
+        limit = 25
+    }
+
+    var patients []models.Patient
+    var total int64
+    var err error
+
+    // Role-based patient retrieval
+    switch userRole {
+    case "admin", "user":
+        patients, total, err = models.GetPatientsPaginated(search, page, limit)
+    case "doctor":
+        patients, total, err = models.GetPatientsPaginatedForDoctor(userID, search, page, limit)
+    default:
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+    }
+
+    if err != nil {
+        log.Printf("Error fetching paginated patients: %v", err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+    }
+
+    // Map to response format
+    var patientResponses []PatientResponse
+    for _, p := range patients {
+        patientResponses = append(patientResponses, toPatientResponse(p))
+    }
+
+    // Return paginated response
+    return c.JSON(fiber.Map{
+        "data": patientResponses,
+        "pagination": fiber.Map{
+            "page":       page,
+            "limit":      limit,
+            "total":      total,
+            "totalPages": (total + int64(limit) - 1) / int64(limit),
+        },
+    })
 }
 
 // GetPatient retrieves a specific patient by ID
@@ -742,184 +820,6 @@ func UpdatePatient(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
 }
 
-// func UpdatePatient(c *fiber.Ctx) error {
-//     patientID := c.Params("id")
-
-//     id, err := strconv.ParseUint(patientID, 10, 32)
-//     if err != nil {
-//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
-//     }
-
-//     // var updateData models.Patient
-//     // if err := c.BodyParser(&updateData); err != nil {
-//     //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-//     // }
-
-//     var input struct {
-//         MRN            int                    `json:"mrn"`
-//         Fname          string                 `json:"fname"`
-//         Lname          string                 `json:"lname"`
-//         Dob            string                 `json:"dob"`
-//         Phone          string                 `json:"phone"`
-//         Email          string                 `json:"email"`
-//         Street         string                 `json:"street"`
-//         City           string                 `json:"city"`
-//         State          string                 `json:"state"`
-//         Country        string                 `json:"country"`
-//         Postal         string                 `json:"postal"`
-//         PatientDoctors []struct {
-//             DoctorID  uint  `json:"doctorId"`
-//             AddressID *uint `json:"addressId"`
-//             IsPrimary bool  `json:"isPrimary"`
-//         } `json:"patientDoctors"`
-//         Devices        []struct {
-//             DeviceID    uint   `json:"deviceId"`
-//             Serial      string `json:"serial"`
-//             ImplantedAt string `json:"implantedAt"`
-//         } `json:"devices"`
-//         Leads []struct {
-//             LeadID      uint   `json:"leadId"`
-//             Serial      string `json:"serial"`
-//             Chamber     string `json:"chamber"`
-//             Status      string `json:"status"`
-//             ImplantedAt string `json:"implantedAt"`
-//         } `json:"leads"`
-//         Medications []interface{} `json:"medications"`
-//     }
-
-//     if err := c.BodyParser(&input); err != nil {
-//         log.Printf("Error parsing patient update request: %v", err)
-//         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-//     }
-
-//     // Get existing patient
-//     existingPatient, err := models.GetPatientByID(uint(id))
-//     if err != nil {
-//         if errors.Is(err, gorm.ErrRecordNotFound) {
-//             return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Patient not found"})
-//         }
-//         log.Printf("Error fetching patient %d: %v", id, err)
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-//     }
-
-//     // Validate input
-//     // if err := validatePatientUpdate(&updateData); err != nil {
-//     //     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-//     // }
-
-//     if err := validatePatientInput(input.Fname, input.Lname, input.Email, input.MRN); err != nil {
-//     return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-//     }
-
-//     tx := config.DB.Begin()
-//     if tx.Error != nil {
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to start transaction"})
-//     }
-
-//     // 5. Update the main patient fields
-//     existingPatient.MRN = input.MRN
-//     existingPatient.FirstName = input.Fname
-//     existingPatient.LastName = input.Lname
-//     existingPatient.DOB = input.Dob
-//     existingPatient.Phone = input.Phone
-//     existingPatient.Email = input.Email
-//     existingPatient.Street = input.Street
-//     existingPatient.City = input.City
-//     existingPatient.State = input.State
-//     existingPatient.Country = input.Country
-//     existingPatient.Postal = input.Postal
-
-//     if err := tx.Save(&existingPatient).Error; err != nil {
-//         tx.Rollback()
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
-//     }
-
-//     // 6. Replace associated records (the PUT method approach)
-//     // Delete old associations
-//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedDevice{})
-//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.ImplantedLead{})
-//     tx.Where("patient_id = ?", existingPatient.ID).Delete(&models.PatientDoctor{})
-
-//     // Create new associations from the payload
-//     for _, d := range input.Devices {
-//         var implantDate time.Time
-//         var err error
-//         if d.ImplantedAt == "" {
-//             implantDate = time.Now() // Default to today's date if not provided
-//         } else {
-//             implantDate, err = time.Parse("2006-01-02", d.ImplantedAt)
-//             if err != nil {
-//                 log.Printf("Warning: could not parse device implant date '%s'. Defaulting to today. Error: %v", d.ImplantedAt, err)
-//                 implantDate = time.Now()
-//             }
-//         }
-//         implantedDevice := models.ImplantedDevice{
-//             PatientID:   existingPatient.ID,
-//             DeviceID:    d.DeviceID,
-//             Serial:      d.Serial,
-//             ImplantedAt: implantDate,
-//         }
-//         if err := tx.Create(&implantedDevice).Error; err != nil {
-//             tx.Rollback()
-//             return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted devices"})
-//         }
-//     }
-
-//     for _, l := range input.Leads {
-//         var implantDate time.Time
-//         var err error
-//         if l.ImplantedAt == "" {
-//             implantDate = time.Now() // Default to today's date if not provided
-//         } else {
-//             implantDate, err = time.Parse("2006-01-02", l.ImplantedAt)
-//             if err != nil {
-//                 log.Printf("Warning: could not parse lead implant date '%s'. Defaulting to today. Error: %v", l.ImplantedAt, err)
-//                 implantDate = time.Now()
-//             }
-//         }
-//         implantedLead := models.ImplantedLead{
-//             PatientID:   existingPatient.ID,
-//             LeadID:      l.LeadID,
-//             Serial:      l.Serial,
-//             Chamber:     l.Chamber,
-//             Status:      l.Status,
-//             ImplantedAt: implantDate,
-//         }
-//         if err := tx.Create(&implantedLead).Error; err != nil {
-//             tx.Rollback()
-//             return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update implanted leads"})
-//         }
-//     }
-
-//     var newPatientDoctors []models.PatientDoctor
-//     for _, pd := range input.PatientDoctors {
-//         newPatientDoctors = append(newPatientDoctors, models.PatientDoctor{
-//             DoctorID:  pd.DoctorID,
-//             AddressID: pd.AddressID,
-//             IsPrimary: pd.IsPrimary,
-//         })
-//     }
-//     // Replace the old associations with the new ones
-//     if err := tx.Model(&existingPatient).Association("PatientDoctors").Replace(newPatientDoctors); err != nil {
-//         tx.Rollback()
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update doctor associations"})
-//     }
-
-//     // 7. Commit the transaction
-//     if err := tx.Commit().Error; err != nil {
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to commit transaction"})
-//     }
-
-//     // 8. Fetch the fully updated patient to return in the response
-//     updatedPatient, err := models.GetPatientByID(existingPatient.ID)
-//     if err != nil {
-//         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated patient data"})
-//     }
-
-//     // 9. Convert to the response DTO and send back to the client
-//     return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
-// }
-
 // DeletePatient removes a patient
 func DeletePatient(c *fiber.Ctx) error {
 	patientID := c.Params("id")
@@ -1038,36 +938,38 @@ func validatePatient(patient *models.Patient) error {
 	return nil
 }
 
-func validatePatientUpdate(patient *models.Patient) error {
-	if patient.Email != "" && !utils.IsValidEmail(patient.Email) {
-		return errors.New("invalid email format")
-	}
-	return nil
-}
 
-//
 
-func validatePatientInput(fname, lname, email string, mrn int) error {
-	if strings.TrimSpace(fname) == "" {
-		return errors.New("first name is required")
-	}
-	if strings.TrimSpace(lname) == "" {
-		return errors.New("last name is required")
-	}
-	if mrn == 0 {
-		return errors.New("MRN is required and cannot be zero")
-	}
+// func validatePatientUpdate(patient *models.Patient) error {
+// 	if patient.Email != "" && !utils.IsValidEmail(patient.Email) {
+// 		return errors.New("invalid email format")
+// 	}
+// 	return nil
+// }
 
-	// Example email validation
-	if email != "" {
-		// A simple regex for email validation
-		emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-		if !emailRegex.MatchString(email) {
-			return errors.New("invalid email format")
-		}
-	}
-	return nil
-}
+// //
+
+// func validatePatientInput(fname, lname, email string, mrn int) error {
+// 	if strings.TrimSpace(fname) == "" {
+// 		return errors.New("first name is required")
+// 	}
+// 	if strings.TrimSpace(lname) == "" {
+// 		return errors.New("last name is required")
+// 	}
+// 	if mrn == 0 {
+// 		return errors.New("MRN is required and cannot be zero")
+// 	}
+
+// 	// Example email validation
+// 	if email != "" {
+// 		// A simple regex for email validation
+// 		emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+// 		if !emailRegex.MatchString(email) {
+// 			return errors.New("invalid email format")
+// 		}
+// 	}
+// 	return nil
+// }
 
 func sanitizePatient(patient *models.Patient) {
 	patient.FirstName = html.EscapeString(strings.TrimSpace(patient.FirstName))
@@ -1081,96 +983,96 @@ func sanitizePatient(patient *models.Patient) {
 	patient.Postal = html.EscapeString(strings.TrimSpace(patient.Postal))
 }
 
-func updatePatientFields(existing *models.Patient, update *models.Patient) {
-	if update.MRN != 0 {
-		existing.MRN = update.MRN
-	}
-	if update.FirstName != "" {
-		existing.FirstName = html.EscapeString(strings.TrimSpace(update.FirstName))
-	}
-	if update.LastName != "" {
-		existing.LastName = html.EscapeString(strings.TrimSpace(update.LastName))
-	}
-	if update.DOB != "" {
-		existing.DOB = update.DOB
-	}
-	if update.Gender != "" {
-		existing.Gender = update.Gender
-	}
-	if update.Email != "" {
-		existing.Email = html.EscapeString(strings.TrimSpace(update.Email))
-	}
-	if update.Phone != "" {
-		existing.Phone = html.EscapeString(strings.TrimSpace(update.Phone))
-	}
-	if update.Street != "" {
-		existing.Street = html.EscapeString(strings.TrimSpace(update.Street))
-	}
-	if update.City != "" {
-		existing.City = html.EscapeString(strings.TrimSpace(update.City))
-	}
-	if update.State != "" {
-		existing.State = html.EscapeString(strings.TrimSpace(update.State))
-	}
-	if update.Country != "" {
-		existing.Country = html.EscapeString(strings.TrimSpace(update.Country))
-	}
-	if update.Postal != "" {
-		existing.Postal = html.EscapeString(strings.TrimSpace(update.Postal))
-	}
-}
+// func updatePatientFields(existing *models.Patient, update *models.Patient) {
+// 	if update.MRN != 0 {
+// 		existing.MRN = update.MRN
+// 	}
+// 	if update.FirstName != "" {
+// 		existing.FirstName = html.EscapeString(strings.TrimSpace(update.FirstName))
+// 	}
+// 	if update.LastName != "" {
+// 		existing.LastName = html.EscapeString(strings.TrimSpace(update.LastName))
+// 	}
+// 	if update.DOB != "" {
+// 		existing.DOB = update.DOB
+// 	}
+// 	if update.Gender != "" {
+// 		existing.Gender = update.Gender
+// 	}
+// 	if update.Email != "" {
+// 		existing.Email = html.EscapeString(strings.TrimSpace(update.Email))
+// 	}
+// 	if update.Phone != "" {
+// 		existing.Phone = html.EscapeString(strings.TrimSpace(update.Phone))
+// 	}
+// 	if update.Street != "" {
+// 		existing.Street = html.EscapeString(strings.TrimSpace(update.Street))
+// 	}
+// 	if update.City != "" {
+// 		existing.City = html.EscapeString(strings.TrimSpace(update.City))
+// 	}
+// 	if update.State != "" {
+// 		existing.State = html.EscapeString(strings.TrimSpace(update.State))
+// 	}
+// 	if update.Country != "" {
+// 		existing.Country = html.EscapeString(strings.TrimSpace(update.Country))
+// 	}
+// 	if update.Postal != "" {
+// 		existing.Postal = html.EscapeString(strings.TrimSpace(update.Postal))
+// 	}
+// }
 
-func createPatientRelationships(patientID uint, patientDoctors []models.PatientDoctor, devices []models.ImplantedDevice, leads []models.ImplantedLead) error {
-	// Create patient-doctor relationships
-	for _, pd := range patientDoctors {
-		pd.PatientID = patientID
-		if err := config.DB.Create(&pd).Error; err != nil {
-			return err
-		}
-	}
+// func createPatientRelationships(patientID uint, patientDoctors []models.PatientDoctor, devices []models.ImplantedDevice, leads []models.ImplantedLead) error {
+// 	// Create patient-doctor relationships
+// 	for _, pd := range patientDoctors {
+// 		pd.PatientID = patientID
+// 		if err := config.DB.Create(&pd).Error; err != nil {
+// 			return err
+// 		}
+// 	}
 
-	// Create implanted devices
-	for _, device := range devices {
-		device.PatientID = patientID
-		if device.ImplantedAt.IsZero() {
-			device.ImplantedAt = time.Now()
-		}
-		if err := config.DB.Create(&device).Error; err != nil {
-			return err
-		}
-	}
+// 	// Create implanted devices
+// 	for _, device := range devices {
+// 		device.PatientID = patientID
+// 		if device.ImplantedAt.IsZero() {
+// 			device.ImplantedAt = time.Now()
+// 		}
+// 		if err := config.DB.Create(&device).Error; err != nil {
+// 			return err
+// 		}
+// 	}
 
-	// Create implanted leads
-	for _, lead := range leads {
-		lead.PatientID = patientID
-		if lead.ImplantedAt.IsZero() {
-			lead.ImplantedAt = time.Now()
-		}
-		if err := config.DB.Create(&lead).Error; err != nil {
-			return err
-		}
-	}
+// 	// Create implanted leads
+// 	for _, lead := range leads {
+// 		lead.PatientID = patientID
+// 		if lead.ImplantedAt.IsZero() {
+// 			lead.ImplantedAt = time.Now()
+// 		}
+// 		if err := config.DB.Create(&lead).Error; err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func updatePatientRelationships(patientID uint, patientDoctors []models.PatientDoctor, devices []models.ImplantedDevice, leads []models.ImplantedLead) error {
-	// Update patient-doctor relationships (replace all)
-	if patientDoctors != nil {
-		// Delete existing relationships
-		if err := config.DB.Where("patient_id = ?", patientID).Delete(&models.PatientDoctor{}).Error; err != nil {
-			return err
-		}
+// func updatePatientRelationships(patientID uint, patientDoctors []models.PatientDoctor, devices []models.ImplantedDevice, leads []models.ImplantedLead) error {
+// 	// Update patient-doctor relationships (replace all)
+// 	if patientDoctors != nil {
+// 		// Delete existing relationships
+// 		if err := config.DB.Where("patient_id = ?", patientID).Delete(&models.PatientDoctor{}).Error; err != nil {
+// 			return err
+// 		}
 
-		// Create new relationships
-		for _, pd := range patientDoctors {
-			pd.PatientID = patientID
-			if err := config.DB.Create(&pd).Error; err != nil {
-				return err
-			}
-		}
-	}
+// 		// Create new relationships
+// 		for _, pd := range patientDoctors {
+// 			pd.PatientID = patientID
+// 			if err := config.DB.Create(&pd).Error; err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	// Similar logic for devices and leads if needed
-	return nil
-}
+// 	// Similar logic for devices and leads if needed
+// 	return nil
+// }
