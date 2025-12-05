@@ -318,8 +318,8 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
 
     // Map shock impedance
-    if (data.mdc_idc_msmt_hv_impedance_mean) {
-      updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(data.mdc_idc_msmt_hv_impedance_mean);
+    if (data.mdc_idc_msmt_shock_impedance) {
+      updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(data.mdc_idc_msmt_shock_impedance);
     }
 
     // if device has type device.type == "Defibrillator"
