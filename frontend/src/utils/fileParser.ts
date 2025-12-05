@@ -57,6 +57,7 @@ export interface ParsedData {
   mdc_idc_msmt_rv_sensing_mean?: string;
   mdc_idc_msmt_rv_pacing_threshold?: string;
   mdc_idc_msmt_rv_pw?: string;
+  mdc_idc_msmt_shock_impedance?: string;
   mdc_idc_msmt_lv_impedance_mean?: string;
   mdc_idc_msmt_lv_sensing_mean?: string;
   mdc_idc_msmt_lv_pacing_threshold?: string;
@@ -264,6 +265,7 @@ function parseLogFile(data: string): ParsedData {
     '1606': 'mdc_idc_msmt_rv_pacing_threshold',
     '1620': 'mdc_idc_msmt_rv_pacing_threshold',
     '1607': 'mdc_idc_msmt_rv_pw',
+    '2730': 'mdc_idc_msmt_shock_impedance',
     '2720': 'mdc_idc_msmt_lv_impedance_mean',
     '2723': 'mdc_idc_msmt_lv_sensing_mean',
     '1616': 'mdc_idc_msmt_lv_pacing_threshold',
@@ -287,6 +289,7 @@ function parseLogFile(data: string): ParsedData {
     '2341': 'VT2_therapy_1_no_bursts',
     '2355': 'VT2_therapy_2_atp',
     '2804': 'VT2_therapy_2_no_bursts',
+    '2360': 'VT2_therapy_3_energy',
     // '2355': 'VT2_therapy_3_cvrt',
     '2361': 'VT2_therapy_3_energy',
     // '2356': 'VT2_therapy_4_cvrt',
