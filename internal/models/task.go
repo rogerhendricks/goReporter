@@ -41,6 +41,9 @@ type Task struct {
     CreatedByID  uint          `json:"createdById" gorm:"not null;index"`
     CreatedBy    User          `json:"createdBy" gorm:"foreignKey:CreatedByID"`
     
+    TemplateID   *uint         `json:"templateId" gorm:"index"`
+    Template     *TaskTemplate `json:"template,omitempty" gorm:"foreignKey:TemplateID"`
+
     Tags         []Tag         `json:"tags,omitempty" gorm:"many2many:task_tags;"`
     Notes        []TaskNote    `json:"notes,omitempty" gorm:"foreignKey:TaskID"`
     

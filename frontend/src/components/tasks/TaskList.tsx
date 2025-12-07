@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye } from 'lucide-react'
+import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -42,7 +42,7 @@ const statusConfig: Record<TaskStatus, { color: string; label: string; icon: typ
 
 export function TaskList({ patientId, showFilters = true }: TaskListProps) {
   const navigate = useNavigate()
-  const { tasks, fetchTasks, fetchTasksByPatient, updateTask, isLoading } = useTaskStore()
+  const { tasks, fetchTasks, fetchTasksByPatient, updateTask, deleteTask, isLoading } = useTaskStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
 
@@ -101,6 +101,25 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
       toast.success('Due date updated')
     } else {
       toast.error('Failed to update due date')
+    }
+  }
+
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    const success = await deleteTask(taskId)
+    if (success) {
+      toast.success('Task deleted')
+      // Refresh task list
+      if (patientId) {
+        await fetchTasksByPatient(patientId)
+      } else {
+        await fetchTasks({})
+      }
+    } else {
+      toast.error('Failed to delete task')
     }
   }
 
@@ -182,6 +201,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
                 onPriorityChange={handlePriorityChange}
                 onDueDateChange={handleDueDateChange}
                 onViewTask={(id) => navigate(`/tasks/${id}`)}
+                onDeleteTask={handleDeleteTask}
                 showPatient={!patientId}
               />
             </div>
@@ -200,6 +220,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
                 onPriorityChange={handlePriorityChange}
                 onDueDateChange={handleDueDateChange}
                 onViewTask={(id) => navigate(`/tasks/${id}`)}
+                onDeleteTask={handleDeleteTask}
                 showPatient={!patientId}
               />
             </div>
@@ -217,6 +238,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
                 onPriorityChange={handlePriorityChange}
                 onDueDateChange={handleDueDateChange}
                 onViewTask={(id) => navigate(`/tasks/${id}`)}
+                onDeleteTask={handleDeleteTask}
                 showPatient={!patientId}
               />
             </div>
@@ -235,6 +257,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
                 onPriorityChange={handlePriorityChange}
                 onDueDateChange={handleDueDateChange}
                 onViewTask={(id) => navigate(`/tasks/${id}`)}
+                onDeleteTask={handleDeleteTask}
                 showPatient={!patientId}
               />
             </div>
@@ -251,6 +274,7 @@ interface TaskTableProps {
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
   onViewTask: (taskId: number) => void
+  onDeleteTask: (taskId: number) => void
   showPatient?: boolean
 }
 
@@ -260,6 +284,7 @@ function TaskTable({
   onPriorityChange, 
   onDueDateChange, 
   onViewTask,
+  onDeleteTask,
   showPatient = true 
 }: TaskTableProps) {
   return (
@@ -284,6 +309,7 @@ function TaskTable({
               onPriorityChange={onPriorityChange}
               onDueDateChange={onDueDateChange}
               onViewTask={onViewTask}
+              onDeleteTask={onDeleteTask}
               showPatient={showPatient}
             />
           ))}
@@ -299,6 +325,7 @@ interface TaskRowProps {
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
   onViewTask: (taskId: number) => void
+  onDeleteTask: (taskId: number) => void
   showPatient?: boolean
 }
 
@@ -308,6 +335,7 @@ function TaskRow({
   onPriorityChange, 
   onDueDateChange, 
   onViewTask,
+  onDeleteTask,
   showPatient = true 
 }: TaskRowProps) {
   const dueDateInfo = getDueDateInfo(task.dueDate)
@@ -317,14 +345,32 @@ function TaskRow({
   return (
     <TableRow className="hover:bg-muted/50">
       {/* Task Title & Description */}
-      <TableCell>
+      <TableCell className="text-left">
         <div className="space-y-1">
-          <div className="font-medium">{task.title}</div>
-          {task.description && (
-            <div className="text-sm text-muted-foreground line-clamp-2">
-              {task.description}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{task.title}</span>
+            {task.description && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 hover:bg-muted"
+                  >
+                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="start">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Description</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {task.description}
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
           {task.tags && task.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {task.tags.map((tag) => (
@@ -343,7 +389,7 @@ function TaskRow({
       </TableCell>
 
       {/* Priority - Editable */}
-      <TableCell>
+      <TableCell className="text-left">
         <Select
           value={task.priority}
           onValueChange={(value: TaskPriority) => onPriorityChange(task.id, value)}
@@ -386,7 +432,7 @@ function TaskRow({
       </TableCell>
 
       {/* Status - Editable */}
-      <TableCell>
+      <TableCell className="text-left">
         <Select
           value={task.status}
           onValueChange={(value: TaskStatus) => onStatusChange(task.id, value)}
@@ -429,7 +475,7 @@ function TaskRow({
       </TableCell>
 
       {/* Due Date - Editable */}
-      <TableCell>
+      <TableCell className="text-left">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -469,7 +515,7 @@ function TaskRow({
 
       {/* Patient */}
       {showPatient && (
-        <TableCell>
+        <TableCell className="text-left">
           {task.patient ? (
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -485,14 +531,24 @@ function TaskRow({
 
       {/* Actions */}
       <TableCell>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onViewTask(task.id)}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          View
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onViewTask(task.id)}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            View
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDeleteTask(task.id)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   )
