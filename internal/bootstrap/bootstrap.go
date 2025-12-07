@@ -55,8 +55,8 @@ func migrate(db *gorm.DB) error {
 		&models.Report{},
 		&models.Tag{},
 		&models.Task{},
-        &models.TaskNote{},
-        &models.TaskTemplate{},
+		&models.TaskNote{},
+		&models.TaskTemplate{},
 	)
 }
 
@@ -69,7 +69,7 @@ func shouldSeed(db *gorm.DB) bool {
 }
 
 func pointer(i int) *int {
-    return &i
+	return &i
 }
 
 func seed(db *gorm.DB) error {
@@ -326,6 +326,93 @@ func seed(db *gorm.DB) error {
 		return err
 	}
 
+	// Patient 2
+	p2 := models.Patient{
+		MRN:       10002,
+		FirstName: "Jane",
+		LastName:  "Smith",
+		DOB:       "1965-05-15",
+		Gender:    "F",
+		Email:     "jane.smith@example.com",
+		Phone:     "555-3001",
+		Street:    "456 Oak Avenue",
+		City:      "Springfield",
+		State:     "CA",
+		Country:   "USA",
+		Postal:    "90210",
+	}
+	if err := db.Create(&p2).Error; err != nil {
+		return err
+	}
+
+	// Link patient 2 to doctors
+	pd2 := []models.PatientDoctor{
+		{PatientID: p2.ID, DoctorID: doc2.ID, AddressID: &doc2.Addresses[0].ID, IsPrimary: true},
+		{PatientID: p2.ID, DoctorID: doc1.ID, AddressID: &doc1.Addresses[0].ID, IsPrimary: false},
+	}
+	if err := db.Create(&pd2).Error; err != nil {
+		return err
+	}
+
+	// Patient 2 implanted devices and leads
+	devs2 := []models.ImplantedDevice{
+		{PatientID: p2.ID, DeviceID: devices[10].ID, Serial: "MDT-PREC-0002", Status: "Active", ImplantedAt: now.AddDate(0, -6, 0)},
+	}
+	if err := db.Create(&devs2).Error; err != nil {
+		return err
+	}
+
+	lds2 := []models.ImplantedLead{
+		{PatientID: p2.ID, LeadID: leads[2].ID, Serial: "MDT-4076-RA-02", Chamber: "RA", Status: "Active", ImplantedAt: now.AddDate(0, -6, 0)},
+		{PatientID: p2.ID, LeadID: leads[3].ID, Serial: "MDT-4574-RV-02", Chamber: "RV", Status: "Active", ImplantedAt: now.AddDate(0, -6, 0)},
+		{PatientID: p2.ID, LeadID: leads[4].ID, Serial: "MDT-6946-LV-02", Chamber: "LV", Status: "Active", ImplantedAt: now.AddDate(0, -6, 0)},
+	}
+	if err := db.Create(&lds2).Error; err != nil {
+		return err
+	}
+
+	// Patient 3
+	p3 := models.Patient{
+		MRN:       10003,
+		FirstName: "Robert",
+		LastName:  "Johnson",
+		DOB:       "1958-12-20",
+		Gender:    "M",
+		Email:     "robert.johnson@example.com",
+		Phone:     "555-3002",
+		Street:    "789 Pine Street",
+		City:      "Riverside",
+		State:     "TX",
+		Country:   "USA",
+		Postal:    "75001",
+	}
+	if err := db.Create(&p3).Error; err != nil {
+		return err
+	}
+
+	// Link patient 3 to doctors
+	pd3 := []models.PatientDoctor{
+		{PatientID: p3.ID, DoctorID: doc1.ID, AddressID: &doc1.Addresses[0].ID, IsPrimary: true},
+	}
+	if err := db.Create(&pd3).Error; err != nil {
+		return err
+	}
+
+	// Patient 3 implanted devices and leads
+	devs3 := []models.ImplantedDevice{
+		{PatientID: p3.ID, DeviceID: devices[68].ID, Serial: "ABT-ACC-0003", Status: "Active", ImplantedAt: now.AddDate(-1, 0, 0)},
+	}
+	if err := db.Create(&devs3).Error; err != nil {
+		return err
+	}
+
+	lds3 := []models.ImplantedLead{
+		{PatientID: p3.ID, LeadID: leads[11].ID, Serial: "ABT-2088TC-RA-03", Chamber: "RA", Status: "Active", ImplantedAt: now.AddDate(-1, 0, 0)},
+		{PatientID: p3.ID, LeadID: leads[15].ID, Serial: "ABT-7122Q-RV-03", Chamber: "RV", Status: "Active", ImplantedAt: now.AddDate(-1, 0, 0)},
+	}
+	if err := db.Create(&lds3).Error; err != nil {
+		return err
+	}
 
 	templates := []models.TaskTemplate{
 		{
@@ -370,11 +457,10 @@ func seed(db *gorm.DB) error {
 		},
 	}
 
-    for _, template := range templates {
-        db.FirstOrCreate(&template, models.TaskTemplate{Name: template.Name})
-    }
+	for _, template := range templates {
+		db.FirstOrCreate(&template, models.TaskTemplate{Name: template.Name})
+	}
 
 	log.Println("Seeding complete.")
 	return nil
 }
-
