@@ -47,7 +47,7 @@ export function Navbar() {
     user?.username || [user?.username].filter(Boolean).join(' ') || 'Account'
 
   return (
-    <header className="px-4 lg:px-6 h-12 flex items-center bg-background border-b sticky top-0 z-50">
+    <header className="px-4 lg:px- h-12 flex items-center bg-background border-b sticky top-2 z-50">
       <div className="flex items-center">
         <Link to="/" className="flex items-center justify-center mr-6">
         <img
