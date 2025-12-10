@@ -9,7 +9,7 @@ export function DefaultLayout({ children }: DefaultLayoutProps) {
     return (
         <div className="flex flex-col min-h-screen">
         <Navbar />
-        <main className="flex-grow">
+        <main className=" container mx-auto flex-grow px-4 py-6">
           {children}
           <Toaster />
         </main>
