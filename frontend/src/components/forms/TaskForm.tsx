@@ -219,7 +219,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
           {/* Due Date */}
           <div className="space-y-2">
             <Label>Due Date</Label>
-            <Popover>
+            <Popover modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -278,7 +278,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                   </div>
                 </div>
               ) : (
-                <Popover open={openPatientSearch} onOpenChange={setOpenPatientSearch}>
+                <Popover open={openPatientSearch} onOpenChange={setOpenPatientSearch} modal={true} >
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
