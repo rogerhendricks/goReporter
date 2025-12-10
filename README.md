@@ -83,14 +83,14 @@ go-fiber-backend
 8.
 ### Task Management
 
-Task Model: Create tasks linked to patients with tags
-Due Dates: Add priority levels and due dates
-Status Tracking: Track task status (pending, in progress, completed)
+**Done** Task Model: Create tasks linked to patients with tags
+**Done** Due Dates: Add priority levels and due dates
+**Done** Status Tracking: Track task status (pending, in progress, completed)
 Notifications: Email/SMS reminders for upcoming tasks
-Task Templates: Pre-defined task templates for common workflows
+**Done** Task Templates: Pre-defined task templates for common workflows
 Assignment: Assign tasks to staff members
 Notes/Comments: Add progress notes to tasks
-Dashboard: Visual overview of all tasks by status/priority
+**Done** Dashboard: Visual overview of all tasks by status/priority
 
 ## Usage
 

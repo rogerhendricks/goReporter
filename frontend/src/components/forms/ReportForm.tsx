@@ -899,7 +899,7 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
         </CardContent>
       </Card>
-
+      {/* tags card */}
       <Card>
         <CardHeader>
           <CardTitle>Tags</CardTitle>
