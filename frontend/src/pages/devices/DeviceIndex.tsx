@@ -134,20 +134,21 @@ export default function DeviceIndex() {
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
-    { label: 'Devices', current: true }
+    { label: 'Devices', current: true },
+    { label: '+ Add Device', href: '/devices/new' }
   ]
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Devices</h1>
         <Button onClick={() => navigate('/devices/new')} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Device
         </Button>
-      </div>
+      </div> */}
 
       {error && (
         <Alert variant="destructive" className="mb-6">

@@ -67,8 +67,7 @@ export default function PatientIndex() {
     const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Patients', current: true },
-    { label: 'Index', current: true },
-    { label: '+', href: "/patients/new"}
+    { label: '+ Add Patient', href: "/patients/new"}
 
   ]
   return (

@@ -133,20 +133,21 @@ export default function DoctorIndex() {
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
-    { label: 'Doctors', current: true }
+    { label: 'Doctors', current: true},
+    {label: '+ Add Doctor', href: '/doctors/new' }
   ]
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Doctors</h1>
         <Button onClick={() => navigate('/doctors/new')} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Doctor
         </Button>
-      </div>
+      </div> */}
 
       {error && (
         <Alert variant="destructive" className="mb-6">

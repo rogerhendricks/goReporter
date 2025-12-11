@@ -138,20 +138,21 @@ export default function LeadIndex() {
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
-    { label: 'Leads', current: true }
+    { label: 'Leads', current: true },
+    { label: '+ Add Lead', href: '/leads/new' }
   ]
 
   return (
     <div className="container mx-auto py-6">
       <BreadcrumbNav items={breadcrumbItems} />
       
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Leads</h1>
         <Button onClick={() => navigate('/leads/new')} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Lead
         </Button>
-      </div>
+      </div> */}
 
       {error && (
         <Alert variant="destructive" className="mb-6">
