@@ -77,7 +77,7 @@ export default function PatientForm() {
   const {
     leads: availableLeads,
     fetchLeads: fetchAllLeads,
-    searchLeads,
+    // searchLeads,
   } = useLeadStore();
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -453,7 +453,7 @@ export default function PatientForm() {
   ];
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
 
       <div className="flex items-center gap-4 mb-6">

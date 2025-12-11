@@ -148,7 +148,7 @@ export default function PatientDetail() {
   const remainingTagsCount = patientTags.length -2
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">

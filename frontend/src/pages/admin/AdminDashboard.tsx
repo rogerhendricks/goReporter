@@ -13,43 +13,43 @@ export default function AdminDashboard() {
     { label: 'Admin Dashboard', current: true }
   ]
 
-  const adminActions = [
-    {
-      title: 'Manage Devices',
-      description: 'Add, edit, and manage medical devices',
-      icon: CircuitBoard,
-      href: '/devices',
-      createHref: '/devices/new'
-    },
-    {
-      title: 'Manage Leads',
-      description: 'Add, edit, and manage medical leads',
-      icon: CircuitBoard,
-      href: '/leads',
-      createHref: '/leads/new'
-    },
-    {
-      title: 'Manage Doctors',
-      description: 'Add, edit, and manage doctor records',
-      icon: Stethoscope,
-      href: '/doctors',
-      createHref: '/doctors/new'
-    },
-    {
-      title: 'Manage Patients',
-      description: 'Add, edit, and manage patient records',
-      icon: Users,
-      href: '/patients',
-      createHref: '/patients/new'
-    }
-  ]
+  // const adminActions = [
+  //   {
+  //     title: 'Manage Devices',
+  //     description: 'Add, edit, and manage medical devices',
+  //     icon: CircuitBoard,
+  //     href: '/devices',
+  //     createHref: '/devices/new'
+  //   },
+  //   {
+  //     title: 'Manage Leads',
+  //     description: 'Add, edit, and manage medical leads',
+  //     icon: CircuitBoard,
+  //     href: '/leads',
+  //     createHref: '/leads/new'
+  //   },
+  //   {
+  //     title: 'Manage Doctors',
+  //     description: 'Add, edit, and manage doctor records',
+  //     icon: Stethoscope,
+  //     href: '/doctors',
+  //     createHref: '/doctors/new'
+  //   },
+  //   {
+  //     title: 'Manage Patients',
+  //     description: 'Add, edit, and manage patient records',
+  //     icon: Users,
+  //     href: '/patients',
+  //     createHref: '/patients/new'
+  //   }
+  // ]
 
   return (
     <div className="container py-6 mx-auto">
 
       <BreadcrumbNav items={breadcrumbItems} />
       
-      <div className="flex flex-col space-y-4 pb-2">
+      {/* <div className="flex flex-col space-y-4 pb-2">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
           Manage system resources and configurations. As an admin, you have full access to all features.
@@ -84,7 +84,8 @@ export default function AdminDashboard() {
             </Card>
           )
         })}
-      </div>
+      </div> */}
+
       <div className="my-6">
         <UserManagementTable />
       </div>
