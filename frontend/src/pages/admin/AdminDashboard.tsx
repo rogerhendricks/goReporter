@@ -105,9 +105,10 @@ export default function AdminDashboard() {
       <BreadcrumbNav items={breadcrumbItems} />
 
       <Tabs defaultValue="overview" className="mt-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
+          <TabsTrigger value="management">User Management</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -230,9 +231,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="admin" className="space-y-6">
-          <div>
-            <UserManagementTable />
-          </div>
+
 
           <div>
             <TagManagement />
@@ -241,7 +240,30 @@ export default function AdminDashboard() {
           <div>
             <TaskTemplateManager />
           </div>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Admin Privileges</CardTitle>
+              <CardDescription>
+                Your admin account has the following capabilities:
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside space-y-2 text-sm text-left">
+                <li>Create, update and delete all patient records</li>
+                <li>Manage doctor accounts and assignments</li>
+                <li>Configure medical devices and leads</li>
+                <li>Access all reports and data across the system</li>
+                <li>Manage system users and their roles</li>
+                <li>Create, update and delete tags for categorization</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
+        <TabsContent value="management" className="space-y-6">
+          <div>
+            <UserManagementTable />
+          </div>
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle>Admin Privileges</CardTitle>
