@@ -29,7 +29,7 @@ interface LeadState {
   createLead: (data: Omit<Lead, 'id'>) => Promise<Lead | undefined>
   updateLead: (id: number, data: Partial<Lead>) => Promise<Lead | undefined>
   deleteLead: (id: number) => Promise<void>
-  // searchLeads: (query: string) => Promise<void>
+  searchLeads: (query: string) => Promise<void>
   clearError: () => void
 }
 
@@ -124,13 +124,13 @@ export const useLeadStore = create<LeadState>((set) => ({
     }
   },
 
-  // searchLeads: async (query) => {
-  //   set({ loading: true, error: null })
-  //   try {
-  //     const response = await api.get('/leads/search', { params: { search: query } })
-  //     set({ leads: response.data, loading: false })
-  //   } catch (error: any) {
-  //     set({ error: error.response?.data?.error || 'No leads found', loading: false, leads: [] })
-  //   }
-  // },
+  searchLeads: async (query) => {
+    set({ loading: true, error: null })
+    try {
+      const response = await api.get('/leads/search', { params: { search: query } })
+      set({ leads: response.data, loading: false })
+    } catch (error: any) {
+      set({ error: error.response?.data?.error || 'No leads found', loading: false, leads: [] })
+    }
+  },
 }))

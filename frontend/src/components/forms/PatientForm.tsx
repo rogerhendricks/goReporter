@@ -77,7 +77,7 @@ export default function PatientForm() {
   const {
     leads: availableLeads,
     fetchLeads: fetchAllLeads,
-    // searchLeads,
+    searchLeads,
   } = useLeadStore();
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
@@ -998,7 +998,7 @@ export default function PatientForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[400px] p-0">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput
                         placeholder="Search devices..."
                         value={deviceSearch}
@@ -1138,7 +1138,7 @@ export default function PatientForm() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[400px] p-0">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput
                         placeholder="Search leads..."
                         value={leadSearch}
