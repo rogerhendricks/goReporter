@@ -7,6 +7,8 @@ import { DonutChart } from '@/components/charts/DonutChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Link } from 'react-router-dom' 
+import { CheckSquare } from 'lucide-react'
+import { TaskList } from '@/components/tasks/TaskList'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -195,6 +197,20 @@ useEffect(() => {
           </CardContent>
         </Card>
         </div>
-    </div>  
+        <div className="mt-6" >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5" />
+                  My Assigned Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Pass the current user's ID to filter tasks */}
+                <TaskList assignedToId={Number(user?.id ?? 0)} showFilters={true} />
+              </CardContent>
+            </Card>
+          </div>
+    </div>
   )
 }

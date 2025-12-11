@@ -4,6 +4,7 @@ import { useTaskStore } from '@/stores/taskStore'
 import type { CreateTaskData, TaskStatus, TaskPriority } from '@/stores/taskStore'
 import { usePatientStore } from '@/stores/patientStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useUserStore } from '@/stores/userStore'
 import { tagService } from '@/services/tagService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,9 +38,10 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const navigate = useNavigate()
   const { createTask, isLoading } = useTaskStore()
   const { patients, fetchPatients, searchPatients } = usePatientStore()
+  const { users, fetchUsers } = useUserStore()
   const { user } = useAuthStore()
   const [availableTags, setAvailableTags] = useState<any[]>([])
-  const [users, setUsers] = useState<any[]>([])
+  // const [users, setUsers] = useState<any[]>([])
 
   const [formData, setFormData] = useState<CreateTaskData>({
     title: '',
@@ -64,6 +66,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         const tags = await tagService.getAll()
         setAvailableTags(tags)
 
+        await fetchUsers()
         // Fetch users for assignment (you'll need to create this endpoint)
         // const usersResponse = await axios.get('/users')
         // setUsers(usersResponse.data)
@@ -243,6 +246,27 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
             </Popover>
           </div>
 
+          {/* Assign To */}
+          <div className="space-y-2">
+            <Label htmlFor="assignedTo">Assign To</Label>
+            <Select
+              value={formData.assignedToId?.toString()}
+              onValueChange={(value) => setFormData({ ...formData, assignedToId: parseInt(value) })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select staff member" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((u) => (
+                  <SelectItem key={u.ID} value={u.ID.toString()}>
+                    {u.fullName || u.username} ({u.role})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        
+
           {/* Patient Selection (if not provided via prop) */}
           {!patientId && (
             <div className="space-y-2">
@@ -361,8 +385,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.fname} {user.lname} ({user.email})
+                    <SelectItem key={user.ID} value={user.ID.toString()}>
+                      {user.username} ({user.email})
                     </SelectItem>
                   ))}
                 </SelectContent>

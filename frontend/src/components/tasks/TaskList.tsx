@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
 import type { TaskStatus, TaskPriority, Task } from '@/stores/taskStore'
@@ -20,9 +20,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/authStore'
+import axios from '@/utils/axios'
 
 interface TaskListProps {
   patientId?: number
+  assignedToId?: number 
   showFilters?: boolean
 }
 
@@ -40,11 +43,28 @@ const statusConfig: Record<TaskStatus, { color: string; label: string; icon: typ
   cancelled: { color: 'bg-red-500', label: 'Cancelled', icon: Circle }
 }
 
-export function TaskList({ patientId, showFilters = true }: TaskListProps) {
+export function TaskList({ patientId, assignedToId, showFilters = true }: TaskListProps) {
   const navigate = useNavigate()
   const { tasks, fetchTasks, fetchTasksByPatient, updateTask, deleteTask, isLoading } = useTaskStore()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
+  const [users, setUsers] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
+
+  useEffect(() => {
+    if (isAdmin) {
+      const loadUsers = async () => {
+        try {
+          const response = await axios.get('/users')
+          setUsers(response.data)
+        } catch (error) {
+          console.error('Failed to load users', error)
+        }
+      }
+      loadUsers()
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -53,6 +73,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
       if (statusFilter !== 'all') filters.status = statusFilter
       if (priorityFilter !== 'all') filters.priority = priorityFilter
       if (patientId) filters.patientId = patientId
+      if (assignedToId) filters.assignedTo = assignedToId 
 
       if (patientId) {
         await fetchTasksByPatient(patientId)
@@ -62,7 +83,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
     }
 
     loadTasks()
-  }, [patientId, statusFilter, priorityFilter, fetchTasks, fetchTasksByPatient])
+  }, [patientId, assignedToId, statusFilter, priorityFilter, fetchTasks, fetchTasksByPatient])
 
   const getDueDateInfo = (dueDate?: string) => {
     if (!dueDate) return null
@@ -139,7 +160,7 @@ export function TaskList({ patientId, showFilters = true }: TaskListProps) {
   return (
     <div className="space-y-4 pt-4">
       {/* Header with Filters */}
-          {showFilters && (
+      {showFilters && (
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Tasks</h2>
         <div className="flex items-center gap-2">
@@ -273,9 +294,12 @@ interface TaskTableProps {
   onStatusChange: (taskId: number, status: TaskStatus) => void
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
+  onAssigneeChange: (taskId: number, userId: number | null) => void
   onViewTask: (taskId: number) => void
   onDeleteTask: (taskId: number) => void
   showPatient?: boolean
+  users: any[]
+  isAdmin: boolean
 }
 
 function TaskTable({ 
@@ -283,21 +307,25 @@ function TaskTable({
   onStatusChange, 
   onPriorityChange, 
   onDueDateChange, 
+  onAssigneeChange,
   onViewTask,
   onDeleteTask,
-  showPatient = true 
+  showPatient = true ,
+  users,
+  isAdmin
 }: TaskTableProps) {
   return (
     <Card>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[30%]">Task</TableHead>
-            <TableHead className="w-[15%]">Priority</TableHead>
+            <TableHead className="w-[25%]">Task</TableHead>
+            {showPatient && <TableHead className="w-[15%]">Patient</TableHead>}
+            <TableHead className="w-[10%]">Priority</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>
-            {showPatient && <TableHead className="w-[15%]">Patient</TableHead>}
-            <TableHead className="w-[10%]">Actions</TableHead>
+            <TableHead className="w-[15%]">Assigned to</TableHead>
+            <TableHead className="w-[5%]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -308,9 +336,12 @@ function TaskTable({
               onStatusChange={onStatusChange}
               onPriorityChange={onPriorityChange}
               onDueDateChange={onDueDateChange}
+              onAssigneeChange={onAssigneeChange}
               onViewTask={onViewTask}
               onDeleteTask={onDeleteTask}
               showPatient={showPatient}
+              users={users}
+              isAdmin={isAdmin}
             />
           ))}
         </TableBody>
@@ -324,19 +355,25 @@ interface TaskRowProps {
   onStatusChange: (taskId: number, status: TaskStatus) => void
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
+  onAssigneeChange: (taskId: number, userId: number | null) => void
   onViewTask: (taskId: number) => void
   onDeleteTask: (taskId: number) => void
   showPatient?: boolean
+  users: any[]
+  isAdmin: boolean
 }
 
 function TaskRow({ 
   task, 
   onStatusChange, 
   onPriorityChange, 
-  onDueDateChange, 
+  onDueDateChange,
+  onAssigneeChange, 
   onViewTask,
   onDeleteTask,
-  showPatient = true 
+  showPatient = true,
+  users,
+  isAdmin 
 }: TaskRowProps) {
   const dueDateInfo = getDueDateInfo(task.dueDate)
   const PriorityIcon = priorityConfig[task.priority].icon
@@ -387,6 +424,22 @@ function TaskRow({
           )}
         </div>
       </TableCell>
+
+      {/* Patient */}
+      {showPatient && (
+        <TableCell className="text-left">
+          {task.patient ? (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                {task.patient.fname} {task.patient.lname}
+              </span>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">-</span>
+          )}
+        </TableCell>
+      )}
 
       {/* Priority - Editable */}
       <TableCell className="text-left">
@@ -513,21 +566,34 @@ function TaskRow({
         </Popover>
       </TableCell>
 
-      {/* Patient */}
-      {showPatient && (
-        <TableCell className="text-left">
-          {task.patient ? (
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                {task.patient.fname} {task.patient.lname}
-              </span>
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">-</span>
-          )}
-        </TableCell>
-      )}
+      {/* Assigned To */}
+      <TableCell className="text-left">
+        {isAdmin ? (
+          <Select
+            value={task.assignedToId?.toString() || "unassigned"}
+            onValueChange={(value) => onAssigneeChange(task.id, value === "unassigned" ? null : parseInt(value))}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Unassigned" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.ID} value={u.ID.toString()}>
+                  {u.fullName || u.username}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {task.assignedTo ? (task.assignedTo.fullName || task.assignedTo.username) : 'Unassigned'}
+            </span>
+          </div>
+        )}
+      </TableCell>
 
       {/* Actions */}
       <TableCell>

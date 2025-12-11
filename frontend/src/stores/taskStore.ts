@@ -36,16 +36,18 @@ export interface Task {
   assignedToId?: number
   assignedTo?: {
     id: number
+    role: string
     email: string
-    fname: string
-    lname: string
+    username: string
+    fullName: string
   }
   createdById: number
   createdBy: {
     id: number
     email: string
-    fname: string
-    lname: string
+    username: string
+    fullName: string
+    role: string
   }
   tags: Array<{
     ID: number

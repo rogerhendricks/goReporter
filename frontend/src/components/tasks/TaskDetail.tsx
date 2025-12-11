@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
+import { useUserStore } from '@/stores/userStore' 
 import type { UpdateTaskData } from '@/stores/taskStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ export function TaskDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { currentTask, fetchTask, updateTask, deleteTask, addNote, isLoading } = useTaskStore()
+  const { users, fetchUsers } = useUserStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<UpdateTaskData>({})
   const [newNote, setNewNote] = useState('')
@@ -36,6 +38,7 @@ export function TaskDetail() {
         description: currentTask.description,
         status: currentTask.status,
         priority: currentTask.priority,
+        assignedToId: currentTask.assignedToId,
       })
     }
   }, [currentTask, isEditing])
@@ -190,6 +193,29 @@ export function TaskDetail() {
                       </Select>
                     </div>
                   </div>
+                                    {/* Added Assign To field in Edit Mode */}
+                  <div className="space-y-2">
+                    <Label>Assign To</Label>
+                    <Select
+                      value={editData.assignedToId?.toString() || "unassigned"}
+                      onValueChange={(value) => setEditData({ 
+                        ...editData, 
+                        assignedToId: value === "unassigned" ? undefined : parseInt(value) 
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Unassigned" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {users.map((u) => (
+                          <SelectItem key={u.ID} value={u.ID.toString()}>
+                            {u.fullName || u.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </>
               ) : (
                 <>
@@ -319,7 +345,7 @@ export function TaskDetail() {
                   <div>
                     <p className="text-sm font-medium">Assigned To</p>
                     <p className="text-sm text-muted-foreground">
-                      {currentTask.assignedTo.fname} {currentTask.assignedTo.lname}
+                      {currentTask.assignedTo.username}
                     </p>
                   </div>
                 </div>
@@ -330,7 +356,7 @@ export function TaskDetail() {
                 <div>
                   <p className="text-sm font-medium">Created By</p>
                   <p className="text-sm text-muted-foreground">
-                    {currentTask.createdBy.fname} {currentTask.createdBy.lname}
+                    {currentTask.createdBy.username}
                   </p>
                 </div>
               </div>
