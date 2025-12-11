@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
-import axios from '@/utils/axios'
+import { useUserStore } from '@/stores/userStore'
 
 interface TaskListProps {
   patientId?: number
@@ -48,7 +48,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const { tasks, fetchTasks, fetchTasksByPatient, updateTask, deleteTask, isLoading } = useTaskStore()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
-  const [users, setUsers] = useState<any[]>([])
+  const { users, fetchUsers } = useUserStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
 
@@ -56,8 +56,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     if (isAdmin) {
       const loadUsers = async () => {
         try {
-          const response = await axios.get('/users')
-          setUsers(response.data)
+          fetchUsers()
         } catch (error) {
           console.error('Failed to load users', error)
         }
@@ -98,6 +97,11 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     }
   }
 
+  const handleAssigneeChange = async (taskId: number, userId: number | null) => {
+    const success = await updateTask(taskId, { assignedToId: userId } as any)
+    if (success) toast.success('Assignee updated')
+    else toast.error('Failed to update assignee')
+  }
   const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
     const success = await updateTask(taskId, { status: newStatus })
     if (success) {
@@ -155,6 +159,18 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     today: filteredTasks.filter(t => t.dueDate && isToday(new Date(t.dueDate)) && t.status !== 'completed'),
     upcoming: filteredTasks.filter(t => !t.dueDate || (!isPast(new Date(t.dueDate)) && !isToday(new Date(t.dueDate)))),
     completed: filteredTasks.filter(t => t.status === 'completed')
+  }
+
+    const commonTableProps = {
+    onStatusChange: handleStatusChange,
+    onPriorityChange: handlePriorityChange,
+    onDueDateChange: handleDueDateChange,
+    onAssigneeChange: handleAssigneeChange,
+    onViewTask: (id: number) => navigate(`/tasks/${id}`),
+    onDeleteTask: handleDeleteTask,
+    showPatient: !patientId,
+    users,
+    isAdmin
   }
 
   return (
@@ -216,15 +232,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 <AlertCircle className="h-5 w-5" />
                 Overdue ({groupedTasks.overdue.length})
               </h3>
-              <TaskTable 
-                tasks={groupedTasks.overdue} 
-                onStatusChange={handleStatusChange}
-                onPriorityChange={handlePriorityChange}
-                onDueDateChange={handleDueDateChange}
-                onViewTask={(id) => navigate(`/tasks/${id}`)}
-                onDeleteTask={handleDeleteTask}
-                showPatient={!patientId}
-              />
+              <TaskTable tasks={groupedTasks.overdue} {...commonTableProps} />
             </div>
           )}
 
@@ -235,15 +243,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 <Calendar className="h-5 w-5" />
                 Today ({groupedTasks.today.length})
               </h3>
-              <TaskTable 
-                tasks={groupedTasks.today} 
-                onStatusChange={handleStatusChange}
-                onPriorityChange={handlePriorityChange}
-                onDueDateChange={handleDueDateChange}
-                onViewTask={(id) => navigate(`/tasks/${id}`)}
-                onDeleteTask={handleDeleteTask}
-                showPatient={!patientId}
-              />
+              <TaskTable tasks={groupedTasks.today} {...commonTableProps} />
             </div>
           )}
 
@@ -253,15 +253,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
               <h3 className="text-lg font-semibold mb-3">
                 Upcoming ({groupedTasks.upcoming.length})
               </h3>
-              <TaskTable 
-                tasks={groupedTasks.upcoming} 
-                onStatusChange={handleStatusChange}
-                onPriorityChange={handlePriorityChange}
-                onDueDateChange={handleDueDateChange}
-                onViewTask={(id) => navigate(`/tasks/${id}`)}
-                onDeleteTask={handleDeleteTask}
-                showPatient={!patientId}
-              />
+              <TaskTable tasks={groupedTasks.upcoming} {...commonTableProps} />
             </div>
           )}
 
@@ -272,15 +264,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 <CheckCircle2 className="h-5 w-5" />
                 Completed ({groupedTasks.completed.length})
               </h3>
-              <TaskTable 
-                tasks={groupedTasks.completed} 
-                onStatusChange={handleStatusChange}
-                onPriorityChange={handlePriorityChange}
-                onDueDateChange={handleDueDateChange}
-                onViewTask={(id) => navigate(`/tasks/${id}`)}
-                onDeleteTask={handleDeleteTask}
-                showPatient={!patientId}
-              />
+              <TaskTable tasks={groupedTasks.completed} {...commonTableProps} />
             </div>
           )}
         </div>
