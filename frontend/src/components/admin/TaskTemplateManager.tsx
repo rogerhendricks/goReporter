@@ -25,7 +25,6 @@ import { toast } from 'sonner'
 import { tagService } from '@/services/tagService'
 import { usePatientStore } from '@/stores/patientStore'
 import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
 import { 
   findPatientsBySerialNumbers, 
   parseSerialNumbers, 
@@ -41,7 +40,7 @@ interface TaskTemplate {
   taskDescription: string
   priority: string
   daysUntilDue?: number
-  tags: any[]
+  tags?: any[]
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -149,7 +148,7 @@ export function TaskTemplateManager() {
       taskDescription: template.taskDescription,
       priority: template.priority,
       daysUntilDue: template.daysUntilDue,
-      tagIds: template.tags.map(t => t.ID)
+      tagIds: template.tags?.map(t => t.ID) || []
     })
     setIsDialogOpen(true)
   }

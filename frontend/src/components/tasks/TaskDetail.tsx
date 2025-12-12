@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
-import { useUserStore } from '@/stores/userStore' 
+import { useUserStore } from '@/stores/userStore'
 import type { UpdateTaskData } from '@/stores/taskStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ export function TaskDetail() {
   const navigate = useNavigate()
   const { currentTask, fetchTask, updateTask, deleteTask, addNote, updateNote, deleteNote, isLoading } = useTaskStore()
   const { users, fetchUsers } = useUserStore()
-  const { user } = useAuthStore() 
+  const { user } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<UpdateTaskData>({})
   const [newNote, setNewNote] = useState('')
@@ -64,7 +64,7 @@ export function TaskDetail() {
 
   const handleDelete = async () => {
     if (!currentTask) return
-    
+
     if (window.confirm('Are you sure you want to delete this task?')) {
       const result = await deleteTask(currentTask.id)
       if (result) {
@@ -238,15 +238,15 @@ export function TaskDetail() {
                       </Select>
                     </div>
                   </div>
-                {/* Only show Assign To field for admin/doctor */}
+                  {/* Only show Assign To field for admin/doctor */}
                   {isAdminOrDoctor && (
                     <div className="space-y-2">
                       <Label>Assign To</Label>
                       <Select
                         value={editData.assignedToId?.toString() || "unassigned"}
-                        onValueChange={(value) => setEditData({ 
-                          ...editData, 
-                          assignedToId: value === "unassigned" ? undefined : parseInt(value) 
+                        onValueChange={(value) => setEditData({
+                          ...editData,
+                          assignedToId: value === "unassigned" ? undefined : parseInt(value)
                         })}
                       >
                         <SelectTrigger>
@@ -315,7 +315,7 @@ export function TaskDetail() {
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   rows={3}
-                  />
+                />
                 <Button onClick={handleAddNote} disabled={!newNote.trim()}>
                   Add Note
                 </Button>
@@ -333,7 +333,7 @@ export function TaskDetail() {
                             value={editingNoteContent}
                             onChange={(e) => setEditingNoteContent(e.target.value)}
                             rows={3}
-                            />
+                          />
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => handleUpdateNote(note.id)}>
                               <Check className="h-4 w-4 mr-1" />
@@ -367,23 +367,24 @@ export function TaskDetail() {
                             </div>
                             {user && Number(user.ID) === note.createdBy.ID && (
                               // display the note.createdBy.id
-                              
+
                               <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEditNote(note.id, note.content)}
+                                {user.ID}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEditNote(note.id, note.content)}
                                 >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteNote(note.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             )}
                           </div>

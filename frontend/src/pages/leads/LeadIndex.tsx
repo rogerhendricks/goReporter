@@ -143,7 +143,7 @@ export default function LeadIndex() {
   ]
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       
       {/* <div className="flex justify-between items-center mb-6">

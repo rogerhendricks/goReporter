@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { usePatientStore } from '@/stores/patientStore'
 import { tagService, type Tag } from '@/services/tagService'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -137,9 +138,15 @@ export default function PatientSearch() {
     toast.success("Data exported successfully!");
   };
 
+    const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Patients', current: true },
+    { label: '+ Add Patient', href: '/patients/new' }
+  ]
+  
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Advanced Patient Search</h1>
+      <BreadcrumbNav items={breadcrumbItems} />
 
       <Card className="mb-6">
         <CardHeader>

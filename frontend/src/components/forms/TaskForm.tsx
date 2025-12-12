@@ -263,7 +263,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 <SelectContent>
                   <SelectItem value="self">Assign to myself</SelectItem>
                   {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id.toString()}>
+                    <SelectItem key={u.ID} value={u.ID.toString()}>
                       {u.fullName || u.username} ({u.role})
                     </SelectItem>
                   ))}

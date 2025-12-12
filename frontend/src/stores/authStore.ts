@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import api from '../utils/axios'
 // import { API_BASE_URL } from '../lib/api'
 interface User {
-  id: string
+  ID: string
   email: string
   username: string
   role: 'admin' | 'doctor' | 'user'
