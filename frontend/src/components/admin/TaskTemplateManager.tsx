@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Calendar } from '@/components/ui/calendar'
+// import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -20,7 +20,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, UserPlus, CalendarIcon, Search, CheckCircle, XCircle, AlertCircle, User, X, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, UserPlus, Search, CheckCircle, XCircle, AlertCircle, User, X, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { tagService } from '@/services/tagService'
 import { usePatientStore } from '@/stores/patientStore'
@@ -597,7 +597,7 @@ export function TaskTemplateManager() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {renderTags(template.tags)}
+                        {renderTags(template.tags || [])}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

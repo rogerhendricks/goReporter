@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, Edit, Plus, Search } from 'lucide-react'
+import { Trash2, Edit, Search } from 'lucide-react'
 
 import {
   Table,

@@ -51,7 +51,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     priority: 'medium',
     dueDate: undefined,
     patientId: patientId,
-    assignedToId: isAdminOrDoctor ? undefined : Number(user?.id),
+    assignedToId: isAdminOrDoctor ? undefined : Number(user?.ID),
     tagIds: []
   })
 
@@ -254,7 +254,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 value={formData.assignedToId?.toString() || "self"}
                 onValueChange={(value) => setFormData({ 
                   ...formData, 
-                  assignedToId: value === "self" ? Number(user?.id) : parseInt(value) 
+                  assignedToId: value === "self" ? Number(user?.ID) : parseInt(value) 
                 })}
               >
                 <SelectTrigger id="assignedTo">
