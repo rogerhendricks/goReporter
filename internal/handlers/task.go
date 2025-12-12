@@ -189,192 +189,192 @@ func GetTask(c *fiber.Ctx) error {
 
 // CreateTask creates a new task
 func CreateTask(c *fiber.Ctx) error {
-    // Safely get user_id and role from context
-    userIDVal := c.Locals("user_id")
-    if userIDVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User not authenticated",
-        })
-    }
-    userID, ok := userIDVal.(uint)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user ID",
-        })
-    }
+	// Safely get user_id and role from context
+	userIDVal := c.Locals("user_id")
+	if userIDVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not authenticated",
+		})
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
-    userRoleVal := c.Locals("user_role")
-    if userRoleVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User role not found",
-        })
-    }
-    userRole, ok := userRoleVal.(string)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user role",
-        })
-    }
+	userRoleVal := c.Locals("user_role")
+	if userRoleVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User role not found",
+		})
+	}
+	userRole, ok := userRoleVal.(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user role",
+		})
+	}
 
-    var req CreateTaskRequest
-    if err := c.BodyParser(&req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid request body",
-        })
-    }
+	var req CreateTaskRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
 
-    // For regular users, automatically assign the task to themselves if no assignee specified
-    assignedToID := req.AssignedToID
-    if userRole != "admin" && userRole != "doctor" {
-        // Regular users can only assign to themselves
-        assignedToID = &userID
-    } else if assignedToID == nil {
-        // If admin/doctor doesn't specify an assignee, assign to themselves
-        assignedToID = &userID
-    }
+	// For regular users, automatically assign the task to themselves if no assignee specified
+	assignedToID := req.AssignedToID
+	if userRole != "admin" && userRole != "doctor" {
+		// Regular users can only assign to themselves
+		assignedToID = &userID
+	} else if assignedToID == nil {
+		// If admin/doctor doesn't specify an assignee, assign to themselves
+		assignedToID = &userID
+	}
 
-    task := models.Task{
-        Title:        req.Title,
-        Description:  req.Description,
-        Status:       models.TaskStatus(req.Status),
-        Priority:     models.TaskPriority(req.Priority),
-        DueDate:      req.DueDate,
-        PatientID:    req.PatientID,
-        AssignedToID: assignedToID,
-        CreatedByID:  userID,
-    }
+	task := models.Task{
+		Title:        req.Title,
+		Description:  req.Description,
+		Status:       models.TaskStatus(req.Status),
+		Priority:     models.TaskPriority(req.Priority),
+		DueDate:      req.DueDate,
+		PatientID:    req.PatientID,
+		AssignedToID: assignedToID,
+		CreatedByID:  userID,
+	}
 
-    // Set defaults if not provided
-    if task.Status == "" {
-        task.Status = models.TaskStatusPending
-    }
-    if task.Priority == "" {
-        task.Priority = models.TaskPriorityMedium
-    }
+	// Set defaults if not provided
+	if task.Status == "" {
+		task.Status = models.TaskStatusPending
+	}
+	if task.Priority == "" {
+		task.Priority = models.TaskPriorityMedium
+	}
 
-    if err := config.DB.Create(&task).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to create task",
-        })
-    }
+	if err := config.DB.Create(&task).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to create task",
+		})
+	}
 
-    // Add tags if provided
-    if len(req.TagIDs) > 0 {
-        var tags []models.Tag
-        config.DB.Find(&tags, req.TagIDs)
-        config.DB.Model(&task).Association("Tags").Append(tags)
-    }
+	// Add tags if provided
+	if len(req.TagIDs) > 0 {
+		var tags []models.Tag
+		config.DB.Find(&tags, req.TagIDs)
+		config.DB.Model(&task).Association("Tags").Append(tags)
+	}
 
-    // Reload with associations
-    config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
+	// Reload with associations
+	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
 
-    return c.Status(fiber.StatusCreated).JSON(task)
+	return c.Status(fiber.StatusCreated).JSON(task)
 }
 
 // UpdateTask updates an existing task
 func UpdateTask(c *fiber.Ctx) error {
-    id, err := strconv.Atoi(c.Params("id"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid task ID",
-        })
-    }
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid task ID",
+		})
+	}
 
-    // Safely get user_id and role from context
-    userIDVal := c.Locals("user_id")
-    if userIDVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User not authenticated",
-        })
-    }
-    userID, ok := userIDVal.(uint)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user ID",
-        })
-    }
+	// Safely get user_id and role from context
+	userIDVal := c.Locals("user_id")
+	if userIDVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not authenticated",
+		})
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
-    userRoleVal := c.Locals("user_role")
-    if userRoleVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User role not found",
-        })
-    }
-    userRole, ok := userRoleVal.(string)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user role",
-        })
-    }
+	userRoleVal := c.Locals("user_role")
+	if userRoleVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User role not found",
+		})
+	}
+	userRole, ok := userRoleVal.(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user role",
+		})
+	}
 
-    var task models.Task
-    if err := config.DB.First(&task, id).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "Task not found",
-        })
-    }
+	var task models.Task
+	if err := config.DB.First(&task, id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Task not found",
+		})
+	}
 
-    // Check permissions - Allow admins, doctors, task creator, or assigned user
-    canUpdate := userRole == "admin" || 
-                 userRole == "doctor" || 
-                 task.CreatedByID == userID ||
-                 (task.AssignedToID != nil && *task.AssignedToID == userID)
-    
-    if !canUpdate {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-            "error": "You don't have permission to update this task",
-        })
-    }
+	// Check permissions - Allow admins, doctors, task creator, or assigned user
+	canUpdate := userRole == "admin" ||
+		userRole == "doctor" ||
+		task.CreatedByID == userID ||
+		(task.AssignedToID != nil && *task.AssignedToID == userID)
 
-    var req UpdateTaskRequest
-    if err := c.BodyParser(&req); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid request body",
-        })
-    }
+	if !canUpdate {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "You don't have permission to update this task",
+		})
+	}
 
-    // Update fields
-    if req.Title != nil {
-        task.Title = *req.Title
-    }
-    if req.Description != nil {
-        task.Description = *req.Description
-    }
-    if req.Status != nil {
-        task.Status = models.TaskStatus(*req.Status)
-        if *req.Status == string(models.TaskStatusCompleted) && task.CompletedAt == nil {
-            now := time.Now()
-            task.CompletedAt = &now
-        }
-    }
-    if req.Priority != nil {
-        task.Priority = models.TaskPriority(*req.Priority)
-    }
-    if req.DueDate != nil {
-        task.DueDate = req.DueDate
-    }
-    // Only admins and doctors can reassign tasks
-    if req.AssignedToID != nil && (userRole == "admin" || userRole == "doctor") {
-        task.AssignedToID = req.AssignedToID
-    }
+	var req UpdateTaskRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
 
-    if err := config.DB.Save(&task).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to update task",
-        })
-    }
+	// Update fields
+	if req.Title != nil {
+		task.Title = *req.Title
+	}
+	if req.Description != nil {
+		task.Description = *req.Description
+	}
+	if req.Status != nil {
+		task.Status = models.TaskStatus(*req.Status)
+		if *req.Status == string(models.TaskStatusCompleted) && task.CompletedAt == nil {
+			now := time.Now()
+			task.CompletedAt = &now
+		}
+	}
+	if req.Priority != nil {
+		task.Priority = models.TaskPriority(*req.Priority)
+	}
+	if req.DueDate != nil {
+		task.DueDate = req.DueDate
+	}
+	// Only admins and doctors can reassign tasks
+	if req.AssignedToID != nil && (userRole == "admin" || userRole == "doctor") {
+		task.AssignedToID = req.AssignedToID
+	}
 
-    // Update tags if provided (only admins and doctors can change tags)
-    if req.TagIDs != nil && (userRole == "admin" || userRole == "doctor") {
-        var tags []models.Tag
-        config.DB.Find(&tags, req.TagIDs)
-        config.DB.Model(&task).Association("Tags").Replace(tags)
-    }
+	if err := config.DB.Save(&task).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update task",
+		})
+	}
 
-    // Reload with associations
-    config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").First(&task, task.ID)
+	// Update tags if provided (only admins and doctors can change tags)
+	if req.TagIDs != nil && (userRole == "admin" || userRole == "doctor") {
+		var tags []models.Tag
+		config.DB.Find(&tags, req.TagIDs)
+		config.DB.Model(&task).Association("Tags").Replace(tags)
+	}
 
-    return c.JSON(task)
+	// Reload with associations
+	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").First(&task, task.ID)
+
+	return c.JSON(task)
 }
 
 // DeleteTask deletes a task
@@ -493,131 +493,131 @@ func AddTaskNote(c *fiber.Ctx) error {
 
 // UpdateTaskNote updates a task note (only by creator)
 func UpdateTaskNote(c *fiber.Ctx) error {
-    taskID, err := strconv.Atoi(c.Params("id"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid task ID",
-        })
-    }
+	taskID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid task ID",
+		})
+	}
 
-    noteID, err := strconv.Atoi(c.Params("noteId"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid note ID",
-        })
-    }
+	noteID, err := strconv.Atoi(c.Params("noteId"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid note ID",
+		})
+	}
 
-    // Safely get user_id from context
-    userIDVal := c.Locals("user_id")
-    if userIDVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User not authenticated",
-        })
-    }
-    userID, ok := userIDVal.(uint)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user ID",
-        })
-    }
+	// Safely get user_id from context
+	userIDVal := c.Locals("user_id")
+	if userIDVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not authenticated",
+		})
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
-    var input struct {
-        Content string `json:"content" validate:"required"`
-    }
+	var input struct {
+		Content string `json:"content" validate:"required"`
+	}
 
-    if err := c.BodyParser(&input); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid request body",
-        })
-    }
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
 
-    // Find the note
-    var note models.TaskNote
-    if err := config.DB.Where("id = ? AND task_id = ?", noteID, taskID).First(&note).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "Note not found",
-        })
-    }
+	// Find the note
+	var note models.TaskNote
+	if err := config.DB.Where("id = ? AND task_id = ?", noteID, taskID).First(&note).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Note not found",
+		})
+	}
 
-    // Check if user is the creator
-    if note.CreatedByID != userID {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-            "error": "You can only edit your own notes",
-        })
-    }
+	// Check if user is the creator
+	if note.CreatedByID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "You can only edit your own notes",
+		})
+	}
 
-    // Update note
-    note.Content = input.Content
-    note.UpdatedBy = &userID
-    note.UpdatedAt = time.Now()
+	// Update note
+	note.Content = input.Content
+	note.UpdatedBy = &userID
+	note.UpdatedAt = time.Now()
 
-    if err := config.DB.Save(&note).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to update note",
-        })
-    }
+	if err := config.DB.Save(&note).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update note",
+		})
+	}
 
-    // Load relationships
-    config.DB.Preload("CreatedBy").Preload("UpdatedBy").First(&note, note.ID)
+	// Load relationships
+	config.DB.Preload("CreatedBy").Preload("UpdatedBy").First(&note, note.ID)
 
-    return c.JSON(note)
+	return c.JSON(note)
 }
 
 // DeleteTaskNote deletes a task note (only by creator)
 func DeleteTaskNote(c *fiber.Ctx) error {
-    taskID, err := strconv.Atoi(c.Params("id"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid task ID",
-        })
-    }
+	taskID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid task ID",
+		})
+	}
 
-    noteID, err := strconv.Atoi(c.Params("noteId"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid note ID",
-        })
-    }
+	noteID, err := strconv.Atoi(c.Params("noteId"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid note ID",
+		})
+	}
 
-    // Safely get user_id from context
-    userIDVal := c.Locals("user_id")
-    if userIDVal == nil {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "User not authenticated",
-        })
-    }
-    userID, ok := userIDVal.(uint)
-    if !ok {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-            "error": "Invalid user ID",
-        })
-    }
+	// Safely get user_id from context
+	userIDVal := c.Locals("user_id")
+	if userIDVal == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not authenticated",
+		})
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
-    // Find the note
-    var note models.TaskNote
-    if err := config.DB.Where("id = ? AND task_id = ?", noteID, taskID).First(&note).Error; err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "error": "Note not found",
-        })
-    }
+	// Find the note
+	var note models.TaskNote
+	if err := config.DB.Where("id = ? AND task_id = ?", noteID, taskID).First(&note).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Note not found",
+		})
+	}
 
-    // Check if user is the creator
-    if note.CreatedByID != userID {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-            "error": "You can only delete your own notes",
-        })
-    }
+	// Check if user is the creator
+	if note.CreatedByID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "You can only delete your own notes",
+		})
+	}
 
-    // Soft delete the note
-    if err := config.DB.Delete(&note).Error; err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to delete note",
-        })
-    }
+	// Soft delete the note
+	if err := config.DB.Delete(&note).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to delete note",
+		})
+	}
 
-    return c.JSON(fiber.Map{
-        "message": "Note deleted successfully",
-    })
+	return c.JSON(fiber.Map{
+		"message": "Note deleted successfully",
+	})
 }
 
 // GetTasksByPatient retrieves all tasks for a specific patient
@@ -776,10 +776,17 @@ func UpdateTaskTemplate(c *fiber.Ctx) error {
 		})
 	}
 
-	if req.TagIDs != nil {
-		var tags []models.Tag
+	// Always update tags if tagIds field is present in the request
+	// This includes clearing all tags if an empty array is sent
+	var tags []models.Tag
+	if len(req.TagIDs) > 0 {
 		config.DB.Find(&tags, req.TagIDs)
-		config.DB.Model(&template).Association("Tags").Replace(tags)
+	}
+	// Replace will clear all associations if tags is an empty slice
+	if err := config.DB.Model(&template).Association("Tags").Replace(tags); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to update template tags",
+		})
 	}
 
 	config.DB.Preload("Tags").First(&template, template.ID)
