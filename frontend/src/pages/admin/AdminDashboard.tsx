@@ -105,7 +105,7 @@ export default function AdminDashboard() {
       <BreadcrumbNav items={breadcrumbItems} />
 
       <Tabs defaultValue="overview" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
+        <TabsList>
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>

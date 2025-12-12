@@ -11,25 +11,32 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Calendar as CalendarIcon, User, Clock, Edit2, Trash2, Save, X, MessageSquare } from 'lucide-react'
+import { Calendar as CalendarIcon, User, Clock, Edit2, Trash2, Save, X, MessageSquare, Edit, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { useAuthStore } from '@/stores/authStore'
 
 export function TaskDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { currentTask, fetchTask, updateTask, deleteTask, addNote, isLoading } = useTaskStore()
+  const { currentTask, fetchTask, updateTask, deleteTask, addNote, updateNote, deleteNote, isLoading } = useTaskStore()
   const { users, fetchUsers } = useUserStore()
+  const { user } = useAuthStore() 
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<UpdateTaskData>({})
   const [newNote, setNewNote] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
+  const [editingNoteContent, setEditingNoteContent] = useState('')
+
+  const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
 
   useEffect(() => {
     if (id) {
       fetchTask(parseInt(id))
+      fetchUsers()
     }
-  }, [id, fetchTask])
+  }, [id, fetchTask, fetchUsers])
 
   useEffect(() => {
     if (currentTask && !isEditing) {
@@ -80,6 +87,44 @@ export function TaskDetail() {
     } else {
       toast.error('Failed to add note')
     }
+  }
+
+  const handleEditNote = (noteId: number, content: string) => {
+    setEditingNoteId(noteId)
+    setEditingNoteContent(content)
+  }
+
+  const handleUpdateNote = async (noteId: number) => {
+    if (!currentTask || !editingNoteContent.trim()) return
+    const result = await updateNote(currentTask.id, noteId, editingNoteContent.trim())
+    if (result) {
+      toast.success('Note updated successfully')
+      setEditingNoteId(null)
+      setEditingNoteContent('')
+    } else {
+      toast.error('Failed to update note')
+    }
+  }
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!currentTask) return
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      const result = await deleteNote(currentTask.id, noteId)
+      if (result) {
+        toast.success('Note deleted successfully')
+      } else {
+        toast.error('Failed to delete note')
+      }
+    }
+  }
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null)
+    setEditingNoteContent('')
+  }
+
+  if (isLoading && !currentTask) {
+    return <div className="container mx-auto py-6">Loading...</div>
   }
 
   if (isLoading && !currentTask) {
@@ -193,29 +238,31 @@ export function TaskDetail() {
                       </Select>
                     </div>
                   </div>
-                                    {/* Added Assign To field in Edit Mode */}
-                  <div className="space-y-2">
-                    <Label>Assign To</Label>
-                    <Select
-                      value={editData.assignedToId?.toString() || "unassigned"}
-                      onValueChange={(value) => setEditData({ 
-                        ...editData, 
-                        assignedToId: value === "unassigned" ? undefined : parseInt(value) 
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Unassigned" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {users.map((u) => (
-                          <SelectItem key={u.ID} value={u.ID.toString()}>
-                            {u.fullName || u.username}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Only show Assign To field for admin/doctor */}
+                  {isAdminOrDoctor && (
+                    <div className="space-y-2">
+                      <Label>Assign To</Label>
+                      <Select
+                        value={editData.assignedToId?.toString() || "unassigned"}
+                        onValueChange={(value) => setEditData({ 
+                          ...editData, 
+                          assignedToId: value === "unassigned" ? undefined : parseInt(value) 
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Unassigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {users.map((u) => (
+                            <SelectItem key={u.ID} value={u.ID.toString()}>
+                              {u.fullName || u.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -268,7 +315,7 @@ export function TaskDetail() {
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   rows={3}
-                />
+                  />
                 <Button onClick={handleAddNote} disabled={!newNote.trim()}>
                   Add Note
                 </Button>
@@ -280,14 +327,68 @@ export function TaskDetail() {
                 {currentTask.notes && currentTask.notes.length > 0 ? (
                   currentTask.notes.map((note) => (
                     <div key={note.id} className="border rounded-lg p-4">
-                      <p className="whitespace-pre-wrap mb-2">{note.content}</p>
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-semibold">
-                          {note.createdBy.username}
-                        </span>
-                        {' • '}
-                        {format(new Date(note.createdAt), 'PPp')}
-                      </div>
+                      {editingNoteId === note.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editingNoteContent}
+                            onChange={(e) => setEditingNoteContent(e.target.value)}
+                            rows={3}
+                            />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleUpdateNote(note.id)}>
+                              <Check className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleCancelEditNote}>
+                              <X className="h-4 w-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="whitespace-pre-wrap mb-2">{note.content}</p>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-semibold">
+                                {note.createdBy.username}
+                              </span>
+                              {' • '}
+                              {format(new Date(note.createdAt), 'PPp')}
+                              {note.updatedAt && note.updatedAt !== note.createdAt && (
+                                <>
+                                  {' • '}
+                                  <span className="italic">
+                                    Edited {format(new Date(note.updatedAt), 'PPp')}
+                                    {note.updatedByUser && ` by ${note.updatedByUser.username}`}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {user && Number(user.ID) === note.createdBy.ID && (
+                              // display the note.createdBy.id
+                              
+                              <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditNote(note.id, note.content)}
+                                >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteNote(note.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -306,7 +407,7 @@ export function TaskDetail() {
             <CardHeader>
               <CardTitle>Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentTask.dueDate && (
                 <div className="flex items-start gap-2">
                   <CalendarIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
@@ -324,16 +425,15 @@ export function TaskDetail() {
                   <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Patient</p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentTask.patient.fname} {currentTask.patient.lname}
-                    </p>
                     <Button
                       variant="link"
                       size="sm"
                       className="p-0 h-auto"
                       onClick={() => navigate(`/patients/${currentTask.patient?.id}`)}
                     >
-                      View Patient
+                      <p className="text-sm text-muted-foreground">
+                        {currentTask.patient.fname} {currentTask.patient.lname}
+                      </p>
                     </Button>
                   </div>
                 </div>
@@ -343,7 +443,7 @@ export function TaskDetail() {
                 <div className="flex items-start gap-2">
                   <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Assigned To</p>
+                    <p className="text-sm font-medium">Assigned</p>
                     <p className="text-sm text-muted-foreground">
                       {currentTask.assignedTo.username}
                     </p>
@@ -351,22 +451,14 @@ export function TaskDetail() {
                 </div>
               )}
 
-              <div className="flex items-start gap-2">
-                <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Created By</p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentTask.createdBy.username}
-                  </p>
-                </div>
-              </div>
+
 
               <div className="flex items-start gap-2">
                 <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Created</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(currentTask.createdAt), 'PPp')}
+                    {format(new Date(currentTask.createdAt), 'PPp')} by {currentTask.createdBy.username}
                   </p>
                 </div>
               </div>

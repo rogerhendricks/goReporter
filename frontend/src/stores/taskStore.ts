@@ -8,15 +8,19 @@ export interface TaskNote {
   id: number
   taskId: number
   content: string
-  createdById: number
   createdBy: {
-    id: number
-    email: string
+    ID: number
     username: string
-    role: string
+    fullName: string
+  }
+  updatedByUser?: {
+    ID: number
+    username: string
+    fullName: string
   }
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
+  updatedBy?: number
 }
 
 export interface Task {
@@ -100,6 +104,8 @@ interface TaskStore {
   updateTask: (id: number, data: UpdateTaskData) => Promise<Task | null>
   deleteTask: (id: number) => Promise<boolean>
   addNote: (taskId: number, content: string) => Promise<TaskNote | null>
+  updateNote: (taskId: number, noteId: number, content: string) => Promise<boolean>
+  deleteNote: (taskId: number, noteId: number) => Promise<boolean>
   setCurrentTask: (task: Task | null) => void
   clearError: () => void
 }
@@ -172,7 +178,9 @@ export const useTaskStore = create<TaskStore>((set) => ({
       }))
       return response.data
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Failed to update task', isLoading: false })
+      const errorMsg = error.response?.data?.error || 'Failed to update task'
+      set({ error: errorMsg, isLoading: false })
+      console.error('Update task error:', errorMsg)
       return null
     }
   },
@@ -207,6 +215,49 @@ export const useTaskStore = create<TaskStore>((set) => ({
     } catch (error: any) {
       set({ error: error.response?.data?.error || 'Failed to add note', isLoading: false })
       return null
+    }
+  },
+
+
+  updateNote: async (taskId: number, noteId: number, content: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      await axios.put(`/tasks/${taskId}/notes/${noteId}`, { content })
+      set((state) => ({
+        currentTask: state.currentTask?.id === taskId
+          ? {
+              ...state.currentTask,
+              notes: state.currentTask.notes.map(note =>
+                note.id === noteId ? { ...note, content } : note
+              )
+            }
+          : state.currentTask,
+        isLoading: false
+      }))
+      return true
+    } catch (error: any) {
+      set({ error: error.response?.data?.error || 'Failed to update note', isLoading: false })
+      return false
+    }
+  },
+
+  deleteNote: async (taskId: number, noteId: number) => {
+    set({ isLoading: true, error: null })
+    try {
+      await axios.delete(`/tasks/${taskId}/notes/${noteId}`)
+      set((state) => ({
+        currentTask: state.currentTask?.id === taskId
+          ? {
+              ...state.currentTask,
+              notes: state.currentTask.notes.filter(note => note.id !== noteId)
+            }
+          : state.currentTask,
+        isLoading: false
+      }))
+      return true
+    } catch (error: any) {
+      set({ error: error.response?.data?.error || 'Failed to delete note', isLoading: false })
+      return false
     }
   },
 

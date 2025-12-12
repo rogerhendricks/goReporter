@@ -102,6 +102,8 @@ func SetupRoutes(app *fiber.App) {
     app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
     app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
     app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
+	app.Put("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.UpdateTaskNote)
+	app.Delete("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeleteTaskNote)
     
     // Patient-specific tasks
     app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)

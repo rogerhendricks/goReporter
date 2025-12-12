@@ -42,6 +42,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const { user } = useAuthStore()
   const [availableTags, setAvailableTags] = useState<any[]>([])
   // const [users, setUsers] = useState<any[]>([])
+  const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
 
   const [formData, setFormData] = useState<CreateTaskData>({
     title: '',
@@ -50,7 +51,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     priority: 'medium',
     dueDate: undefined,
     patientId: patientId,
-    assignedToId: undefined,
+    assignedToId: isAdminOrDoctor ? undefined : Number(user?.id),
     tagIds: []
   })
 
@@ -66,10 +67,9 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         const tags = await tagService.getAll()
         setAvailableTags(tags)
 
-        await fetchUsers()
-        // Fetch users for assignment (you'll need to create this endpoint)
-        // const usersResponse = await axios.get('/users')
-        // setUsers(usersResponse.data)
+        if (isAdminOrDoctor) {
+          await fetchUsers()
+        }
       } catch (error) {
         console.error('Failed to load form data:', error)
       }
@@ -85,7 +85,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         setSelectedPatient(patient)
       }
     }
-  }, [patientId, patients.length, fetchPatients])
+  }, [patientId, patients.length, fetchPatients, isAdminOrDoctor, fetchUsers])
 
   const handlePatientSearch = async (query: string) => {
     setPatientSearch(query)
@@ -246,25 +246,46 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
             </Popover>
           </div>
 
-          {/* Assign To */}
-          <div className="space-y-2">
-            <Label htmlFor="assignedTo">Assign To</Label>
-            <Select
-              value={formData.assignedToId?.toString()}
-              onValueChange={(value) => setFormData({ ...formData, assignedToId: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select staff member" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((u) => (
-                  <SelectItem key={u.ID} value={u.ID.toString()}>
-                    {u.fullName || u.username} ({u.role})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Assign To - Only show for admin/doctor */}
+          {isAdminOrDoctor && (
+            <div className="space-y-2">
+              <Label htmlFor="assignedTo">Assign To</Label>
+              <Select
+                value={formData.assignedToId?.toString() || "self"}
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  assignedToId: value === "self" ? Number(user?.id) : parseInt(value) 
+                })}
+              >
+                <SelectTrigger id="assignedTo">
+                  <SelectValue placeholder="Assign to yourself" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="self">Assign to myself</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id.toString()}>
+                      {u.fullName || u.username} ({u.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Show assigned user for regular users (read-only) */}
+          {!isAdminOrDoctor && user && (
+            <div className="p-4 border rounded-lg bg-muted">
+              <div className="flex items-center gap-3">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Assigned To</div>
+                  <div className="text-sm text-muted-foreground">
+                    {user.username} (You)
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         
 
           {/* Patient Selection (if not provided via prop) */}
@@ -369,7 +390,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
           )}
 
           {/* Assign To */}
-          {users.length > 0 && (
+          {/* {users.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="assignedTo">Assign To (Optional)</Label>
               <Select
@@ -392,7 +413,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 </SelectContent>
               </Select>
             </div>
-          )}
+          )} */}
 
           {/* Tags */}
           <div className="space-y-2">

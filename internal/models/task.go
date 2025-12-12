@@ -60,7 +60,9 @@ type TaskNote struct {
     CreatedBy User           `json:"createdBy" gorm:"foreignKey:CreatedByID"`
     CreatedAt time.Time      `json:"createdAt"`
     UpdatedAt time.Time      `json:"updatedAt"`
+    UpdatedBy *uint          `json:"updatedBy"`
     DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+    UpdatedByUser *User      `json:"updatedByUser,omitempty" gorm:"foreignKey:UpdatedBy"`
 }
 
 type TaskTemplate struct {
