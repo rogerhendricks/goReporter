@@ -1,3 +1,4 @@
+// internal/handlers/auth.go
 package handlers
 
 import (
@@ -14,7 +15,7 @@ import (
     "errors"
     "gorm.io/gorm"
     "log"
-    "regexp"
+    "os"
 )
 
 type LoginRequest struct {
@@ -31,8 +32,16 @@ type RegisterRequest struct {
 
 type AuthResponse struct {
     User  models.User `json:"user"`
-    Token string      `json:"token"`
 }
+
+type RefreshResponse struct {
+    User models.User `json:"user"`
+}
+
+const (
+    AccessTokenDuration  = 15 * time.Minute
+    RefreshTokenDuration = 7 * 24 * time.Hour // 7 days
+)
 
 // Login handles user login requests
 func Login(c *fiber.Ctx) error {
@@ -64,19 +73,17 @@ func Login(c *fiber.Ctx) error {
         return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
     }
 
-    // Generate JWT token
-    token, err := generateJWT(user.ID)
-    if err != nil {
-        log.Printf("Error generating JWT for user %d: %v", user.ID, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
+    // Generate tokens and set cookies
+    if err := setAuthCookies(c, user.ID); err != nil {
+        log.Printf("Error setting auth cookies for user %d: %v", user.ID, err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
     }
 
     // Remove sensitive data before returning
     user.Password = ""
 
     return c.Status(http.StatusOK).JSON(AuthResponse{
-        User:  *user,
-        Token: token,
+        User: *user,
     })
 }
 
@@ -130,46 +137,86 @@ func Register(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
     }
 
-    // Generate JWT token
-    token, err := generateJWT(newUser.ID)
-    if err != nil {
-        log.Printf("Error generating JWT for user %d: %v", newUser.ID, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to generate token"})
+    // Generate tokens and set cookies
+    if err := setAuthCookies(c, newUser.ID); err != nil {
+        log.Printf("Error setting auth cookies for user %d: %v", newUser.ID, err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
     }
 
     // Remove sensitive data before returning
     newUser.Password = ""
 
     return c.Status(http.StatusCreated).JSON(AuthResponse{
-        User:  newUser,
-        Token: token,
+        User: newUser,
     })
 }
 
-// generateJWT creates a JWT token for the user
-func generateJWT(userID uint) (string, error) {
+// setAuthCookies generates both access and refresh tokens and sets them as HTTP-only cookies
+func setAuthCookies(c *fiber.Ctx, userID uint) error {
+    // Generate access token (JWT)
+    accessToken, err := generateAccessToken(userID)
+    if err != nil {
+        return err
+    }
 
-    // Load configuration
+    // Generate refresh token (random string)
+    refreshToken, err := models.GenerateRefreshToken()
+    if err != nil {
+        return err
+    }
+
+    // Store refresh token in database
+    expiresAt := time.Now().Add(RefreshTokenDuration)
+    if err := models.CreateRefreshToken(userID, refreshToken, expiresAt); err != nil {
+        return err
+    }
+
+    // Determine if we're in production
+    isProduction := os.Getenv("ENVIRONMENT") == "production"
+
+    // Set access token cookie
+    c.Cookie(&fiber.Cookie{
+        Name:     "access_token",
+        Value:    accessToken,
+        HTTPOnly: true,
+        Secure:   isProduction, // Only send over HTTPS in production
+        SameSite: "Lax",        // Changed from Strict to Lax for better compatibility
+        MaxAge:   int(AccessTokenDuration.Seconds()),
+        Path:     "/",
+    })
+
+    // Set refresh token cookie
+    c.Cookie(&fiber.Cookie{
+        Name:     "refresh_token",
+        Value:    refreshToken,
+        HTTPOnly: true,
+        Secure:   isProduction,
+        SameSite: "Lax",
+        MaxAge:   int(RefreshTokenDuration.Seconds()),
+        Path:     "/", // Only send to refresh endpoint
+    })
+
+    return nil
+}
+
+// generateAccessToken creates a short-lived JWT access token
+func generateAccessToken(userID uint) (string, error) {
     cfg := config.LoadConfig()
 
-    // Create the claims
     claims := jwt.RegisteredClaims{
-        Subject:   fmt.Sprintf("%d", userID), 
-        ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+        Subject:   fmt.Sprintf("%d", userID),
+        ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenDuration)),
         IssuedAt:  jwt.NewNumericDate(time.Now()),
         NotBefore: jwt.NewNumericDate(time.Now()),
     }
 
-    // Create token with claims
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-    // Get JWT secret from environment
     jwtSecret := cfg.JWTSecret
     if jwtSecret == "" {
         return "", errors.New("JWT_SECRET not set in environment variables")
     }
 
-    // Sign and get the complete encoded token as a string
     tokenString, err := token.SignedString([]byte(jwtSecret))
     if err != nil {
         return "", err
@@ -178,21 +225,97 @@ func generateJWT(userID uint) (string, error) {
     return tokenString, nil
 }
 
-func validatePasswordStrength(password string) error {
-    if len(password) < 8 {
-        return errors.New("password must be at least 12 characters")
+// RefreshToken handles token refresh requests
+func RefreshToken(c *fiber.Ctx) error {
+    // Get refresh token from cookie
+    refreshToken := c.Cookies("refresh_token")
+    if refreshToken == "" {
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Refresh token missing"})
     }
-    hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
-    hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
-    hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
-    hasSpecial := regexp.MustCompile(`[!@#$%^&*(),.?":{}|<>]`).MatchString(password)
-    
-    if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
-        return errors.New("password must contain uppercase, lowercase, number, and special character")
+
+    // Validate refresh token
+    token, err := models.ValidateRefreshToken(refreshToken)
+    if err != nil {
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired refresh token"})
     }
-    return nil
+
+    // Get user
+    user, err := models.GetUserByID(fmt.Sprintf("%d", token.UserID))
+    if err != nil {
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+    }
+
+    // Revoke old refresh token (token rotation)
+    if err := models.RevokeRefreshToken(refreshToken); err != nil {
+        log.Printf("Error revoking old refresh token: %v", err)
+    }
+
+    // Generate new tokens and set cookies
+    if err := setAuthCookies(c, user.ID); err != nil {
+        log.Printf("Error setting new auth cookies for user %d: %v", user.ID, err)
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to refresh session"})
+    }
+
+    // Remove sensitive data
+    user.Password = ""
+
+    return c.Status(http.StatusOK).JSON(RefreshResponse{
+        User: *user,
+    })
 }
 
+// Logout handles user logout
+func Logout(c *fiber.Ctx) error {
+    // Get refresh token from cookie
+    refreshToken := c.Cookies("refresh_token")
+    
+    // Revoke the refresh token if present
+    if refreshToken != "" {
+        if err := models.RevokeRefreshToken(refreshToken); err != nil {
+            log.Printf("Error revoking refresh token on logout: %v", err)
+        }
+    }
+
+    // Clear cookies
+    c.Cookie(&fiber.Cookie{
+        Name:     "access_token",
+        Value:    "",
+        HTTPOnly: true,
+        Secure:   os.Getenv("ENVIRONMENT") == "production",
+        SameSite: "Lax",
+        MaxAge:   -1,
+        Path:     "/",
+    })
+
+    c.Cookie(&fiber.Cookie{
+        Name:     "refresh_token",
+        Value:    "",
+        HTTPOnly: true,
+        Secure:   os.Getenv("ENVIRONMENT") == "production",
+        SameSite: "Lax",
+        MaxAge:   -1,
+        Path:     "/",
+    })
+
+    return c.Status(http.StatusOK).JSON(fiber.Map{"message": "Logged out successfully"})
+}
+
+// GetMe retrieves the current user's information
+func GetMe(c *fiber.Ctx) error {
+    userID, ok := c.Locals("userID").(string)
+    if !ok || userID == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+    }
+    
+    user, err := models.GetUserByID(userID)
+    if err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+    }
+
+    user.Password = ""
+
+    return c.Status(fiber.StatusOK).JSON(user)
+}
 
 // validateRegisterRequest validates registration input
 func validateRegisterRequest(req *RegisterRequest) error {
@@ -200,7 +323,6 @@ func validateRegisterRequest(req *RegisterRequest) error {
     email := strings.TrimSpace(req.Email)
     password := req.Password
 
-    // Validate username
     if len(username) < 3 || len(username) > 50 {
         return errors.New("username must be between 3 and 50 characters")
     }
@@ -208,52 +330,17 @@ func validateRegisterRequest(req *RegisterRequest) error {
         return errors.New("username contains invalid characters")
     }
 
-    // Validate email
     if !utils.IsValidEmail(email) {
         return errors.New("invalid email format")
     }
 
-    // Validate password
-    if err := validatePasswordStrength(password); err != nil {
-        return err
+    if len(password) < 8 {
+        return errors.New("password must be at least 8 characters long")
     }
 
-    // Validate role if provided
     if req.Role != "" && !utils.IsValidRole(req.Role) {
         return errors.New("invalid role")
     }
 
     return nil
-}
-
-// Logout handles user logout
-func Logout(c *fiber.Ctx) error {
-    // Since you're using stateless JWT, just return success
-    // In a real app, you might want to blacklist the token
-    return c.Status(http.StatusOK).JSON(fiber.Map{"message": "Logged out successfully"})
-}
-
-// RefreshToken handles token refresh
-func RefreshToken(c *fiber.Ctx) error {
-    // For now, return an error since you don't have refresh token implementation
-    return c.Status(http.StatusNotImplemented).JSON(fiber.Map{"error": "Refresh token not implemented"})
-}
-
-// GetMe retrieves the current user's information
-func GetMe(c *fiber.Ctx) error {
-    // The userID is set by the AuthenticateJWT middleware
-    userID, ok := c.Locals("userID").(string)
-    if !ok || userID == "" {
-        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
-    }
-    user, err := models.GetUserByID(userID)
-    // user, err := models.GetUserByID(userID)
-    if err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
-    }
-
-    // IMPORTANT: Never send the password hash to the client
-    user.Password = ""
-
-    return c.Status(fiber.StatusOK).JSON(user)
 }

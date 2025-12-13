@@ -49,18 +49,11 @@ func main() {
         log.Fatalf("Database migration/seed failed: %v", err)
     }
 
-    // // Migrate the models
-    // err := config.DB.AutoMigrate(
-    //     &models.User{}, &models.Token{}, &models.Patient{}, &models.Doctor{},
-    //     &models.Address{}, &models.Report{}, &models.Device{}, &models.Lead{},
-    //     &models.ImplantedDevice{}, &models.ImplantedLead{}, &models.Medication{},
-    //     &models.PatientDoctor{}, &models.Arrhythmia{},
-    // )
-    // if err != nil {
-    //     log.Fatalf("failed to migrate database: %v", err)
-    // }
-    // log.Println("Database migration completed successfully.")
+    // Setup token cleanup background job
+    bootstrap.SetupTokenCleanup()
+    log.Println("Token cleanup scheduler initialized.")
 
+    // Initialize Fiber app
     app := fiber.New(fiber.Config{
         Prefork: false,
         AppName: "GoReporter",
@@ -68,7 +61,7 @@ func main() {
     log.Println("Fiber app initialized.")
 
     log.Println("Setting up middleware (CORS, Logger, Limiter)...")
-    
+
     // Add security headers
     app.Use(helmet.New(helmet.Config{
         XSSProtection:         "1; mode=block",

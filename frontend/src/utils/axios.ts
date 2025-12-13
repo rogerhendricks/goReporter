@@ -8,33 +8,47 @@ const api = axios.create({
   withCredentials: true
 })
 
-api.interceptors.request.use((config) => {
-  const { accessToken, isAuthenticated } = useAuthStore.getState()
-  if (isAuthenticated && accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`
-  }
-  return config
-})
+// api.interceptors.request.use((config) => {
+//   const { accessToken, isAuthenticated } = useAuthStore.getState()
+//   if (isAuthenticated && accessToken) {
+//     config.headers.Authorization = `Bearer ${accessToken}`
+//   }
+//   return config
+// })
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const { refreshToken, logout, isAuthenticated } = useAuthStore.getState()
+    const originalRequest = error.config
+    const { isAuthenticated } = useAuthStore.getState()
     
+    // If we get a 401 and haven't tried to refresh yet
     if (error.response?.status === 401 && 
-      !error.config._retry &&
-      isAuthenticated &&
-    !error.config.url?.includes('/logout')) {
-      error.config._retry = true
+        !originalRequest._retry &&
+        isAuthenticated &&
+        !originalRequest.url?.includes('/auth/refresh-token') &&
+        !originalRequest.url?.includes('/auth/login') &&
+        !originalRequest.url?.includes('/auth/me') &&
+        !originalRequest.url?.includes('/auth/logout')) {
+      
+      originalRequest._retry = true
+      
       try {
-        await refreshToken()
-        return api(error.config)
+        // Try to refresh the token
+        await useAuthStore.getState().refreshToken()
+        
+        // Retry the original request
+        return api(originalRequest)
       } catch (refreshError) {
-        logout()
-        window.location.href = '/login'
+        // Refresh failed, logout user
+        useAuthStore.getState().logout()
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       }
     }
+    
     return Promise.reject(error)
   }
 )

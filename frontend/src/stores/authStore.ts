@@ -1,7 +1,7 @@
+// frontend/src/stores/authStore.ts
 import { create } from 'zustand'
-// import axios from 'axios'
 import api from '../utils/axios'
-// import { API_BASE_URL } from '../lib/api'
+
 interface User {
   ID: string
   email: string
@@ -10,16 +10,11 @@ interface User {
 }
 
 interface AuthState {
-  accessToken: string | null
   user: User | null
-  // role: string | null
   loading: boolean
   error: string | null
   isAuthenticated: boolean
-  isInitialized: boolean;
-  // isAdmin: boolean
-  // isDoctor: boolean
-  // isUser: boolean
+  isInitialized: boolean
   hasAccess: (roles: string[]) => boolean
   login: (username: string, password: string) => Promise<boolean>
   register: (userData: {
@@ -28,20 +23,15 @@ interface AuthState {
     password: string
   }) => Promise<boolean>
   logout: () => Promise<void>
-  refreshToken: () => Promise<string>
-  initializeAuth: () => void
-  // hasAccess: (roles: string[]) => boolean
-  get isAdmin(): boolean;
-  get isDoctor(): boolean;
-  get isUser(): boolean;
+  refreshToken: () => Promise<void>
+  initializeAuth: () => Promise<void>
+  get isAdmin(): boolean
+  get isDoctor(): boolean
+  get isUser(): boolean
 }
 
-
-
 export const useAuthStore = create<AuthState>((set, get) => ({
-  accessToken: null,
   user: null,
-  // role: null,
   loading: false,
   error: null,
   isAuthenticated: false,
@@ -67,45 +57,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return role?.toLowerCase() === 'user'
   },
 
-  // get isDoctor() {
-  //   return get().role === 'DOCTOR'
-  // },
-
-  // hasAccess: (roles: string[]) => {
-  //   const { role } = get()
-  //   return role ? roles.includes(role) : false
-  // },
-
   login: async (username: string, password: string) => {
     try {
       set({ loading: true, error: null })
-      
       
       const response = await api.post('/auth/login', {
         username,
         password
       }, { withCredentials: true })
       
-      const { token, user } = response.data
+      const { user } = response.data
       
-      console.log('Login successful:', token, user)
-
-
-
-      localStorage.setItem('accessToken', token)
-      localStorage.setItem('user', JSON.stringify(user))
-      // localStorage.setItem('userRole', user.role)
+      console.log('Login successful:', user)
 
       set({
-        accessToken: token,
         user,
-        // role: user.role,
         isAuthenticated: true 
       })
 
       return true
     } catch (error: any) {
-      set({ error: error.response?.data?.message || 'Login failed', isAuthenticated: false  })
+      set({ 
+        error: error.response?.data?.error || 'Login failed', 
+        isAuthenticated: false,
+        user: null
+      })
       throw error
     } finally {
       set({ loading: false })
@@ -120,23 +96,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true
       })
 
-      const { token, user } = response.data
-
-      localStorage.setItem('accessToken', token)
-      localStorage.setItem('user', JSON.stringify(user))
-      // localStorage.setItem('userRole', user.role)
+      const { user } = response.data
 
       set({
-        accessToken: token,
         user,
         isAuthenticated: true
-        // role: user.role
       })
-
 
       return true
     } catch (error: any) {
-      set({ error: error.response?.data?.message || 'Registration failed', isAuthenticated: false })
+      set({ 
+        error: error.response?.data?.error || 'Registration failed', 
+        isAuthenticated: false,
+        user: null
+      })
       throw error
     } finally {
       set({ loading: false })
@@ -146,14 +119,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await api.post('/auth/logout', {}, { withCredentials: true })
+    } catch (error) {
+      console.error('Logout error:', error)
     } finally {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
-      // localStorage.removeItem('userRole')
       set({
-        accessToken: null,
         user: null,
-        // role: null,
         isAuthenticated: false
       })
     }
@@ -165,60 +135,85 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         withCredentials: true
       })
 
-      const { accessToken, user } = response.data
+      const { user } = response.data
 
       set({
-        accessToken,
         user,
-        // role: user.role
+        isAuthenticated: true
       })
-
-      localStorage.setItem('accessToken', accessToken)
-      localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('userRole', user.role)
-
-      return accessToken
     } catch (error) {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
-      localStorage.removeItem('userRole')
       set({
-        accessToken: null,
         user: null,
-        // role: null,
         isAuthenticated: false
       })
       throw error
     }
   },
 
-  initializeAuth: () => {
-    if (get().isInitialized) return;
+  initializeAuth: async () => {
+  if (get().isInitialized) return
 
-    // const token = localStorage.getItem('accessToken')
-    // const userData = localStorage.getItem('user')
+  try {
+    set({ loading: true })
+    
+    // Try to get current user with existing cookie
+    const response = await api.get('/auth/me', { 
+      withCredentials: true 
+    })
+    
+    const user = response.data
 
-    try {
-      const token = localStorage.getItem('accessToken')
-      const userData = localStorage.getItem('user')
-
-      if (token && userData) {
-        const user = JSON.parse(userData)
-        set({
-          accessToken: token,
-          user,
-          isAuthenticated: true,
-        })
-      }
-    } catch (error) {
-      // If there's an error (e.g., bad JSON), clear the stored data
-      localStorage.removeItem('user')
-      localStorage.removeItem('accessToken')
-      set({ isAuthenticated: false, user: null, accessToken: null })
-    } finally {
-      // This block will always run, ensuring the app proceeds
-      set({ isInitialized: true })
-    }
+    set({
+      user,
+      isAuthenticated: true,
+    })
+  } catch (error) {
+    // If /me fails, just mark as not authenticated
+    // Don't try to refresh - let the user login manually
+    set({ 
+      isAuthenticated: false, 
+      user: null 
+    })
+  } finally {
+    set({ 
+      isInitialized: true,
+      loading: false 
+    })
   }
-  
+}
+  // initializeAuth: async () => {
+  //   if (get().isInitialized) return
+
+  //   try {
+  //     set({ loading: true })
+      
+  //     // Try to get current user with existing cookie
+  //     const response = await api.get('/auth/me', { 
+  //       withCredentials: true 
+  //     })
+      
+  //     const user = response.data
+
+  //     set({
+  //       user,
+  //       isAuthenticated: true,
+  //     })
+  //   } catch (error) {
+  //     // If /me fails, try to refresh the token
+  //     try {
+  //       await get().refreshToken()
+  //     } catch (refreshError) {
+  //       // Both attempts failed, user is not authenticated
+  //       set({ 
+  //         isAuthenticated: false, 
+  //         user: null 
+  //       })
+  //     }
+  //   } finally {
+  //     set({ 
+  //       isInitialized: true,
+  //       loading: false 
+  //     })
+  //   }
+  // }
 }))

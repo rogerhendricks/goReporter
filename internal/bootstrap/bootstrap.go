@@ -11,6 +11,19 @@ import (
 	"github.com/rogerhendricks/goReporter/internal/models"
 )
 
+func SetupTokenCleanup() {
+    // Clean up expired tokens every hour
+    ticker := time.NewTicker(1 * time.Hour)
+    go func() {
+        for range ticker.C {
+            if err := models.CleanupExpiredTokens(); err != nil {
+                log.Printf("Error cleaning up expired tokens: %v", err)
+            }
+        }
+    }()
+}
+
+
 func MigrateAndSeed() error {
 	if err := migrate(config.DB); err != nil {
 		return err
@@ -71,6 +84,7 @@ func shouldSeed(db *gorm.DB) bool {
 func pointer(i int) *int {
 	return &i
 }
+
 
 func seed(db *gorm.DB) error {
 	log.Println("Seeding database...")
