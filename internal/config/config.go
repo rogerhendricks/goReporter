@@ -19,10 +19,15 @@ func LoadConfig() *Config {
 		log.Println("Error loading .env file")
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+    log.Fatal("JWT_SECRET environment variable is required")
+}
+
 	return &Config{
 		Port: getEnv("PORT", "5000"),
 		URL:  getEnv("URL", "http://localhost:8000"),
-		JWTSecret: getEnv("JWT_SECRET", "your_jwt_secret_for_testing"),
+		JWTSecret: jwtSecret,
 	}
 }
 

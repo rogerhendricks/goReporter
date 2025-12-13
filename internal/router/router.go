@@ -10,7 +10,7 @@ func SetupRoutes(app *fiber.App) {
 	// Auth routes
 	auth := app.Group("/api/auth")
 	auth.Post("/login", handlers.Login)
-	auth.Post("/register", handlers.Register)
+	auth.Post("/register", middleware.AuthenticateJWT, middleware.RequireAdmin, handlers.Register)
 	auth.Post("/logout", middleware.AuthenticateJWT, handlers.Logout)
 	auth.Post("/refresh-token", handlers.RefreshToken)
 	auth.Get("/me", middleware.AuthenticateJWT, handlers.GetMe)

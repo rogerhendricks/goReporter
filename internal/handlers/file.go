@@ -14,7 +14,10 @@ import (
 // UploadFile handles saving an uploaded file.
 // It expects the patient ID to create a structured directory path.
 func UploadFile(c *fiber.Ctx) error {
+    const maxFileSize = 10 * 1024 * 1024 // 10 MB
+
     // Get patientId from form value to create a sub-directory
+    
     patientID := c.FormValue("patientId")
     if patientID == "" {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Patient ID is required for file upload"})
@@ -36,6 +39,19 @@ func UploadFile(c *fiber.Ctx) error {
         // For any other error, it's a problem.
         log.Printf("Error retrieving file from form: %v", err)
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to retrieve file"})
+    }
+
+    if file.Size > maxFileSize {
+        return c.Status(413).JSON(fiber.Map{"error": "File too large"})
+    }
+
+    // Validate file type
+    allowedTypes := map[string]bool{
+        "application/pdf": true,
+    }
+    
+    if !allowedTypes[file.Header.Get("Content-Type")] {
+        return c.Status(400).JSON(fiber.Map{"error": "Invalid file type"})
     }
 
     // Create a safe and unique filename

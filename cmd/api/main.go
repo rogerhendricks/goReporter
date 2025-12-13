@@ -15,6 +15,7 @@ import (
     "github.com/gofiber/fiber/v2/middleware/helmet"
     "github.com/gofiber/fiber/v2/middleware/cors"
     "github.com/gofiber/fiber/v2/middleware/logger"
+    "github.com/gofiber/fiber/v2/middleware/csrf"
 )
 
 // const (
@@ -90,6 +91,14 @@ func main() {
             return c.IP()
         },
     }))
+
+    app.Use(csrf.New(csrf.Config{
+        KeyLookup:      "header:X-CSRF-Token",
+        CookieName:     "csrf_",
+        CookieSameSite: "Strict",
+        Expiration:     1 * time.Hour,
+}))
+
     log.Println("Middleware setup complete.")
     // Set up routes
     log.Println("Setting up API routes...")
