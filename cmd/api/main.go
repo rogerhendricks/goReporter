@@ -15,7 +15,7 @@ import (
     "github.com/gofiber/fiber/v2/middleware/helmet"
     "github.com/gofiber/fiber/v2/middleware/cors"
     "github.com/gofiber/fiber/v2/middleware/logger"
-    "github.com/gofiber/fiber/v2/middleware/csrf"
+    // "github.com/gofiber/fiber/v2/middleware/csrf"
 )
 
 // const (
@@ -68,8 +68,15 @@ func main() {
     log.Println("Fiber app initialized.")
 
     log.Println("Setting up middleware (CORS, Logger, Limiter)...")
+    
     // Add security headers
-    app.Use(helmet.New())
+    app.Use(helmet.New(helmet.Config{
+        XSSProtection:         "1; mode=block",
+        ContentTypeNosniff:    "nosniff",
+        XFrameOptions:         "DENY",
+        ReferrerPolicy:        "no-referrer",
+        ContentSecurityPolicy: "default-src 'self'",
+    }))
 
     // Configure CORS properly
     app.Use(cors.New(cors.Config{
@@ -92,12 +99,12 @@ func main() {
         },
     }))
 
-    app.Use(csrf.New(csrf.Config{
-        KeyLookup:      "header:X-CSRF-Token",
-        CookieName:     "csrf_",
-        CookieSameSite: "Strict",
-        Expiration:     1 * time.Hour,
-}))
+//     app.Use(csrf.New(csrf.Config{
+//         KeyLookup:      "header:X-CSRF-Token",
+//         CookieName:     "csrf_",
+//         CookieSameSite: "Strict",
+//         Expiration:     1 * time.Hour,
+// }))
 
     log.Println("Middleware setup complete.")
     // Set up routes

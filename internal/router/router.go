@@ -1,15 +1,24 @@
 package router
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/rogerhendricks/goReporter/internal/handlers"
 	"github.com/rogerhendricks/goReporter/internal/middleware"
 )
 
+var authLimiter = limiter.New(limiter.Config{
+	Max:        5,
+	Expiration: 15 * time.Minute,
+})
+
+
 func SetupRoutes(app *fiber.App) {
 	// Auth routes
 	auth := app.Group("/api/auth")
-	auth.Post("/login", handlers.Login)
+	auth.Post("/login",authLimiter, handlers.Login)
 	auth.Post("/register", middleware.AuthenticateJWT, middleware.RequireAdmin, handlers.Register)
 	auth.Post("/logout", middleware.AuthenticateJWT, handlers.Logout)
 	auth.Post("/refresh-token", handlers.RefreshToken)

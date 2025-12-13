@@ -14,6 +14,7 @@ import (
     "errors"
     "gorm.io/gorm"
     "log"
+    "regexp"
 )
 
 type LoginRequest struct {
@@ -177,6 +178,22 @@ func generateJWT(userID uint) (string, error) {
     return tokenString, nil
 }
 
+func validatePasswordStrength(password string) error {
+    if len(password) < 8 {
+        return errors.New("password must be at least 12 characters")
+    }
+    hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
+    hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
+    hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
+    hasSpecial := regexp.MustCompile(`[!@#$%^&*(),.?":{}|<>]`).MatchString(password)
+    
+    if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
+        return errors.New("password must contain uppercase, lowercase, number, and special character")
+    }
+    return nil
+}
+
+
 // validateRegisterRequest validates registration input
 func validateRegisterRequest(req *RegisterRequest) error {
     username := strings.TrimSpace(req.Username)
@@ -197,8 +214,8 @@ func validateRegisterRequest(req *RegisterRequest) error {
     }
 
     // Validate password
-    if len(password) < 8 {
-        return errors.New("password must be at least 8 characters long")
+    if err := validatePasswordStrength(password); err != nil {
+        return err
     }
 
     // Validate role if provided
