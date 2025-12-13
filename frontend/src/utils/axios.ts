@@ -8,6 +8,21 @@ const api = axios.create({
   withCredentials: true
 })
 
+// Store CSRF token
+let csrfToken: string | null = null
+
+// Function to get CSRF token
+export const fetchCSRFToken = async () => {
+  try {
+    const response = await api.get('/csrf-token')
+    csrfToken = response.data.csrfToken
+    return csrfToken
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error)
+    return null
+  }
+}
+
 // api.interceptors.request.use((config) => {
 //   const { accessToken, isAuthenticated } = useAuthStore.getState()
 //   if (isAuthenticated && accessToken) {
@@ -16,12 +31,38 @@ const api = axios.create({
 //   return config
 // })
 
+// Request interceptor to add CSRF token
+api.interceptors.request.use(async (config) => {
+  // Add CSRF token for state-changing requests
+  if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
+    if (!csrfToken) {
+      await fetchCSRFToken()
+    }
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken
+    }
+  }
+  return config
+})
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
     const { isAuthenticated } = useAuthStore.getState()
     
+    // Handle CSRF token expiration
+    if (error.response?.status === 403 && 
+        error.response?.data?.error?.includes('CSRF') &&
+        !originalRequest._retry) {
+      originalRequest._retry = true
+      await fetchCSRFToken()
+      if (csrfToken) {
+        originalRequest.headers['X-CSRF-Token'] = csrfToken
+      }
+      return api(originalRequest)
+    }
+
     // If we get a 401 and haven't tried to refresh yet
     if (error.response?.status === 401 && 
         !originalRequest._retry &&

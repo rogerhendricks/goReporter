@@ -9,10 +9,15 @@ import { ChatbotProvider } from '@/context/ChatbotContext'
 import { ChatbotWrapper } from '@/components/ChatbotWrapper'
 import { routes } from './router/routes'
 import './App.css'
+import { fetchCSRFToken } from './utils/axios'
 
 function App() {
   const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
   
+  useEffect(() => {
+    fetchCSRFToken()
+  }, [])
+
   useEffect(() => {
     initializeAuth()
   }, [initializeAuth])

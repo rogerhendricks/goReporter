@@ -16,6 +16,7 @@ var authLimiter = limiter.New(limiter.Config{
 
 
 func SetupRoutes(app *fiber.App) {
+	app.Get("/api/csrf-token", handlers.GetCSRFToken)
 	// Auth routes
 	auth := app.Group("/api/auth")
 	auth.Post("/login",authLimiter, handlers.Login)

@@ -16,6 +16,7 @@ import (
     "gorm.io/gorm"
     "log"
     "os"
+    "crypto/rand"
 )
 
 type LoginRequest struct {
@@ -263,6 +264,42 @@ func RefreshToken(c *fiber.Ctx) error {
         User: *user,
     })
 }
+
+// GetCSRFToken returns the CSRF token for the client
+func GetCSRFToken(c *fiber.Ctx) error {
+    // Check if token already exists
+    token := c.Cookies("csrf_token")
+    
+    // If no token exists, generate a new one
+    if token == "" {
+        token = generateCSRFToken()
+        
+        // Set the cookie
+        c.Cookie(&fiber.Cookie{
+            Name:     "csrf_token",
+            Value:    token,
+            HTTPOnly: false,  // Must be false so JavaScript can read it
+            Secure:   os.Getenv("ENVIRONMENT") == "production",
+            SameSite: "Lax",
+            MaxAge:   int((1 * time.Hour).Seconds()),
+            Path:     "/",
+        })
+    }
+    
+    return c.JSON(fiber.Map{
+        "csrfToken": token,
+    })
+}
+
+// Keep the generateCSRFToken function
+func generateCSRFToken() string {
+    b := make([]byte, 32)
+    if _, err := rand.Read(b); err != nil {
+        return fmt.Sprintf("%d", time.Now().UnixNano())
+    }
+    return fmt.Sprintf("%x", b)
+}
+
 
 // Logout handles user logout
 func Logout(c *fiber.Ctx) error {

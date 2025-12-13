@@ -1,7 +1,7 @@
 package main
 
 import (
-    // "fmt"
+    
     "os"
     "log"
     "github.com/gofiber/fiber/v2"
@@ -16,6 +16,7 @@ import (
     "github.com/gofiber/fiber/v2/middleware/cors"
     "github.com/gofiber/fiber/v2/middleware/logger"
     // "github.com/gofiber/fiber/v2/middleware/csrf"
+    "github.com/rogerhendricks/goReporter/internal/middleware"
 )
 
 // const (
@@ -75,7 +76,7 @@ func main() {
     app.Use(cors.New(cors.Config{
         AllowOrigins:     "https://dev.nuttynarwhal.com, https://dev-mini.nuttynarwhal.com, https://nuttynarwhal.com, https://fiber.nuttynarwhal.com, http://localhost:3000, http://localhost:8000",
         AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-        AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+        AllowHeaders:     "Origin,Content-Type,Accept,Authorization, X-CSRF-Token",
         AllowCredentials: true,
     }))
 
@@ -92,11 +93,30 @@ func main() {
         },
     }))
 
+        // Add custom CSRF protection
+    app.Use(middleware.ValidateCSRF)
+
 //     app.Use(csrf.New(csrf.Config{
 //         KeyLookup:      "header:X-CSRF-Token",
-//         CookieName:     "csrf_",
-//         CookieSameSite: "Strict",
+//         CookieName:     "csrf_token",
+//         CookieSameSite: "Lax",
 //         Expiration:     1 * time.Hour,
+//         KeyGenerator:   func() string {
+//         // Use crypto/rand for token generation
+//         b := make([]byte, 32)
+//         rand.Read(b)
+//         return fmt.Sprintf("%x", b)
+//     },
+//         Next: func(c *fiber.Ctx) bool {
+//         // Skip CSRF protection for GET, HEAD, OPTIONS (safe methods)
+//         // and the csrf-token endpoint
+//         return c.Method() == "GET" || 
+//                c.Method() == "HEAD" || 
+//                c.Method() == "OPTIONS" ||
+//                  c.Path() == "/api/auth/login" ||
+//                c.Path() == "/api/auth/register" ||
+//                c.Path() == "/api/auth/refresh-token"
+//     },
 // }))
 
     log.Println("Middleware setup complete.")
