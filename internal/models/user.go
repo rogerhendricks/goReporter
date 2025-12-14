@@ -2,10 +2,15 @@ package models
 
 import (
 	"errors"
-
+	"time"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+)
+
+const (
+    MaxLoginAttempts = 5                  // Maximum failed login attempts before locking
+    LockoutDuration  = 15 * time.Minute   // Account lockout duration
 )
 
 type User struct {
@@ -18,11 +23,58 @@ type User struct {
 	DoctorID      *uint    `json:"doctorId,omitempty" gorm:"index"`             // Link to doctor record for doctor role users
 	Doctor        *Doctor  `json:"doctor,omitempty" gorm:"foreignKey:DoctorID"` // Belongs to doctor
 	Reports       []Report `json:"reports"`                                     // Has many reports
-	RefreshTokens []Token  `json:"refresh_tokens"`                              // Has many tokens
+	RefreshTokens []Token  `json:"refresh_tokens"` 
+	FailedLoginAttempts int      `json:"-" gorm:"default:0"`                              // Track failed login attempts
+    LockedUntil        *time.Time `json:"-" gorm:"index"`                             // Has many tokens
 }
 
 func (u *User) TableName() string {
 	return "users"
+}
+
+// IsLocked checks if the user account is currently locked
+func (u *User) IsLocked() bool {
+    if u.LockedUntil == nil {
+        return false
+    }
+    return time.Now().Before(*u.LockedUntil)
+}
+
+// LockAccount locks the user account for the specified duration
+func (u *User) LockAccount() error {
+    lockUntil := time.Now().Add(LockoutDuration)
+    u.LockedUntil = &lockUntil
+    return config.DB.Model(u).Updates(map[string]interface{}{
+        "locked_until": lockUntil,
+    }).Error
+}
+
+// UnlockAccount unlocks the user account and resets failed login attempts
+func (u *User) UnlockAccount() error {
+    u.LockedUntil = nil
+    u.FailedLoginAttempts = 0
+    return config.DB.Model(u).Updates(map[string]interface{}{
+        "locked_until":          nil,
+        "failed_login_attempts": 0,
+    }).Error
+}
+
+// IncrementFailedAttempts increments the failed login attempts counter
+func (u *User) IncrementFailedAttempts() error {
+    u.FailedLoginAttempts++
+    
+    // Lock account if max attempts reached
+    if u.FailedLoginAttempts >= MaxLoginAttempts {
+        return u.LockAccount()
+    }
+    
+    return config.DB.Model(u).Update("failed_login_attempts", u.FailedLoginAttempts).Error
+}
+
+// ResetFailedAttempts resets the failed login attempts counter
+func (u *User) ResetFailedAttempts() error {
+    u.FailedLoginAttempts = 0
+    return config.DB.Model(u).Update("failed_login_attempts", 0).Error
 }
 
 // Database instance - you'll need to initialize this in your main.go

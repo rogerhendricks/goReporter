@@ -69,9 +69,46 @@ func Login(c *fiber.Ctx) error {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
     }
 
+    // Check if account is locked
+    if user.IsLocked() {
+        remainingTime := time.Until(*user.LockedUntil)
+        return c.Status(http.StatusForbidden).JSON(fiber.Map{
+            "error": fmt.Sprintf("Account is temporarily locked due to multiple failed login attempts. Please try again in %d minutes.", int(remainingTime.Minutes())+1),
+        })
+    }
+
+    // Check if account was locked but lock has expired - auto-unlock
+    if user.LockedUntil != nil && !user.IsLocked() {
+        if err := user.UnlockAccount(); err != nil {
+            log.Printf("Error auto-unlocking account for user %s: %v", username, err)
+        }
+    }
+
     // Verify password
     if !models.CheckPassword(loginReq.Password, user.Password) {
-        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
+        // Increment failed login attempts
+        if err := user.IncrementFailedAttempts(); err != nil {
+            log.Printf("Error incrementing failed attempts for user %s: %v", username, err)
+        }
+
+        // Check if account is now locked after increment
+        if user.FailedLoginAttempts >= models.MaxLoginAttempts {
+            return c.Status(http.StatusForbidden).JSON(fiber.Map{
+                "error": fmt.Sprintf("Account has been locked due to multiple failed login attempts. Please try again in %d minutes.", int(models.LockoutDuration.Minutes())),
+            })
+        }
+
+        remainingAttempts := models.MaxLoginAttempts - user.FailedLoginAttempts
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+            "error": fmt.Sprintf("Invalid credentials. %d attempt(s) remaining before account lockout.", remainingAttempts),
+        })
+    }
+
+    // Successful login - reset failed attempts if any
+    if user.FailedLoginAttempts > 0 {
+        if err := user.ResetFailedAttempts(); err != nil {
+            log.Printf("Error resetting failed attempts for user %s: %v", username, err)
+        }
     }
 
     // Generate tokens and set cookies
