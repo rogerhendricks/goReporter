@@ -96,16 +96,16 @@ Notes/Comments: Add progress notes to tasks
    ### PRIORITY IMPLEMENTATION ORDER
    Immediate (Before Production):
 
-   Fix JWT secret handling (#1)
-   Protect registration endpoint (#2)
-   Implement refresh tokens (#4)
-   Move JWT to HTTP-only cookies (#5)
-   Add auth rate limiting (#6)
+   **Done** Fix JWT secret handling (#1)
+   **Done** Protect registration endpoint (#2)
+   **Done** Implement refresh tokens (#4)
+   **Done** Move JWT to HTTP-only cookies (#5)
+   **Done** Add auth rate limiting (#6)
    Short Term (Within 2 weeks):
 
-   CSRF protection (#8)
+   **Done** CSRF protection (#8)
    Password complexity (#7)
-   File upload limits (#11)
+   **Done** File upload limits (#11)
    Account lockout (#13)
    Medium Term (Within 1 month):
 

@@ -10,8 +10,13 @@ import (
 )
 
 var authLimiter = limiter.New(limiter.Config{
-	Max:        5,
-	Expiration: 15 * time.Minute,
+    Max:        50,  // Allow 50 attempts per IP (protects against brute force across multiple accounts)
+    Expiration: 15 * time.Minute,
+    LimitReached: func(c *fiber.Ctx) error {
+        return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+            "error": "Too many login attempts from this IP address. Please try again later.",
+        })
+    },
 })
 
 

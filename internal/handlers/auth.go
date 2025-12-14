@@ -57,7 +57,10 @@ func Login(c *fiber.Ctx) error {
     }
 
     // Sanitize input
-    username := html.EscapeString(strings.TrimSpace(loginReq.Username))
+    // username := html.EscapeString(strings.TrimSpace(loginReq.Username))
+    // GORM uses parameterized queries, reducing SQL injection risk
+    username := strings.TrimSpace(loginReq.Username)
+    log.Printf("Login attempt for user: %s from IP: %s", username, c.IP())
 
     // Get user from database
     user, err := models.GetUserByUsername(username)
@@ -138,8 +141,11 @@ func Register(c *fiber.Ctx) error {
     }
 
     // Sanitize input
-    registerReq.Username = html.EscapeString(strings.TrimSpace(registerReq.Username))
-    registerReq.Email = html.EscapeString(strings.TrimSpace(registerReq.Email))
+    // registerReq.Username = html.EscapeString(strings.TrimSpace(registerReq.Username))
+    // registerReq.Email = html.EscapeString(strings.TrimSpace(registerReq.Email))
+    // GORM uses parameterized queries, reducing SQL injection risk
+    registerReq.Username = strings.TrimSpace(registerReq.Username)
+    registerReq.Email = strings.TrimSpace(registerReq.Email)
     
     // Set default role if not provided
     if registerReq.Role == "" {
