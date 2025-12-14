@@ -92,6 +92,43 @@ Assignment: Assign tasks to staff members
 Notes/Comments: Add progress notes to tasks
 **Done** Dashboard: Visual overview of all tasks by status/priority
 
+9. *PRIORITY SECURITY ISSUES*
+   ### PRIORITY IMPLEMENTATION ORDER
+   Immediate (Before Production):
+
+   Fix JWT secret handling (#1)
+   Protect registration endpoint (#2)
+   Implement refresh tokens (#4)
+   Move JWT to HTTP-only cookies (#5)
+   Add auth rate limiting (#6)
+   Short Term (Within 2 weeks):
+
+   CSRF protection (#8)
+   Password complexity (#7)
+   File upload limits (#11)
+   Account lockout (#13)
+   Medium Term (Within 1 month):
+
+   Security event logging (#16)
+   Session management (#17)
+   Email validation (#9)
+   Security headers configuration (#12)
+   Ongoing:
+
+   Regular security audits
+   Dependency updates
+   Penetration testing
+   🏥 HIPAA COMPLIANCE CONSIDERATIONS
+   Since this appears to be a medical reporting system handling patient data:
+
+   Implement comprehensive audit logging
+   Add data encryption at rest
+   Ensure proper access controls (partially done)
+   Implement data retention policies
+   Add patient consent tracking
+   Ensure proper data backup and recovery
+
+
 ## Usage
 
 The API provides various endpoints for managing users, devices, doctors, patients, medications, leads, and reports. Refer to the individual handler files for specific route details and request formats.
