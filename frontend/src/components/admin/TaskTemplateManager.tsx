@@ -794,10 +794,6 @@ export function TaskTemplateManager() {
                                     className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors"
                                     onClick={() => selectPatient(patient)}
                                   >
-                                    <Checkbox 
-                                      checked={false}
-                                      className="pointer-events-none"
-                                    />
                                     <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                     <div className="flex-1 min-w-0">
                                       <div className="font-medium truncate">
