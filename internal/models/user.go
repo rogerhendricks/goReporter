@@ -91,6 +91,11 @@ func GetUserByID(userID string) (*User, error) {
 	return &user, nil
 }
 
+// GetUsername returns the username of the user
+func (u *User) GetUsername() string {
+    return u.Username
+}
+
 // GetUserByUsername retrieves a user by their username
 func GetUserByUsername(username string) (*User, error) {
 	var user User

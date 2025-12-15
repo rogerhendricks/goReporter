@@ -129,6 +129,25 @@ func LogEventFromContext(c *fiber.Ctx, eventType EventType, message string, seve
     LogEvent(event)
 }
 
+// LogEventWithUser logs a security event with explicit user information
+func LogEventWithUser(c *fiber.Ctx, eventType EventType, message string, severity string, userID string, username string, details map[string]interface{}) {
+    event := SecurityEvent{
+        EventType:  eventType,
+        UserID:     userID,
+        Username:   username,
+        IPAddress:  c.IP(),
+        UserAgent:  c.Get("User-Agent"),
+        Path:       c.Path(),
+        Method:     c.Method(),
+        StatusCode: c.Response().StatusCode(),
+        Message:    message,
+        Severity:   severity,
+        Details:    details,
+    }
+
+    LogEvent(event)
+}
+
 // Close closes the log file
 func Close() {
     if globalLogger != nil && globalLogger.logFile != nil {

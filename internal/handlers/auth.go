@@ -140,7 +140,7 @@ func Login(c *fiber.Ctx) error {
         fmt.Sprintf("Successful login: %s", username), 
         "INFO", 
         map[string]interface{}{
-            "userId": user.ID,
+            "userId": fmt.Sprintf("%d", user.ID),
             "username": username,
             "role": user.Role,
         })

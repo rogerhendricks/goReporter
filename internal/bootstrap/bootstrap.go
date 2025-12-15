@@ -90,7 +90,7 @@ func seed(db *gorm.DB) error {
 	log.Println("Seeding database...")
 
 	// Users
-	adminPass, _ := models.HashPassword("ChangeMe123!")
+	adminPass, _ := models.HashPassword("OFvY#XGMFdC4P0")
 	admin := models.User{
 		Username: "admin",
 		FullName: "Administrator",
