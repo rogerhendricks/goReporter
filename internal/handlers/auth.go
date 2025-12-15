@@ -11,7 +11,7 @@ import (
     "net/http"
     "time"
     "strings"
-    "html"
+    // "html"
     "errors"
     "gorm.io/gorm"
     "log"
@@ -414,8 +414,9 @@ func validateRegisterRequest(req *RegisterRequest) error {
         return errors.New("invalid email format")
     }
 
-    if len(password) < 8 {
-        return errors.New("password must be at least 8 characters long")
+    // Use the new password complexity validation
+    if err := utils.ValidatePasswordComplexity(password); err != nil {
+        return err
     }
 
     if req.Role != "" && !utils.IsValidRole(req.Role) {

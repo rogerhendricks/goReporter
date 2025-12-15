@@ -106,7 +106,7 @@ Notes/Comments: Add progress notes to tasks
    **Done** CSRF protection (#8)
    Password complexity (#7)
    **Done** File upload limits (#11)
-   Account lockout (#13)
+   **Done** Account lockout (#13)
    Medium Term (Within 1 month):
 
    Security event logging (#16)

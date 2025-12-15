@@ -112,7 +112,7 @@ export const TagManagement = () => {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow mt-6">
+    <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
             <CardTitle>Tag Management</CardTitle>
             <CardDescription>Create and manage tags for patients and reports.</CardDescription>

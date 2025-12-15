@@ -72,12 +72,12 @@ export default function Login() {
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? 'Logging in...' : 'Login'}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
+            {/* <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link to="/register" className="text-primary hover:underline">
                 Register here
               </Link>
-            </p>
+            </p> */}
           </form>
         </CardContent>
       </Card>

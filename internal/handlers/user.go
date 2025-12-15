@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/models"
 
-	// "github.com/rogerhendricks/goReporter/internal/utils"
+	"github.com/rogerhendricks/goReporter/internal/utils"
 	"errors"
 	"html"
 	"log"
@@ -309,11 +309,12 @@ func validateUserUpdate(user *models.User, isAdmin bool) error {
 		return errors.New("invalid role")
 	}
 
-	// Validate password if provided (admin only updates)
-	if user.Password != "" && len(strings.TrimSpace(user.Password)) < 8 {
-		return errors.New("password must be at least 8 characters long")
+   // Validate password if provided (admin only updates) - use new complexity validation
+    if user.Password != "" {
+        if err := utils.ValidatePasswordComplexity(user.Password); err != nil {
+            return err
+    	}
 	}
-
 	return nil
 }
 

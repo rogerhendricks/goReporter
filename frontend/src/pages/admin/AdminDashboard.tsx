@@ -14,6 +14,7 @@ import { DonutChart } from '@/components/charts/DonutChart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TaskList } from '@/components/tasks/TaskList'
 
+
 type Slice = { label: string; count: number }
 type ReportSummary = {
   total: number
@@ -223,7 +224,7 @@ export default function AdminDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TaskList assignedToId={Number(user?.id ?? 0)} showFilters={true} />
+                  <TaskList assignedToId={Number(user?.ID ?? 0)} showFilters={true} />
                 </CardContent>
               </Card>
             </>
@@ -264,7 +265,10 @@ export default function AdminDashboard() {
           <div>
             <UserManagementTable />
           </div>
-          <Card className="hover:shadow-lg transition-shadow">
+
+        </TabsContent>
+      </Tabs>
+        <Card className="hover:shadow-lg transition-shadow mt-4">
             <CardHeader>
               <CardTitle>Admin Privileges</CardTitle>
               <CardDescription>
@@ -282,8 +286,6 @@ export default function AdminDashboard() {
               </ul>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }

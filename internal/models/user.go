@@ -6,6 +6,7 @@ import (
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"github.com/rogerhendricks/goReporter/internal/utils"
 )
 
 const (
@@ -152,9 +153,10 @@ func CheckUserExists(userID string) (bool, error) {
 }
 
 func HashPassword(password string) (string, error) {
-	if len(password) < 8 {
-		return "", errors.New("password must be at least 8 characters long")
-	}
+    // Validate password complexity before hashing
+    if err := utils.ValidatePasswordComplexity(password); err != nil {
+        return "", err
+    }
 
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

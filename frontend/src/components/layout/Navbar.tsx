@@ -164,7 +164,7 @@ export function Navbar() {
                 ) : (
                   <>
                     <Link to="/login" className="hover:text-foreground">Login</Link>
-                    <Link to="/register" className="hover:text-foreground">Register</Link>
+                    {/* <Link to="/register" className="hover:text-foreground">Register</Link> */}
                   </>
                 )}
               </nav>

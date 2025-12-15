@@ -42,11 +42,11 @@ export const routes: RouteConfig[] = [
     element: <Login />,
     layout: 'home'
   },
-  {
-    path: '/register',
-    element: <Register />,
-    layout: 'home'
-  },
+  // {
+  //   path: '/register',
+  //   element: <Register />,
+  //   layout: 'home'
+  // },
   {
     path: '/unauthorized',
     element: <Unauthorized />,
