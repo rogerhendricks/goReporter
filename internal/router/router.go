@@ -34,7 +34,7 @@ func SetupRoutes(app *fiber.App) {
 	app.Use(middleware.AuthenticateJWT)
 
 	// app.Get("/api/admin", handlers.GetAdminData)
-
+	app.Get("/api/admin/security-logs", middleware.RequireAdmin, handlers.GetSecurityLogs)
 	// User routes
 	// app.Get("/api/users", handlers.GetUsers)
 	app.Get("/api/users", middleware.RequireAdmin, handlers.GetUsers)

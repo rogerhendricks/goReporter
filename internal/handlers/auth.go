@@ -8,12 +8,13 @@ import (
     "github.com/rogerhendricks/goReporter/internal/models"
     "github.com/rogerhendricks/goReporter/internal/utils"
     "github.com/rogerhendricks/goReporter/internal/config"
+    "github.com/rogerhendricks/goReporter/internal/security"
     "net/http"
     "time"
     "strings"
     // "html"
     "errors"
-    "gorm.io/gorm"
+    // "gorm.io/gorm"
     "log"
     "os"
     "crypto/rand"
@@ -65,18 +66,25 @@ func Login(c *fiber.Ctx) error {
     // Get user from database
     user, err := models.GetUserByUsername(username)
     if err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
-        }
-        log.Printf("Error fetching user %s: %v", username, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+        security.LogEventFromContext(c, security.EventLoginFailed, 
+            fmt.Sprintf("Login attempt for non-existent user: %s", username), 
+            "WARNING", 
+            map[string]interface{}{"username": username})
+        return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid credentials"})
     }
 
     // Check if account is locked
     if user.IsLocked() {
-        remainingTime := time.Until(*user.LockedUntil)
+        security.LogEventFromContext(c, security.EventLoginFailed, 
+            fmt.Sprintf("Login attempt on locked account: %s", username), 
+            "WARNING", 
+            map[string]interface{}{
+                "username": username,
+                "userId": user.ID,
+                "lockedUntil": user.LockedUntil,
+            })
         return c.Status(http.StatusForbidden).JSON(fiber.Map{
-            "error": fmt.Sprintf("Account is temporarily locked due to multiple failed login attempts. Please try again in %d minutes.", int(remainingTime.Minutes())+1),
+            "error": fmt.Sprintf("Account is locked. Try again after %s", user.LockedUntil.Format(time.RFC3339)),
         })
     }
 
@@ -115,10 +123,27 @@ func Login(c *fiber.Ctx) error {
     }
 
     // Generate tokens and set cookies
+    // if err := setAuthCookies(c, user.ID); err != nil {
+    //     log.Printf("Error setting auth cookies for user %d: %v", user.ID, err)
+    //     return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
+    // }
+
     if err := setAuthCookies(c, user.ID); err != nil {
-        log.Printf("Error setting auth cookies for user %d: %v", user.ID, err)
+        security.LogEventFromContext(c, security.EventLoginFailed, 
+            "Failed to set auth cookies", 
+            "CRITICAL", 
+            map[string]interface{}{"userId": user.ID, "error": err.Error()})
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
     }
+
+    security.LogEventFromContext(c, security.EventLogin, 
+        fmt.Sprintf("Successful login: %s", username), 
+        "INFO", 
+        map[string]interface{}{
+            "userId": user.ID,
+            "username": username,
+            "role": user.Role,
+        })
 
     // Remove sensitive data before returning
     user.Password = ""
@@ -132,6 +157,7 @@ func Login(c *fiber.Ctx) error {
 func Register(c *fiber.Ctx) error {
     var registerReq RegisterRequest
     if err := c.BodyParser(&registerReq); err != nil {
+        security.LogEventFromContext(c, security.EventRegister, "Invalid registration JSON", "WARNING", nil)
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
     }
 
@@ -177,9 +203,24 @@ func Register(c *fiber.Ctx) error {
     }
 
     if err := models.CreateUser(&newUser); err != nil {
-        log.Printf("Error creating user: %v", err)
+        security.LogEventFromContext(c, security.EventRegister, 
+            "Failed to create user account", 
+            "CRITICAL", 
+            map[string]interface{}{
+                "username": registerReq.Username,
+                "error": err.Error(),
+            })
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
     }
+
+    security.LogEventFromContext(c, security.EventRegister, 
+        fmt.Sprintf("New user registered: %s", registerReq.Username), 
+        "INFO", 
+        map[string]interface{}{
+            "userId": newUser.ID,
+            "username": newUser.Username,
+            "role": newUser.Role,
+        })
 
     // Generate tokens and set cookies
     if err := setAuthCookies(c, newUser.ID); err != nil {

@@ -873,7 +873,8 @@ func SearchPatients(c *fiber.Ctx) error {
 	var err error
 
 	// Admin users can search all patients
-	if userRole == "admin" || userRole == "user" {
+	switch userRole {
+	case "admin", "user":
 		patients, err = models.SearchPatients(searchQuery)
 		if err != nil {
 			// Check for the specific "too many results" error from the model
@@ -883,7 +884,7 @@ func SearchPatients(c *fiber.Ctx) error {
 			log.Printf("Error searching patients: %v", err)
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to search patients"})
 		}
-	} else if userRole == "doctor" {
+	case "doctor":
 		// Doctor users search within their assigned patients
 		allPatients, err := models.GetPatientsForDoctor(userID)
 		if err != nil {
@@ -902,7 +903,7 @@ func SearchPatients(c *fiber.Ctx) error {
 			}
 		}
 		patients = filteredPatients
-	} else {
+	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 

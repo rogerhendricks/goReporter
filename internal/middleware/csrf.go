@@ -7,10 +7,11 @@ import (
     "time"
 
     "github.com/gofiber/fiber/v2"
+    "github.com/rogerhendricks/goReporter/internal/security"
 )
 
 // CSRFStore holds CSRF tokens (in production, use Redis or similar)
-var csrfTokens = make(map[string]time.Time)
+// var csrfTokens = make(map[string]time.Time)
 
 // GenerateCSRFToken generates a random CSRF token
 func GenerateCSRFToken() string {
@@ -38,6 +39,10 @@ func ValidateCSRF(c *fiber.Ctx) error {
     // Get token from cookie
     cookieToken := c.Cookies("csrf_token")
     if cookieToken == "" {
+        security.LogEventFromContext(c, security.EventCSRFViolation, 
+            "No CSRF token in cookie", 
+            "CRITICAL", 
+            nil)
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "No CSRF token found in cookie",
         })
@@ -46,6 +51,10 @@ func ValidateCSRF(c *fiber.Ctx) error {
     // Get token from header
     headerToken := c.Get("X-CSRF-Token")
     if headerToken == "" {
+        security.LogEventFromContext(c, security.EventCSRFViolation,
+            "No CSRF token in header",
+            "CRITICAL",
+            nil)
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "No CSRF token found in header",
         })
@@ -53,6 +62,12 @@ func ValidateCSRF(c *fiber.Ctx) error {
 
     // Compare tokens
     if cookieToken != headerToken {
+        security.LogEventFromContext(c, security.EventCSRFViolation,
+            "CSRF token mismatch",
+            "CRITICAL",
+            map[string]interface{}{
+            "expectedMatch": false,
+            })
         return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
             "error": "CSRF token mismatch",
         })

@@ -88,8 +88,8 @@ go-fiber-backend
 **Done** Status Tracking: Track task status (pending, in progress, completed)
 Notifications: Email/SMS reminders for upcoming tasks
 **Done** Task Templates: Pre-defined task templates for common workflows
-Assignment: Assign tasks to staff members
-Notes/Comments: Add progress notes to tasks
+**Done** Assignment: Assign tasks to staff members
+**Done** Notes/Comments: Add progress notes to tasks
 **Done** Dashboard: Visual overview of all tasks by status/priority
 
 9. *PRIORITY SECURITY ISSUES*
@@ -104,7 +104,7 @@ Notes/Comments: Add progress notes to tasks
    Short Term (Within 2 weeks):
 
    **Done** CSRF protection (#8)
-   Password complexity (#7)
+   **Done** Password complexity (#7)
    **Done** File upload limits (#11)
    **Done** Account lockout (#13)
    Medium Term (Within 1 month):

@@ -1,22 +1,26 @@
 package main
 
 import (
-    
-    "os"
-    "log"
-    "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/fiber/v2/middleware/limiter"
-    "github.com/rogerhendricks/goReporter/internal/router"
-    "github.com/rogerhendricks/goReporter/internal/config"
-    "github.com/rogerhendricks/goReporter/internal/bootstrap"
-    // "github.com/rogerhendricks/goReporter/internal/models"
-    "github.com/rogerhendricks/goReporter/internal/handlers"
-    "time"
-    "github.com/gofiber/fiber/v2/middleware/helmet"
-    "github.com/gofiber/fiber/v2/middleware/cors"
-    "github.com/gofiber/fiber/v2/middleware/logger"
-    // "github.com/gofiber/fiber/v2/middleware/csrf"
-    "github.com/rogerhendricks/goReporter/internal/middleware"
+	"log"
+	"os"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/rogerhendricks/goReporter/internal/bootstrap"
+	"github.com/rogerhendricks/goReporter/internal/config"
+	"github.com/rogerhendricks/goReporter/internal/router"
+	"github.com/rogerhendricks/goReporter/internal/security"
+
+	// "github.com/rogerhendricks/goReporter/internal/models"
+	"time"
+
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/rogerhendricks/goReporter/internal/handlers"
+
+	// "github.com/gofiber/fiber/v2/middleware/csrf"
+	"github.com/rogerhendricks/goReporter/internal/middleware"
 )
 
 // const (
@@ -29,6 +33,7 @@ func main() {
         if r := recover(); r != nil {
             log.Fatalf("Application panicked: %v", r)
         }
+        security.Close()
     }()
 
     // Optional: reset SQLite DB file on startup if requested
@@ -53,6 +58,12 @@ func main() {
     // Setup token cleanup background job
     bootstrap.SetupTokenCleanup()
     log.Println("Token cleanup scheduler initialized.")
+
+// Initialize security logger
+    if err := security.InitSecurityLogger(); err != nil {
+        log.Fatalf("Failed to initialize security logger: %v", err)
+    }
+    log.Println("Security logger initialized.")
 
     // Initialize Fiber app
     app := fiber.New(fiber.Config{
@@ -120,6 +131,11 @@ func main() {
 // }))
 
     log.Println("Middleware setup complete.")
+
+    // Security logging middleware
+    app.Use(middleware.SecurityLoggerMiddleware)
+    log.Println("Security logging middleware added.")
+
     // Set up routes
     log.Println("Setting up API routes...")
     router.SetupRoutes(app)

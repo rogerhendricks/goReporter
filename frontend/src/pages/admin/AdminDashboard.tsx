@@ -13,7 +13,7 @@ import api from '@/utils/axios'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TaskList } from '@/components/tasks/TaskList'
-
+import { SecurityLogsDashboard } from '@/components/admin/SecurityLogManager'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -110,6 +110,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>
+          <TabsTrigger value="security-logs">Security Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -267,6 +268,9 @@ export default function AdminDashboard() {
           </div>
 
         </TabsContent>
+          <TabsContent value="security-logs" className="space-y-6">
+            <SecurityLogsDashboard />
+          </TabsContent>
       </Tabs>
         <Card className="hover:shadow-lg transition-shadow mt-4">
             <CardHeader>
