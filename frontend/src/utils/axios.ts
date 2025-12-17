@@ -11,6 +11,9 @@ const api = axios.create({
 // Store CSRF token
 let csrfToken: string | null = null
 
+// Store refresh promise to prevent concurrent refresh attempts
+let refreshPromise: Promise<void> | null = null
+
 // Function to get CSRF token
 export const fetchCSRFToken = async () => {
   try {
@@ -75,13 +78,22 @@ api.interceptors.response.use(
       originalRequest._retry = true
       
       try {
-        // Try to refresh the token
-        await useAuthStore.getState().refreshToken()
+        // Use existing refresh promise or create a new one
+        if (!refreshPromise) {
+          refreshPromise = useAuthStore.getState().refreshToken()
+            .finally(() => {
+              refreshPromise = null
+            })
+        }
+        
+        // Wait for the refresh to complete
+        await refreshPromise
         
         // Retry the original request
         return api(originalRequest)
       } catch (refreshError) {
         // Refresh failed, logout user
+        refreshPromise = null
         useAuthStore.getState().logout()
         if (window.location.pathname !== '/login') {
           window.location.href = '/login'
