@@ -45,6 +45,7 @@ import {
 import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
+import { ConsentManager } from '@/components/ConsentManager'
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -523,6 +524,7 @@ export default function PatientDetail() {
           </Card>
         </div>
       </div>
+      <ConsentManager patientId={currentPatient.id} />  
     </div>
   )
 }

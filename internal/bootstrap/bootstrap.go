@@ -61,6 +61,7 @@ func migrate(db *gorm.DB) error {
 		&models.Device{},
 		&models.Lead{},
 		&models.Patient{},
+		&models.PatientConsent{},
 		&models.Medication{},
 		&models.PatientDoctor{},
 		&models.ImplantedDevice{},

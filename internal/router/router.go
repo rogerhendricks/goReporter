@@ -139,4 +139,17 @@ func SetupRoutes(app *fiber.App) {
     app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
 	app.Post("/api/task-templates/:id/assign", middleware.RequireAdminOrUser, handlers.AssignTemplateToPatient)
 	app.Get("/api/task-templates/:id/patients", middleware.RequireAdminOrUser, handlers.GetPatientsWithTemplate)
+
+	// Patient consent routes
+    app.Get("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientConsents)
+    app.Get("/api/patients/:patientId/consents/active", middleware.AuthorizeDoctorPatientAccess, handlers.GetActiveConsents)
+    app.Post("/api/patients/:patientId/consents", middleware.RequireAdminOrUser, handlers.CreateConsent)
+    app.Put("/api/consents/:id", middleware.RequireAdminOrUser, handlers.UpdateConsent)
+    app.Post("/api/consents/:id/revoke", middleware.RequireAdminOrUser, handlers.RevokeConsent)
+    app.Get("/api/patients/:patientId/consents/check", middleware.AuthorizeDoctorPatientAccess, handlers.CheckConsentStatus)
+    app.Delete("/api/consents/:id", middleware.RequireAdmin, handlers.DeleteConsent)
+
+    // Admin consent management
+    app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
+    app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
 }

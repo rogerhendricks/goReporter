@@ -109,7 +109,7 @@ Notifications: Email/SMS reminders for upcoming tasks
    **Done** Account lockout (#13)
    Medium Term (Within 1 month):
 
-   Security event logging (#16)
+   **Done** Security event logging (#16)
    Session management (#17)
    Email validation (#9)
    Security headers configuration (#12)

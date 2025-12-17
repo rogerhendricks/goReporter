@@ -3,24 +3,20 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rogerhendricks/goReporter/internal/bootstrap"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/router"
 	"github.com/rogerhendricks/goReporter/internal/security"
-
-	// "github.com/rogerhendricks/goReporter/internal/models"
-	"time"
-
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rogerhendricks/goReporter/internal/handlers"
-
-	// "github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/rogerhendricks/goReporter/internal/middleware"
+    "github.com/rogerhendricks/goReporter/internal/models"
 )
 
 // const (
@@ -35,6 +31,9 @@ func main() {
         }
         security.Close()
     }()
+
+    // Start background tasks
+    go startBackgroundTasks()
 
     // Optional: reset SQLite DB file on startup if requested
     // DB_RESET=file -> remove [reporter.db](http://_vscodecontentref_/1) before connecting
@@ -138,5 +137,18 @@ func main() {
     // Start the server
     if err := app.Listen(":5000"); err != nil {
         log.Fatalf("Fiber server failed to start: %v", err)
+    }
+}
+
+func startBackgroundTasks() {
+    ticker := time.NewTicker(24 * time.Hour) // Check daily
+    defer ticker.Stop()
+
+    for range ticker.C {
+        if err := models.CheckExpiredConsents(); err != nil {
+            log.Printf("Error checking expired consents: %v", err)
+        } else {
+            log.Println("Successfully checked and updated expired consents")
+        }
     }
 }
