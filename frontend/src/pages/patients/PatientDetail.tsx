@@ -523,8 +523,10 @@ export default function PatientDetail() {
             </CardContent>
           </Card>
         </div>
+        <div className="md:col-span-2">
+          <ConsentManager patientId={currentPatient.id} />  
+        </div>
       </div>
-      <ConsentManager patientId={currentPatient.id} />  
     </div>
   )
 }

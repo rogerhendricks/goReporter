@@ -1,10 +1,10 @@
 import api from '../utils/axios'
 
 export type ConsentType =
+  | 'REMOTE_HOME_MONITORING'
   | 'TREATMENT'
   | 'DATA_SHARING'
   | 'RESEARCH'
-  | 'MARKETING'
   | 'THIRD_PARTY'
   | 'ELECTRONIC_COMMUNICATION'
   | 'PHOTO_VIDEO'

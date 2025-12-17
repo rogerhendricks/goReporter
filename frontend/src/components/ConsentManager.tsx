@@ -6,12 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { CalendarIcon, Plus, XCircle, CheckCircle, Clock } from 'lucide-react'
+import { CalendarIcon, Plus, XCircle, CheckCircle, Clock, HelpCircle, Edit, Save, X, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { consentService, type PatientConsent, type ConsentType } from '@/services/consentService'
 
@@ -20,10 +22,10 @@ interface ConsentManagerProps {
 }
 
 const consentTypeLabels: Record<ConsentType, string> = {
+  REMOTE_HOME_MONITORING: 'Remote Home Monitoring',
   TREATMENT: 'Treatment',
   DATA_SHARING: 'Data Sharing',
   RESEARCH: 'Research',
-  MARKETING: 'Marketing',
   THIRD_PARTY: 'Third Party Access',
   ELECTRONIC_COMMUNICATION: 'Electronic Communication',
   PHOTO_VIDEO: 'Photo/Video',
@@ -36,6 +38,16 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
   const [selectedType, setSelectedType] = useState<ConsentType>('TREATMENT')
   const [expiryDate, setExpiryDate] = useState<Date>()
   const [notes, setNotes] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState<{
+    consentType: ConsentType
+    expiryDate?: Date
+    notes: string
+  }>({
+    consentType: 'TREATMENT',
+    expiryDate: undefined,
+    notes: ''
+  })
 
   useEffect(() => {
     fetchConsents()
@@ -82,6 +94,53 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
       fetchConsents()
     } catch (error) {
       toast.error('Failed to revoke consent')
+      console.error(error)
+    }
+  }
+
+  const handleDeleteConsent = async (consentId: number) => {
+    if (!window.confirm('Are you sure you want to permanently delete this consent? This action cannot be undone.')) return
+
+    try {
+      await consentService.deleteConsent(consentId)
+      toast.success('Consent deleted successfully')
+      fetchConsents()
+    } catch (error) {
+      toast.error('Failed to delete consent')
+      console.error(error)
+    }
+  }
+
+  const startEdit = (consent: PatientConsent) => {
+    setEditingId(consent.ID)
+    setEditForm({
+      consentType: consent.consentType,
+      expiryDate: consent.expiryDate ? new Date(consent.expiryDate) : undefined,
+      notes: consent.notes || ''
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditForm({
+      consentType: 'TREATMENT',
+      expiryDate: undefined,
+      notes: ''
+    })
+  }
+
+  const saveEdit = async (consentId: number) => {
+    try {
+      await consentService.updateConsent(consentId, {
+        consentType: editForm.consentType,
+        expiryDate: editForm.expiryDate ? format(editForm.expiryDate, 'yyyy-MM-dd') : undefined,
+        notes: editForm.notes
+      })
+      toast.success('Consent updated successfully')
+      setEditingId(null)
+      fetchConsents()
+    } catch (error) {
+      toast.error('Failed to update consent')
       console.error(error)
     }
   }
@@ -184,27 +243,171 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
                 <TableHead>Status</TableHead>
                 <TableHead>Granted Date</TableHead>
                 <TableHead>Expiry Date</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead className="w-[50px]">Note</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {consents.map((consent) => (
-                <TableRow key={consent.ID}>
-                  <TableCell>{consentTypeLabels[consent.consentType]}</TableCell>
-                  <TableCell>{getStatusBadge(consent.status)}</TableCell>
-                  <TableCell>{format(new Date(consent.grantedDate), 'PPP')}</TableCell>
-                  <TableCell>{consent.expiryDate ? format(new Date(consent.expiryDate), 'PPP') : 'No expiry'}</TableCell>
-                  <TableCell className="max-w-xs truncate">{consent.notes || '-'}</TableCell>
-                  <TableCell>
-                    {consent.status === 'GRANTED' && (
-                      <Button variant="destructive" size="sm" onClick={() => handleRevokeConsent(consent.ID)}>
-                        Revoke
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {consents.map((consent) => {
+                const isEditing = editingId === consent.ID
+                
+                return (
+                  <TableRow key={consent.ID}>
+                    <TableCell>
+                      {isEditing ? (
+                        <Select 
+                          value={editForm.consentType} 
+                          onValueChange={(value) => setEditForm({...editForm, consentType: value as ConsentType})}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(consentTypeLabels).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        consentTypeLabels[consent.consentType]
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(consent.status)}</TableCell>
+                    <TableCell>{format(new Date(consent.grantedDate), 'PPP')}</TableCell>
+                    <TableCell>
+                      {isEditing ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn('w-full justify-start text-left font-normal text-xs', !editForm.expiryDate && 'text-muted-foreground')}
+                            >
+                              <CalendarIcon className="mr-2 h-3 w-3" />
+                              {editForm.expiryDate ? format(editForm.expiryDate, 'PPP') : 'No expiry'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar 
+                              mode="single" 
+                              selected={editForm.expiryDate} 
+                              onSelect={(date) => setEditForm({...editForm, expiryDate: date})} 
+                              initialFocus 
+                            />
+                            {editForm.expiryDate && (
+                              <div className="p-3 border-t">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="w-full"
+                                  onClick={() => setEditForm({...editForm, expiryDate: undefined})}
+                                >
+                                  Clear Date
+                                </Button>
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        consent.expiryDate ? format(new Date(consent.expiryDate), 'PPP') : 'No expiry'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {isEditing ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-6 w-6 p-0">
+                              <Edit className="h-4 w-4 text-blue-500" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-semibold">Edit Notes</h4>
+                              <Textarea
+                                placeholder="Notes..."
+                                value={editForm.notes}
+                                onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                                rows={3}
+                                className="text-sm"
+                              />
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : consent.notes ? (
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-semibold">Notes</h4>
+                              <p className="text-sm text-muted-foreground">{consent.notes}</p>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {isEditing ? (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => saveEdit(consent.ID)}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={cancelEdit}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => startEdit(consent)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {consent.status === 'GRANTED' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleRevokeConsent(consent.ID)}
+                              >
+                                <XCircle className="h-4 w-4 text-orange-600" />
+                              </Button>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleDeleteConsent(consent.ID)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}
