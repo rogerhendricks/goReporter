@@ -132,8 +132,6 @@ export default function DeviceIndex() {
     return items
   }
 
-  console.log('Devices:', devices)
-
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Devices', current: true },

@@ -7,11 +7,16 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/rogerhendricks/goReporter/internal/handlers"
 	"github.com/rogerhendricks/goReporter/internal/middleware"
+	"github.com/rogerhendricks/goReporter/internal/security"
 )
 
 var authLimiter = limiter.New(limiter.Config{
     Max:        50,  // Allow 50 attempts per IP (protects against brute force across multiple accounts)
     Expiration: 15 * time.Minute,
+	    KeyGenerator: func(c *fiber.Ctx) string {
+        // Use real IP for rate limiting
+        return security.GetRealIP(c)
+    },
     LimitReached: func(c *fiber.Ctx) error {
         return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
             "error": "Too many login attempts from this IP address. Please try again later.",
@@ -38,6 +43,7 @@ func SetupRoutes(app *fiber.App) {
 	
 	// app.Get("/api/admin", handlers.GetAdminData)
 	app.Get("/api/admin/security-logs", middleware.RequireAdmin, handlers.GetSecurityLogs)
+	app.Get("/api/admin/security-logs/export", middleware.RequireAdmin, handlers.ExportSecurityLogs)
 	// User routes
 	// app.Get("/api/users", handlers.GetUsers)
 	app.Get("/api/users", middleware.RequireAdmin, handlers.GetUsers)

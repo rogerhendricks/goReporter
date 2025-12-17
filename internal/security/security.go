@@ -6,7 +6,8 @@ import (
     "log"
     "os"
     "time"
-
+    "net"
+    "strings"
     "github.com/gofiber/fiber/v2"
 )
 
@@ -97,6 +98,67 @@ func LogEvent(event SecurityEvent) {
         event.Severity, event.EventType, event.UserID, event.IPAddress, event.Message)
 }
 
+// IsPrivateIP checks if an IP is private/internal
+func IsPrivateIP(ip string) bool {
+    parsedIP := net.ParseIP(ip)
+    if parsedIP == nil {
+        return false
+    }
+
+    privateBlocks := []string{
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "::1/128",
+        "fc00::/7",
+    }
+
+    for _, block := range privateBlocks {
+        _, subnet, _ := net.ParseCIDR(block)
+        if subnet.Contains(parsedIP) {
+            return true
+        }
+    }
+
+    return false
+}
+
+// GetRealIP extracts the real client IP from proxy headers
+func GetRealIP(c *fiber.Ctx) string {
+    // Check X-Real-IP header (set by nginx/caddy)
+    if ip := c.Get("X-Real-IP"); ip != "" {
+        if !IsPrivateIP(ip) {
+            return ip
+        }
+    }
+
+    // Check X-Forwarded-For header (standard proxy header)
+    if xff := c.Get("X-Forwarded-For"); xff != "" {
+        ips := strings.Split(xff, ",")
+        // Find the first non-private IP
+        for _, ip := range ips {
+            ip = strings.TrimSpace(ip)
+            if !IsPrivateIP(ip) {
+                return ip
+            }
+        }
+    }
+
+    // Check CF-Connecting-IP (Cloudflare)
+    if ip := c.Get("CF-Connecting-IP"); ip != "" {
+        return ip
+    }
+
+    // Check True-Client-IP (Akamai and Cloudflare)
+    if ip := c.Get("True-Client-IP"); ip != "" {
+        return ip
+    }
+
+    // Fallback to Fiber's IP() method
+    return c.IP()
+}
+
 // Helper function to log from Fiber context
 func LogEventFromContext(c *fiber.Ctx, eventType EventType, message string, severity string, details map[string]interface{}) {
     userID := ""
@@ -119,7 +181,7 @@ func LogEventFromContext(c *fiber.Ctx, eventType EventType, message string, seve
         EventType:  eventType,
         UserID:     userID,
         Username:   username,
-        IPAddress:  c.IP(),
+        IPAddress:  GetRealIP(c),
         UserAgent:  c.Get("User-Agent"),
         Path:       c.Path(),
         Method:     c.Method(),
@@ -138,7 +200,7 @@ func LogEventWithUser(c *fiber.Ctx, eventType EventType, message string, severit
         EventType:  eventType,
         UserID:     userID,
         Username:   username,
-        IPAddress:  c.IP(),
+        IPAddress:  GetRealIP(c),
         UserAgent:  c.Get("User-Agent"),
         Path:       c.Path(),
         Method:     c.Method(),

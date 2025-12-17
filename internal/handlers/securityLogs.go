@@ -2,7 +2,9 @@ package handlers
 
 import (
     "bufio"
+    "encoding/csv"
     "encoding/json"
+    "fmt"
     "net/http"
     "os"
     "strconv"
@@ -31,6 +33,11 @@ func GetSecurityLogs(c *fiber.Ctx) error {
     var logs []security.SecurityEvent
     scanner := bufio.NewScanner(file)
     
+    // Increase buffer size for large log entries
+    const maxCapacity = 1024 * 1024 // 1MB
+    buf := make([]byte, maxCapacity)
+    scanner.Buffer(buf, maxCapacity)
+    
     for scanner.Scan() {
         var event security.SecurityEvent
         if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
@@ -49,6 +56,12 @@ func GetSecurityLogs(c *fiber.Ctx) error {
         }
 
         logs = append(logs, event)
+    }
+
+    if err := scanner.Err(); err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error reading log file",
+        })
     }
 
     // Reverse to show newest first
@@ -77,4 +90,93 @@ func GetSecurityLogs(c *fiber.Ctx) error {
         "page":  page,
         "limit": limit,
     })
+}
+
+func ExportSecurityLogs(c *fiber.Ctx) error {
+    // Parse query parameters for filtering
+    eventType := c.Query("eventType")
+    severity := c.Query("severity")
+    userId := c.Query("userId")
+
+    // Read today's log file
+    filename := "logs/security_" + time.Now().Format("2006-01-02") + ".log"
+    file, err := os.Open(filename)
+    if err != nil {
+        return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Log file not found"})
+    }
+    defer file.Close()
+
+    var logs []security.SecurityEvent
+    scanner := bufio.NewScanner(file)
+    
+    // Increase buffer size for large log entries
+    const maxCapacity = 1024 * 1024 // 1MB
+    buf := make([]byte, maxCapacity)
+    scanner.Buffer(buf, maxCapacity)
+    
+    for scanner.Scan() {
+        var event security.SecurityEvent
+        if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
+            continue
+        }
+
+        // Apply filters
+        if eventType != "" && string(event.EventType) != eventType {
+            continue
+        }
+        if severity != "" && event.Severity != severity {
+            continue
+        }
+        if userId != "" && event.UserID != userId {
+            continue
+        }
+
+        logs = append(logs, event)
+    }
+
+    if err := scanner.Err(); err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error reading log file",
+        })
+    }
+
+    // Set response headers for CSV download
+    c.Set("Content-Type", "text/csv")
+    c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=security-logs-%s.csv", time.Now().Format("2006-01-02-150405")))
+
+    // Create CSV writer
+    writer := csv.NewWriter(c.Response().BodyWriter())
+    defer writer.Flush()
+
+    // Write CSV header
+    header := []string{"Timestamp", "Event Type", "Severity", "User ID", "Username", "IP Address", "User Agent", "Path", "Method", "Status Code", "Message"}
+    if err := writer.Write(header); err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Error writing CSV header",
+        })
+    }
+
+    // Write log entries
+    for _, log := range logs {
+        row := []string{
+            log.Timestamp.Format("2006-01-02 15:04:05"),
+            string(log.EventType),
+            log.Severity,
+            log.UserID,
+            log.Username,
+            log.IPAddress,
+            log.UserAgent,
+            log.Path,
+            log.Method,
+            strconv.Itoa(log.StatusCode),
+            log.Message,
+        }
+        if err := writer.Write(row); err != nil {
+            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+                "error": "Error writing CSV row",
+            })
+        }
+    }
+
+    return nil
 }

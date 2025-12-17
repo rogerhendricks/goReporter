@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Download, Search, AlertTriangle, Info, AlertCircle } from 'lucide-react'
 import { securityService, type SecurityLog, type SecurityLogQuery } from '@/services/securityService'
 import { toast } from 'sonner'
@@ -20,6 +21,7 @@ import { format } from 'date-fns'
 export function SecurityLogsDashboard() {
   const [logs, setLogs] = useState<SecurityLog[]>([])
   const [loading, setLoading] = useState(true)
+    const [exporting, setExporting] = useState(false)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<SecurityLogQuery>({
@@ -35,28 +37,54 @@ export function SecurityLogsDashboard() {
     try {
       setLoading(true)
       const data = await securityService.getLogs({ ...filters, page })
-      setLogs(data.logs)
-      setTotal(data.total)
+      setLogs(data.logs || [])
+      setTotal(data.total || 0)
     } catch (error) {
       toast.error('Failed to fetch security logs')
       console.error(error)
+      setLogs([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleSearch = () => {
+    setPage(1)
+    fetchLogs()
+  }
+
   const handleExport = async () => {
     try {
+      setExporting(true)
+      toast.info('Preparing export... This may take a moment for large log files.')
+      
       const blob = await securityService.exportLogs(filters)
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `security-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`
+      a.download = `security-logs-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
       toast.success('Security logs exported successfully')
-    } catch (error) {
-      toast.error('Failed to export logs')
+    } catch (error: any) {
+      console.error('Export error:', error)
+      toast.error(error.response?.data?.error || 'Failed to export logs')
+    } finally {
+      setExporting(false)
     }
+  }
+
+  const getSeverityBadge = (severity: string) => {
+    const variants: Record<string, 'destructive' | 'default' | 'secondary'> = {
+      CRITICAL: 'destructive',
+      WARNING: 'default',
+      INFO: 'secondary'
+    }
+    return variants[severity] || 'secondary'
   }
 
   const getSeverityIcon = (severity: string) => {
@@ -70,14 +98,21 @@ export function SecurityLogsDashboard() {
     }
   }
 
-  const getSeverityBadge = (severity: string) => {
-    const variants: Record<string, 'destructive' | 'default' | 'secondary'> = {
-      CRITICAL: 'destructive',
-      WARNING: 'default',
-      INFO: 'secondary'
-    }
-    return variants[severity] || 'secondary'
-  }
+  const LoadingSkeleton = () => (
+    <>
+      {[...Array(5)].map((_, i) => (
+        <TableRow key={i}>
+          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+        </TableRow>
+      ))}
+    </>
+  )
 
   return (
     <Card>
@@ -171,20 +206,16 @@ export function SecurityLogsDashboard() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    Loading...
-                  </TableCell>
-                </TableRow>
+                <LoadingSkeleton />
               ) : logs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No security logs found
                   </TableCell>
                 </TableRow>
               ) : (
                 logs.map((log, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={`${log.timestamp}-${index}`}>
                     <TableCell className="font-mono text-xs">
                       {format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}
                     </TableCell>
@@ -199,11 +230,11 @@ export function SecurityLogsDashboard() {
                     <TableCell>
                       <Badge variant="outline">{log.eventType}</Badge>
                     </TableCell>
-                    <TableCell>
-                      {log.userId || 'Anonymous'}
+                    <TableCell className="font-mono text-xs">
+                      {log.userId || '-'}
                     </TableCell>
                     <TableCell>
-                      {log.username || 'Anonymous'}
+                      {log.username || '-'}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {log.ipAddress}
