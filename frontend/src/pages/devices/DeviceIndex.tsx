@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, Edit, Plus, Search } from 'lucide-react'
+import { Trash2, Edit, Search } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -132,6 +132,8 @@ export default function DeviceIndex() {
     return items
   }
 
+  console.log('Devices:', devices)
+
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Devices', current: true },
@@ -200,9 +202,9 @@ export default function DeviceIndex() {
                 </TableHeader>
                 <TableBody>
                   {devices.map((device) => (
-                    <TableRow key={device.id}>
+                    <TableRow key={device.ID}>
                       <TableCell className="text-left">
-                        <Link to={`/devices/${device.id}`} className="hover:underline font-medium">
+                        <Link to={`/devices/${device.ID}`} className="hover:underline font-medium">
                           {device.name}
                         </Link>
                       </TableCell>
@@ -216,10 +218,10 @@ export default function DeviceIndex() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => navigate(`/devices/${device.id}/edit`)}>
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/devices/${device.ID}/edit`)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(device.id, device.name)}>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(device.ID, device.name)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

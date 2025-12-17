@@ -9,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-// import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface LeadFormData {
@@ -29,6 +28,7 @@ export default function LeadForm() {
   const { currentLead, loading, error, fetchLead, createLead, updateLead, clearError } = useLeadStore()
   
   const [formData, setFormData] = useState<LeadFormData>({
+
     name: '',
     manufacturer: '',
     model: '',
@@ -116,7 +116,7 @@ export default function LeadForm() {
                 <SelectContent>
                   <SelectItem value="Abbott">Abbott</SelectItem>
                   <SelectItem value="Biotronik">Biotronik</SelectItem>
-                  <SelectItem value="Boston Scientific">Boston Sceintific</SelectItem>
+                  <SelectItem value="Boston Scientific">Boston Scientific</SelectItem>
                   <SelectItem value="Medtronic">Medtronic</SelectItem>
                   <SelectItem value="Microport">Microport</SelectItem>
                 </SelectContent>
@@ -140,7 +140,7 @@ export default function LeadForm() {
                 <SelectContent>
                   <SelectItem value="Unipolar">Unipolar</SelectItem>
                   <SelectItem value="Bipolar">Bipolar</SelectItem>
-                  <SelectItem value="Quadpolar">Quadpolar</SelectItem>
+                  <SelectItem value="Quadripolar">Quadripolar</SelectItem>
                 </SelectContent>
               </Select>
               </div>

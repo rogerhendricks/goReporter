@@ -31,7 +31,7 @@ export default function DeviceDetail() {
 
   const handleDelete = async () => {
     if (currentDevice && window.confirm(`Are you sure you want to delete ${currentDevice.name}?`)) {
-      await deleteDevice(currentDevice.id)
+      await deleteDevice(currentDevice.ID)
       navigate('/devices')
     }
   }
@@ -59,7 +59,7 @@ export default function DeviceDetail() {
         </Button>
         <h1 className="text-3xl font-bold">{currentDevice.name}</h1>
         <div className="ml-auto flex gap-2">
-          <Button onClick={() => navigate(`/devices/${currentDevice.id}/edit`)}>
+          <Button onClick={() => navigate(`/devices/${currentDevice.ID}/edit`)}>
             <Edit className="h-4 w-4 mr-2" /> Edit
           </Button>
           <Button variant="destructive" onClick={handleDelete}>

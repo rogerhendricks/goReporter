@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import api from '../utils/axios'
 
-interface Device {
-  id: number
+export interface Device {
+  ID: number
   name: string
   manufacturer: string
   model: string
   type: string
   polarity: string
   isMri: boolean
+  CreatedAt?: string
+  UpdatedAt?: string
+  DeletedAt?: string | null
 }
 
 interface PaginationInfo {
@@ -26,7 +29,7 @@ interface DeviceState {
   error: string | null
   fetchDevices: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchDevice: (id: number) => Promise<void>
-  createDevice: (data: Omit<Device, 'id'>) => Promise<Device | undefined>
+  createDevice: (data: Omit<Device, 'ID'>) => Promise<Device | undefined>
   updateDevice: (id: number, data: Partial<Device>) => Promise<Device | undefined>
   deleteDevice: (id: number) => Promise<void>
   searchDevices: (query: string) => Promise<void>
@@ -104,8 +107,8 @@ export const useDeviceStore = create<DeviceState>((set) => ({
       const response = await api.put(`/devices/${id}`, data)
       const updatedDevice = response.data
       set(state => ({
-        devices: state.devices.map(d => d.id === id ? updatedDevice : d),
-        currentDevice: state.currentDevice?.id === id ? updatedDevice : state.currentDevice,
+        devices: state.devices.map(d => d.ID === id ? updatedDevice : d),
+        currentDevice: state.currentDevice?.ID === id ? updatedDevice : state.currentDevice,
         loading: false
       }))
       return updatedDevice
@@ -120,7 +123,7 @@ export const useDeviceStore = create<DeviceState>((set) => ({
     try {
       await api.delete(`/devices/${id}`)
       set(state => ({
-        devices: state.devices.filter(d => d.id !== id),
+        devices: state.devices.filter(d => d.ID !== id),
         loading: false
       }))
     } catch (error: any) {

@@ -20,7 +20,7 @@ export default function LeadDetail() {
 
   const handleDelete = async () => {
     if (currentLead && window.confirm(`Are you sure you want to delete ${currentLead.name}?`)) {
-      await deleteLead(currentLead.id)
+      await deleteLead(currentLead.ID)
       navigate('/leads')
     }
   }
@@ -48,7 +48,7 @@ export default function LeadDetail() {
         </Button>
         <h1 className="text-3xl font-bold">{currentLead.name}</h1>
         <div className="ml-auto flex gap-2">
-          <Button onClick={() => navigate(`/leads/${currentLead.id}/edit`)}>
+          <Button onClick={() => navigate(`/leads/${currentLead.ID}/edit`)}>
             <Edit className="h-4 w-4 mr-2" /> Edit
           </Button>
           <Button variant="destructive" onClick={handleDelete}>
@@ -60,7 +60,7 @@ export default function LeadDetail() {
       <Card>
         <CardHeader><CardTitle>Lead Details</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><strong>Model:</strong> {currentLead.leadModel}</div>
+          <div><strong>Model:</strong> {currentLead.model}</div>
           <div><strong>Manufacturer:</strong> {currentLead.manufacturer}</div>
           <div><strong>Connector:</strong> {currentLead.connector}</div>
           <div>

@@ -107,34 +107,10 @@ func main() {
         // Add custom CSRF protection
     app.Use(middleware.ValidateCSRF)
 
-//     app.Use(csrf.New(csrf.Config{
-//         KeyLookup:      "header:X-CSRF-Token",
-//         CookieName:     "csrf_token",
-//         CookieSameSite: "Lax",
-//         Expiration:     1 * time.Hour,
-//         KeyGenerator:   func() string {
-//         // Use crypto/rand for token generation
-//         b := make([]byte, 32)
-//         rand.Read(b)
-//         return fmt.Sprintf("%x", b)
-//     },
-//         Next: func(c *fiber.Ctx) bool {
-//         // Skip CSRF protection for GET, HEAD, OPTIONS (safe methods)
-//         // and the csrf-token endpoint
-//         return c.Method() == "GET" || 
-//                c.Method() == "HEAD" || 
-//                c.Method() == "OPTIONS" ||
-//                  c.Path() == "/api/auth/login" ||
-//                c.Path() == "/api/auth/register" ||
-//                c.Path() == "/api/auth/refresh-token"
-//     },
-// }))
-
-    log.Println("Middleware setup complete.")
-
     // Security logging middleware
-    app.Use(middleware.SecurityLoggerMiddleware)
-    log.Println("Security logging middleware added.")
+    // app.Use(middleware.SecurityLoggerMiddleware)
+    // log.Println("Security logging middleware added.")
+    log.Println("Middleware setup complete.")
 
     // Set up routes
     log.Println("Setting up API routes...")

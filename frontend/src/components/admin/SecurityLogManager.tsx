@@ -163,7 +163,8 @@ export function SecurityLogsDashboard() {
                 <TableHead>Timestamp</TableHead>
                 <TableHead>Severity</TableHead>
                 <TableHead>Event</TableHead>
-                <TableHead>User</TableHead>
+                <TableHead>User ID</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead>IP Address</TableHead>
                 <TableHead>Message</TableHead>
               </TableRow>
@@ -199,7 +200,10 @@ export function SecurityLogsDashboard() {
                       <Badge variant="outline">{log.eventType}</Badge>
                     </TableCell>
                     <TableCell>
-                      {log.username || log.userId || 'Anonymous'}
+                      {log.userId || 'Anonymous'}
+                    </TableCell>
+                    <TableCell>
+                      {log.username || 'Anonymous'}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {log.ipAddress}

@@ -3,6 +3,7 @@ package middleware
 import (
     "github.com/gofiber/fiber/v2"
     "github.com/rogerhendricks/goReporter/internal/security"
+    "strings"
 )
 
 // SecurityLoggerMiddleware logs security-relevant requests
@@ -11,6 +12,15 @@ func SecurityLoggerMiddleware(c *fiber.Ctx) error {
     path := c.Path()
     method := c.Method()
     
+    // Skip logging for public paths and static files
+    if strings.HasPrefix(path, "/assets/") ||
+       strings.HasPrefix(path, "/api/files/") ||
+       path == "/" ||
+       path == "/index.html" ||
+       path == "/api/csrf-token" {
+        return c.Next()
+    }
+
     // Track data access patterns
     if method == "GET" && isSensitiveEndpoint(path) {
         security.LogEventFromContext(c, security.EventDataAccess, 
@@ -50,6 +60,7 @@ func isSensitiveEndpoint(path string) bool {
         "/api/patients",
         "/api/reports",
         "/api/users",
+        "/api/tasks",
     }
     
     for _, pattern := range sensitivePatterns {

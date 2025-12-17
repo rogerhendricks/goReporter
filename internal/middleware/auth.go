@@ -15,6 +15,28 @@ import (
 )
 
 func AuthenticateJWT(c *fiber.Ctx) error {
+    // Skip auth for public endpoints
+    publicPaths := []string{
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/refresh-token",
+        "/api/csrf-token",
+    }
+
+    path := c.Path()
+    for _, publicPath := range publicPaths {
+        if path == publicPath {
+            return c.Next()
+        }
+    }
+
+    // Skip auth for static files
+    if strings.HasPrefix(path, "/api/files/") ||
+       strings.HasPrefix(path, "/assets/") ||
+       path == "/" || path == "/index.html" {
+        return c.Next()
+    }
+
     // Try to get token from cookie first
     token := c.Cookies("access_token")
     
@@ -44,18 +66,37 @@ func AuthenticateJWT(c *fiber.Ctx) error {
         return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
     }
 
-    var user models.User
-    if err := config.DB.First(&user, claims.Subject).Error; err != nil {
+    // var user models.User
+    // if err := config.DB.First(&user, claims.Subject).Error; err != nil {
+    //     return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+    //         "error": "User not found",
+    //     })
+    // }
+    
+        // Extract user ID from claims
+    userID := claims.Subject
+    if userID == "" {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid token claims",
+        })
+    }
+
+    // Get user from database to get username and role
+    user, err := models.GetUserByID(userID)
+    if err != nil {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
             "error": "User not found",
         })
     }
-    
-    c.Locals("userID", claims.Subject)
+
+    c.Locals("userID", userID)
     c.Locals("user", &user)
-    c.Locals("user_id", user.ID)
+    // c.Locals("user_id", user.ID)
     c.Locals("user_role", user.Role)
 
+    c.Locals("username", user.Username)
+    c.Locals("userRole", user.Role)
+    fmt.Printf("Authenticated user %s with role %s\n", user.Username, user.Role)
     return c.Next()
 }
 

@@ -33,6 +33,9 @@ func SetupRoutes(app *fiber.App) {
 	// Admin routes
 	app.Use(middleware.AuthenticateJWT)
 
+	// Apply security logging AFTER authentication so user context is available
+    app.Use(middleware.SecurityLoggerMiddleware)
+	
 	// app.Get("/api/admin", handlers.GetAdminData)
 	app.Get("/api/admin/security-logs", middleware.RequireAdmin, handlers.GetSecurityLogs)
 	// User routes

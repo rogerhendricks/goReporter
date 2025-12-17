@@ -2,13 +2,16 @@ import { create } from 'zustand'
 import api from '../utils/axios'
 
 export interface Lead {
-  id: number
+  ID: number
   name: string
   manufacturer: string
-  leadModel: string
+  model: string
   connector: string
   polarity: string
   isMri: boolean
+  CreatedAt?: string
+  UpdatedAt?: string
+  DeletedAt?: string | null
 }
 
 interface PaginationInfo {
@@ -26,7 +29,7 @@ interface LeadState {
   error: string | null
   fetchLeads: (page?: number, limit?: number, search?: string) => Promise<void>
   fetchLead: (id: number) => Promise<void>
-  createLead: (data: Omit<Lead, 'id'>) => Promise<Lead | undefined>
+  createLead: (data: Omit<Lead, 'ID'>) => Promise<Lead | undefined>
   updateLead: (id: number, data: Partial<Lead>) => Promise<Lead | undefined>
   deleteLead: (id: number) => Promise<void>
   searchLeads: (query: string) => Promise<void>
@@ -99,8 +102,8 @@ export const useLeadStore = create<LeadState>((set) => ({
       const response = await api.put(`/leads/${id}`, data)
       const updatedLead = response.data
       set(state => ({
-        Leads: state.leads.map(d => d.id === id ? updatedLead : d),
-        currentLead: state.currentLead?.id === id ? updatedLead : state.currentLead,
+        leads: state.leads.map(d => d.ID === id ? updatedLead : d),
+        currentLead: state.currentLead?.ID === id ? updatedLead : state.currentLead,
         loading: false
       }))
       return updatedLead
@@ -115,7 +118,7 @@ export const useLeadStore = create<LeadState>((set) => ({
     try {
       await api.delete(`/leads/${id}`)
       set(state => ({
-        leads: state.leads.filter(d => d.id !== id),
+        leads: state.leads.filter(d => d.ID !== id),
         loading: false
       }))
     } catch (error: any) {

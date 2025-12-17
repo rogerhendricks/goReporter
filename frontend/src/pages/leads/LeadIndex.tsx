@@ -200,13 +200,13 @@ export default function LeadIndex() {
               </TableHeader>
               <TableBody>
                 {leads.map((lead) => (
-                  <TableRow key={lead.id}>
+                  <TableRow key={lead.ID}>
                     <TableCell className="text-left">
-                      <Link to={`/leads/${lead.id}`} className="hover:underline font-medium">
+                      <Link to={`/leads/${lead.ID}`} className="hover:underline font-medium">
                         {lead.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-left">{lead.leadModel}</TableCell>
+                    <TableCell className="text-left">{lead.model}</TableCell>
                     <TableCell className="text-left">{lead.manufacturer}</TableCell>
                     <TableCell className="text-left">{lead.connector}</TableCell>
                     <TableCell className="text-left"> 
@@ -216,10 +216,10 @@ export default function LeadIndex() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/leads/${lead.id}/edit`)}>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/leads/${lead.ID}/edit`)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(lead.id, lead.name)}>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(lead.ID, lead.name)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

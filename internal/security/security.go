@@ -102,16 +102,19 @@ func LogEventFromContext(c *fiber.Ctx, eventType EventType, message string, seve
     userID := ""
     username := ""
     
+    // Extract userID from locals (set by AuthenticateJWT middleware)
     if uid := c.Locals("userID"); uid != nil {
-        userID = uid.(string)
-    }
-    
-    if user := c.Locals("user"); user != nil {
-        if u, ok := user.(interface{ GetUsername() string }); ok {
-            username = u.GetUsername()
+        if uidStr, ok := uid.(string); ok {
+            userID = uidStr
         }
     }
-
+    
+    // Extract username from locals (set by AuthenticateJWT middleware)
+    if uname := c.Locals("username"); uname != nil {
+        if unameStr, ok := uname.(string); ok {
+            username = unameStr
+        }
+    }
     event := SecurityEvent{
         EventType:  eventType,
         UserID:     userID,
