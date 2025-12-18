@@ -65,6 +65,13 @@ func CreateConsent(c *fiber.Ctx) error {
         })
     }
 
+    // Validate terms acceptance
+    if !consent.TermsAccepted {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "error": "Terms and conditions must be accepted",
+        })
+    }
+
     // Get user ID from context
     userID := c.Locals("userID").(string)
     consent.GrantedBy = userID
@@ -72,6 +79,10 @@ func CreateConsent(c *fiber.Ctx) error {
     // Capture IP and User Agent for electronic consent
     consent.IPAddress = security.GetRealIP(c)
     consent.UserAgent = c.Get("User-Agent")
+
+    // Set terms acceptance timestamp
+    now := time.Now()
+    consent.TermsAcceptedAt = &now
 
     if err := models.CreateConsent(&consent); err != nil {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -100,31 +111,97 @@ func UpdateConsent(c *fiber.Ctx) error {
         })
     }
 
-    var consent models.PatientConsent
-    if err := c.BodyParser(&consent); err != nil {
+    var updateData struct {
+        ConsentType      *models.ConsentType `json:"consentType,omitempty"`
+        ExpiryDate       *string             `json:"expiryDate,omitempty"`
+        Notes            *string             `json:"notes,omitempty"`
+        TermsAccepted    *bool               `json:"termsAccepted,omitempty"`
+        TermsVersion     *string             `json:"termsVersion,omitempty"`
+        ReacceptRequired bool                `json:"reacceptRequired,omitempty"` // Flag to indicate terms re-acceptance
+    }
+
+    if err := c.BodyParser(&updateData); err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",
         })
     }
 
-    consent.ID = uint(consentID)
-    if err := models.UpdateConsent(&consent); err != nil {
+    // Get existing consent
+    existingConsent, err := models.GetConsentByID(uint(consentID))
+    if err != nil {
+        return c.Status(http.StatusNotFound).JSON(fiber.Map{
+            "error": "Consent not found",
+        })
+    }
+
+    // Track if terms were re-accepted
+    termsReaccepted := false
+
+    // If terms acceptance is being updated, validate it
+    if updateData.TermsAccepted != nil && *updateData.TermsAccepted {
+        if updateData.TermsVersion == nil || *updateData.TermsVersion == "" {
+            return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+                "error": "Terms version is required when accepting terms",
+            })
+        }
+
+        // Update terms acceptance
+        now := time.Now()
+        existingConsent.TermsAccepted = true
+        existingConsent.TermsAcceptedAt = &now
+        existingConsent.TermsVersion = *updateData.TermsVersion
+        existingConsent.IPAddress = security.GetRealIP(c)
+        existingConsent.UserAgent = c.Get("User-Agent")
+        termsReaccepted = true
+    }
+
+    // Update other fields if provided
+    if updateData.ConsentType != nil {
+        existingConsent.ConsentType = *updateData.ConsentType
+    }
+
+    if updateData.ExpiryDate != nil {
+        if *updateData.ExpiryDate == "" {
+            existingConsent.ExpiryDate = nil
+        } else {
+            expiryDate, err := time.Parse("2006-01-02", *updateData.ExpiryDate)
+            if err != nil {
+                return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+                    "error": "Invalid expiry date format (use YYYY-MM-DD)",
+                })
+            }
+            existingConsent.ExpiryDate = &expiryDate
+        }
+    }
+
+    if updateData.Notes != nil {
+        existingConsent.Notes = *updateData.Notes
+    }
+
+    if err := models.UpdateConsent(existingConsent); err != nil {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to update consent",
         })
     }
 
-    // Log event
+    // Log event with appropriate message
+    logMessage := "Patient consent updated"
+    if termsReaccepted {
+        logMessage = "Patient consent updated with terms re-acceptance"
+    }
+
     security.LogEventFromContext(c, security.EventDataModification,
-        "Patient consent updated",
+        logMessage,
         "INFO",
         map[string]interface{}{
-            "consentId":   consentID,
-            "patientId":   consent.PatientID,
-            "consentType": consent.ConsentType,
+            "consentId":       consentID,
+            "patientId":       existingConsent.PatientID,
+            "consentType":     existingConsent.ConsentType,
+            "termsReaccepted": termsReaccepted,
+            "termsVersion":    existingConsent.TermsVersion,
         })
 
-    return c.JSON(consent)
+    return c.JSON(existingConsent)
 }
 
 // RevokeConsent revokes a consent
@@ -269,4 +346,72 @@ func DeleteConsent(c *fiber.Ctx) error {
     return c.JSON(fiber.Map{
         "message": "Consent deleted successfully",
     })
+}
+
+// ReacceptTerms allows re-acceptance of terms for an existing consent
+func ReacceptTerms(c *fiber.Ctx) error {
+    consentID, err := strconv.ParseUint(c.Params("id"), 10, 32)
+    if err != nil {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid consent ID",
+        })
+    }
+
+    var body struct {
+        TermsAccepted bool   `json:"termsAccepted"`
+        TermsVersion  string `json:"termsVersion"`
+    }
+
+    if err := c.BodyParser(&body); err != nil {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request body",
+        })
+    }
+
+    if !body.TermsAccepted {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "error": "Terms must be accepted",
+        })
+    }
+
+    if body.TermsVersion == "" {
+        return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+            "error": "Terms version is required",
+        })
+    }
+
+    // Get existing consent
+    consent, err := models.GetConsentByID(uint(consentID))
+    if err != nil {
+        return c.Status(http.StatusNotFound).JSON(fiber.Map{
+            "error": "Consent not found",
+        })
+    }
+
+    // Update terms acceptance
+    now := time.Now()
+    consent.TermsAccepted = true
+    consent.TermsAcceptedAt = &now
+    consent.TermsVersion = body.TermsVersion
+    consent.IPAddress = security.GetRealIP(c)
+    consent.UserAgent = c.Get("User-Agent")
+
+    if err := models.UpdateConsent(consent); err != nil {
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+            "error": "Failed to update consent",
+        })
+    }
+
+    // Log event
+    security.LogEventFromContext(c, security.EventDataModification,
+        "Patient consent terms re-accepted",
+        "INFO",
+        map[string]interface{}{
+            "consentId":    consentID,
+            "patientId":    consent.PatientID,
+            "consentType":  consent.ConsentType,
+            "termsVersion": body.TermsVersion,
+        })
+
+    return c.JSON(consent)
 }

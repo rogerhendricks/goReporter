@@ -145,6 +145,7 @@ func SetupRoutes(app *fiber.App) {
     app.Get("/api/patients/:patientId/consents/active", middleware.AuthorizeDoctorPatientAccess, handlers.GetActiveConsents)
     app.Post("/api/patients/:patientId/consents", middleware.RequireAdminOrUser, handlers.CreateConsent)
     app.Put("/api/consents/:id", middleware.RequireAdminOrUser, handlers.UpdateConsent)
+    app.Post("/api/consents/:id/reaccept-terms", middleware.RequireAdminOrUser, handlers.ReacceptTerms)
     app.Post("/api/consents/:id/revoke", middleware.RequireAdminOrUser, handlers.RevokeConsent)
     app.Get("/api/patients/:patientId/consents/check", middleware.AuthorizeDoctorPatientAccess, handlers.CheckConsentStatus)
     app.Delete("/api/consents/:id", middleware.RequireAdmin, handlers.DeleteConsent)

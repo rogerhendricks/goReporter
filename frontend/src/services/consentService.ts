@@ -25,6 +25,9 @@ export interface PatientConsent {
   documentPath?: string
   ipAddress?: string
   userAgent?: string
+  termsAccepted?: boolean
+  termsAcceptedAt?: string
+  termsVersion?: string
   CreatedAt?: string
   UpdatedAt?: string
 }
@@ -35,6 +38,8 @@ export interface CreateConsentRequest {
   expiryDate?: string
   notes?: string
   documentPath?: string
+  termsAccepted: boolean
+  termsVersion: string
 }
 
 export interface ConsentStats {
@@ -49,6 +54,20 @@ export interface ConsentStats {
 }
 
 export const consentService = {
+  // Get terms and conditions for a consent type
+  getTerms: async (consentType: ConsentType): Promise<string> => {
+    try {
+      const response = await fetch(`/terms/${consentType}.md`)
+      if (!response.ok) {
+        throw new Error('Terms not found')
+      }
+      return await response.text()
+    } catch (error) {
+      console.error('Error fetching terms:', error)
+      return '# Terms and Conditions\n\nTerms and conditions for this consent type are currently unavailable.'
+    }
+  },
+
   // Get all consents for a patient
   getPatientConsents: async (patientId: number): Promise<PatientConsent[]> => {
     const response = await api.get(`/patients/${patientId}/consents`)
@@ -107,4 +126,32 @@ export const consentService = {
     })
     return response.data
   },
+
+  // Re-accept terms for an existing consent
+  reacceptTerms: async (
+    consentId: number, 
+    termsVersion: string
+  ): Promise<PatientConsent> => {
+    const response = await api.post(`/consents/${consentId}/reaccept-terms`, {
+      termsAccepted: true,
+      termsVersion,
+    })
+    return response.data
+  },
+
+  // Update consent with optional terms re-acceptance
+  updateConsentWithTerms: async (
+    consentId: number,
+    data: {
+      consentType?: ConsentType
+      expiryDate?: string
+      notes?: string
+      termsAccepted?: boolean
+      termsVersion?: string
+    }
+  ): Promise<PatientConsent> => {
+    const response = await api.put(`/consents/${consentId}`, data)
+    return response.data
+  },
+
 }

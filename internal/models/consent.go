@@ -12,7 +12,7 @@ const (
     ConsentTreatment       ConsentType = "TREATMENT"
     ConsentDataSharing     ConsentType = "DATA_SHARING"
     ConsentResearch        ConsentType = "RESEARCH"
-    ConsentMarketing       ConsentType = "MARKETING"
+    ConsentRemoteHomeMonitoring       ConsentType = "REMOTE_HOME_MONITORING"
     ConsentThirdParty      ConsentType = "THIRD_PARTY"
     ConsentElectronicComm  ConsentType = "ELECTRONIC_COMMUNICATION"
     ConsentPhotoVideo      ConsentType = "PHOTO_VIDEO"
@@ -41,6 +41,9 @@ type PatientConsent struct {
     DocumentPath  string        `json:"documentPath,omitempty" gorm:"type:varchar(500)"` // Path to signed consent form
     IPAddress     string        `json:"ipAddress,omitempty" gorm:"type:varchar(50)"` // For electronic consent
     UserAgent     string        `json:"userAgent,omitempty" gorm:"type:text"` // For electronic consent
+    TermsAccepted      bool          `json:"termsAccepted" gorm:"default:false"`
+    TermsAcceptedAt    *time.Time    `json:"termsAcceptedAt,omitempty"`
+    TermsVersion       string        `json:"termsVersion,omitempty" gorm:"type:varchar(50)"`
 }
 
 // GetPatientConsents retrieves all consents for a patient
@@ -174,4 +177,14 @@ func GetConsentStats() (map[string]interface{}, error) {
     stats["byType"] = byType
     
     return stats, nil
+}
+
+// GetConsentByID retrieves a consent by ID
+func GetConsentByID(consentID uint) (*PatientConsent, error) {
+    var consent PatientConsent
+    err := config.DB.First(&consent, consentID).Error
+    if err != nil {
+        return nil, err
+    }
+    return &consent, nil
 }
