@@ -5,7 +5,7 @@ This consent allows for remote monitoring of your medical device and health data
 
 ## What You're Agreeing To
 - Electronic transmission of device data to healthcare providers
-- Remote device programming and adjustments when appropriate
+- Remote device programming when appropriate
 - Collection and storage of health-related data
 - Alerts and notifications to healthcare team based on device data
 

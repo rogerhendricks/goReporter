@@ -113,11 +113,14 @@ Notifications: Email/SMS reminders for upcoming tasks
    Session management (#17)
    Email validation (#9)
    Security headers configuration (#12)
-   Ongoing:
+   **Done** Add patient consent tracking
 
-   Regular security audits
-   Dependency updates
-   Penetration testing
+   ### Ongoing:
+
+   - Regular security audits
+   - Dependency updates
+   - Penetration testing
+
    🏥 HIPAA COMPLIANCE CONSIDERATIONS
    Since this appears to be a medical reporting system handling patient data:
 
@@ -125,7 +128,6 @@ Notifications: Email/SMS reminders for upcoming tasks
    Add data encryption at rest
    Ensure proper access controls (partially done)
    Implement data retention policies
-   Add patient consent tracking
    Ensure proper data backup and recovery
 
 
