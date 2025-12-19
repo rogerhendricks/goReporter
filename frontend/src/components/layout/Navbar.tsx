@@ -1,5 +1,5 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings } from 'lucide-react'
+import { Link, useNavigate, useLocation, href } from 'react-router-dom'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings, BarChart3, Plus, FileSpreadsheet } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -35,7 +35,8 @@ export function Navbar() {
     { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
     { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
     { href: '/admin', label: 'Admin Dashboard', icon: Settings, roles: ['admin'] },
-    { href: '/doctor', label: 'Doctor Dashboard', icon: Stethoscope, roles: ['doctor'] }
+    { href: '/doctor', label: 'Doctor Dashboard', icon: Stethoscope, roles: ['doctor'] },
+    {href: '/reports/builder', label: 'Reports', icon: FileSpreadsheet, roles: ['admin', 'user'],}
   ]
 
   // Filter nav links based on user role

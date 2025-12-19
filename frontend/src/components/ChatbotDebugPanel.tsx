@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Code, Download, Eye } from 'lucide-react'
+import { Download, Eye } from 'lucide-react'
 import { chatbotService } from '@/services/chatbotService'
 import { toast } from 'sonner'
 

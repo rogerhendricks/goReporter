@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import Home from '@/pages/Home'
 import Login from '@/components/auth/Login'
-import Register from '@/components/auth/Register'
+// import Register from '@/components/auth/Register'
 import Unauthorized from '@/components/auth/Unauthorized'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import DoctorDashboard from '@/pages/DoctorDashboard'
@@ -25,6 +25,7 @@ import { TaskList } from '@/components/tasks/TaskList'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskDetail } from '@/components/tasks/TaskDetail'
 import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
+import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 
 
 export interface RouteConfig {
@@ -127,6 +128,22 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['admin', 'user']
+  },
+    {
+    path: '/reports/builder',
+    element: <ReportBuilder />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'user']
+
+  },
+  {
+    path:'/reports/saved',
+    element:<ReportFormWrapper />,
+    requiresAuth:true,
+    layout:'default',
+    roles:['admin','user'] 
+
   },
   { path: 'search/patients', 
     element: <PatientSearch />,

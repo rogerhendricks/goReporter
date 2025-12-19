@@ -119,7 +119,7 @@ func main() {
 
     // Set up routes
     log.Println("Setting up API routes...")
-    router.SetupRoutes(app)
+    router.SetupRoutes(app, config.DB)
     log.Println("API routes setup complete.")
     // fmt.Printf("%s●%s Server is listening on port %s\n", colorGreen, colorReset, cfg.Port)
     

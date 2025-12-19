@@ -8,6 +8,7 @@ import (
 	"github.com/rogerhendricks/goReporter/internal/handlers"
 	"github.com/rogerhendricks/goReporter/internal/middleware"
 	"github.com/rogerhendricks/goReporter/internal/security"
+	"gorm.io/gorm"
 )
 
 var authLimiter = limiter.New(limiter.Config{
@@ -25,7 +26,7 @@ var authLimiter = limiter.New(limiter.Config{
 })
 
 
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/csrf-token", handlers.GetCSRFToken)
 	// Auth routes
 	auth := app.Group("/api/auth")
@@ -103,6 +104,14 @@ func SetupRoutes(app *fiber.App) {
 	app.Put("/api/reports/:id", middleware.RequireAdminOrUser, handlers.UploadFile, handlers.UpdateReport)
 	app.Delete("/api/reports/:id", middleware.RequireAdminOrUser, handlers.DeleteReport)
 
+	// Report Builder routes
+	reportBuilder := handlers.NewReportBuilderHandler(db)
+	app.Get("/report-builder/fields", middleware.RequireAdminOrUser, reportBuilder.GetAvailableFields)
+    app.Post("/report-builder/execute", middleware.RequireAdminOrUser, reportBuilder.ExecuteReport)
+    app.Post("/report-builder/reports", middleware.RequireAdminOrUser, reportBuilder.SaveReport)
+    app.Get("/report-builder/reports", middleware.RequireAdminOrUser, reportBuilder.GetSavedReports)
+    app.Delete("/report-builder/reports/:id", middleware.RequireAdminOrUser, reportBuilder.DeleteReport)
+
 	// Search routes
 	app.Get("/api/search/patients", middleware.SetUserRole, handlers.SearchPatientsComplex)
 
@@ -118,6 +127,7 @@ func SetupRoutes(app *fiber.App) {
 	tags.Post("/", middleware.RequireAdminOrUser, handlers.CreateTag)
 	tags.Put("/:id", middleware.RequireAdminOrUser, handlers.UpdateTag)
 	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
+
 
 // Task routes
     app.Get("/api/tasks", middleware.RequireAdminOrUser, handlers.GetTasks)
