@@ -19,10 +19,6 @@ import (
     "github.com/rogerhendricks/goReporter/internal/models"
 )
 
-// const (
-//     colorGreen = "\033[32m"
-//     colorReset = "\033[0m"
-// )
 
 func main() {
     defer func() {
@@ -30,6 +26,7 @@ func main() {
             log.Fatalf("Application panicked: %v", r)
         }
         security.Close()
+        config.CloseDatabase()
     }()
 
     // Start background tasks

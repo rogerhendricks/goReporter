@@ -21,6 +21,7 @@ type ReportSummary = {
   incomplete: number
   byStatus: Slice[]
 }
+
 type AnalyticsResponse = {
   byManufacturer: Slice[]
   byDeviceType: Slice[]
@@ -233,8 +234,6 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="admin" className="space-y-6">
-
-
           <div>
             <TagManagement />
           </div>
@@ -242,24 +241,6 @@ export default function AdminDashboard() {
           <div>
             <TaskTemplateManager />
           </div>
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>Admin Privileges</CardTitle>
-              <CardDescription>
-                Your admin account has the following capabilities:
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-2 text-sm text-left">
-                <li>Create, update and delete all patient records</li>
-                <li>Manage doctor accounts and assignments</li>
-                <li>Configure medical devices and leads</li>
-                <li>Access all reports and data across the system</li>
-                <li>Manage system users and their roles</li>
-                <li>Create, update and delete tags for categorization</li>
-              </ul>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="management" className="space-y-6">
