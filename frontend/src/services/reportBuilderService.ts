@@ -1,46 +1,13 @@
-import axios from 'axios';
+import api from '@/utils/axios';
 import { type ReportDefinition, type ReportResult, type ReportField } from '@/components/report-builder/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-
 class ReportBuilderService {
-  private api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  constructor() {
-    // Add token to requests if available
-    this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Handle errors globally
-    this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized
-          localStorage.removeItem('token');
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
   /**
    * Get all available fields that can be used in reports
    */
   async getAvailableFields(): Promise<ReportField[]> {
     try {
-      const response = await this.api.get<ReportField[]>('/report-builder/fields');
+      const response = await api.get<ReportField[]>('/report-builder/fields');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch available fields:', error);
@@ -53,7 +20,7 @@ class ReportBuilderService {
    */
   async executeReport(definition: ReportDefinition): Promise<ReportResult> {
     try {
-      const response = await this.api.post<ReportResult>('/report-builder/execute', {
+      const response = await api.post<ReportResult>('/report-builder/execute', {
         selected_fields: definition.selectedFields,
         filters: definition.filters,
         group_by: definition.groupBy,
@@ -72,7 +39,7 @@ class ReportBuilderService {
    */
   async saveReport(definition: ReportDefinition): Promise<{ id: number }> {
     try {
-      const response = await this.api.post<{ id: number }>('/report-builder/reports', {
+      const response = await api.post<{ id: number }>('/report-builder/reports', {
         name: definition.name,
         description: definition.description,
         definition: {
@@ -96,9 +63,8 @@ class ReportBuilderService {
    */
   async getSavedReports(): Promise<ReportDefinition[]> {
     try {
-      const response = await this.api.get<any[]>('/report-builder/reports');
+      const response = await api.get<any[]>('/report-builder/reports');
       
-      // Transform backend response to ReportDefinition format
       return response.data.map((report) => ({
         id: report.id.toString(),
         name: report.name,
@@ -123,7 +89,7 @@ class ReportBuilderService {
    */
   async getReportById(id: string): Promise<ReportDefinition> {
     try {
-      const response = await this.api.get<any>(`/report-builder/reports/${id}`);
+      const response = await api.get<any>(`/report-builder/reports/${id}`);
       const report = response.data;
       
       return {
@@ -150,7 +116,7 @@ class ReportBuilderService {
    */
   async updateReport(id: string, definition: ReportDefinition): Promise<void> {
     try {
-      await this.api.put(`/report-builder/reports/${id}`, {
+      await api.put(`/report-builder/reports/${id}`, {
         name: definition.name,
         description: definition.description,
         definition: {
@@ -173,7 +139,7 @@ class ReportBuilderService {
    */
   async deleteReport(id: string): Promise<void> {
     try {
-      await this.api.delete(`/report-builder/reports/${id}`);
+      await api.delete(`/report-builder/reports/${id}`);
     } catch (error) {
       console.error('Failed to delete report:', error);
       throw new Error('Failed to delete report');
@@ -185,7 +151,7 @@ class ReportBuilderService {
    */
   async exportToCSV(definition: ReportDefinition): Promise<Blob> {
     try {
-      const response = await this.api.post(
+      const response = await api.post(
         '/report-builder/export/csv',
         {
           selected_fields: definition.selectedFields,
@@ -210,7 +176,7 @@ class ReportBuilderService {
    */
   async exportToExcel(definition: ReportDefinition): Promise<Blob> {
     try {
-      const response = await this.api.post(
+      const response = await api.post(
         '/report-builder/export/excel',
         {
           selected_fields: definition.selectedFields,
@@ -235,7 +201,7 @@ class ReportBuilderService {
    */
   async exportToPDF(definition: ReportDefinition): Promise<Blob> {
     try {
-      const response = await this.api.post(
+      const response = await api.post(
         '/report-builder/export/pdf',
         {
           selected_fields: definition.selectedFields,
@@ -253,6 +219,212 @@ class ReportBuilderService {
       console.error('Failed to export to PDF:', error);
       throw new Error('Failed to export report');
     }
+  }
+
+  /**
+   * Generate PDF on the frontend using pdf-lib
+   */
+  async generatePDF(
+    result: ReportResult,
+    reportName: string = 'Custom Report',
+    description?: string
+  ): Promise<Blob> {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const timesRomanBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+
+    const pageWidth = 842; // A4 landscape width
+    const pageHeight = 595; // A4 landscape height
+    const margin = 50;
+    const usableWidth = pageWidth - 2 * margin;
+    const fontSize = 9;
+    // const headerFontSize = 12;
+    const titleFontSize = 16;
+    const lineHeight = 14;
+    const headerHeight = 80;
+
+    // Calculate column widths
+    const columnCount = result.columns.length;
+    const columnWidth = usableWidth / columnCount;
+
+    // Helper function to add a new page
+    const addPage = () => {
+      return pdfDoc.addPage([pageWidth, pageHeight]);
+    };
+
+    // Helper function to draw header
+    const drawHeader = (page: any, pageNumber: number, totalPages: number) => {
+      const y = pageHeight - margin;
+      
+      // Title
+      page.drawText(reportName, {
+        x: margin,
+        y: y,
+        size: titleFontSize,
+        font: timesRomanBoldFont,
+        color: rgb(0, 0, 0),
+      });
+
+      if (description) {
+        page.drawText(description, {
+          x: margin,
+          y: y - 20,
+          size: fontSize,
+          font: timesRomanFont,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+      }
+
+      // Metadata
+      const metaY = y - (description ? 40 : 25);
+      page.drawText(`Generated: ${new Date().toLocaleString()}`, {
+        x: margin,
+        y: metaY,
+        size: fontSize - 1,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+
+      page.drawText(`Total Rows: ${result.totalRows}`, {
+        x: margin + 250,
+        y: metaY,
+        size: fontSize - 1,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+
+      page.drawText(`Page ${pageNumber} of ${totalPages}`, {
+        x: pageWidth - margin - 80,
+        y: metaY,
+        size: fontSize - 1,
+        font: timesRomanFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+
+      // Draw line under header
+      page.drawLine({
+        start: { x: margin, y: metaY - 10 },
+        end: { x: pageWidth - margin, y: metaY - 10 },
+        thickness: 0.5,
+        color: rgb(0.7, 0.7, 0.7),
+      });
+
+      return metaY - 25;
+    };
+
+    // Helper function to draw column headers
+    const drawColumnHeaders = (page: any, y: number) => {
+      // Draw background for header row
+      page.drawRectangle({
+        x: margin,
+        y: y - 2,
+        width: usableWidth,
+        height: lineHeight + 4,
+        color: rgb(0.95, 0.95, 0.95),
+      });
+
+      result.columns.forEach((column, index) => {
+        const x = margin + index * columnWidth + 5;
+        const text = column.length > 20 ? column.substring(0, 18) + '...' : column;
+        
+        page.drawText(text, {
+          x,
+          y: y + 3,
+          size: fontSize,
+          font: timesRomanBoldFont,
+          color: rgb(0, 0, 0),
+        });
+
+        // Draw vertical separator
+        if (index < result.columns.length - 1) {
+          page.drawLine({
+            start: { x: margin + (index + 1) * columnWidth, y: y - 2 },
+            end: { x: margin + (index + 1) * columnWidth, y: y + lineHeight + 2 },
+            thickness: 0.5,
+            color: rgb(0.8, 0.8, 0.8),
+          });
+        }
+      });
+
+      return y - lineHeight - 5;
+    };
+
+    // Helper function to format cell value
+    const formatValue = (value: any): string => {
+      if (value === null || value === undefined) return 'NULL';
+      if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+      if (typeof value === 'object') return JSON.stringify(value);
+      const str = String(value);
+      return str.length > 30 ? str.substring(0, 28) + '...' : str;
+    };
+
+    // Calculate total pages needed
+    const rowsPerPage = Math.floor((pageHeight - headerHeight - margin - 40) / lineHeight) - 1;
+    const totalPages = Math.ceil(result.rows.length / rowsPerPage);
+
+    // Generate pages
+    let page = addPage();
+    let currentY = drawHeader(page, 1, totalPages);
+    currentY = drawColumnHeaders(page, currentY);
+    let rowsOnCurrentPage = 0;
+    let currentPageNumber = 1;
+
+    result.rows.forEach((row, rowIndex) => {
+      // Check if we need a new page
+      if (rowsOnCurrentPage >= rowsPerPage) {
+        page = addPage();
+        currentPageNumber++;
+        currentY = drawHeader(page, currentPageNumber, totalPages);
+        currentY = drawColumnHeaders(page, currentY);
+        rowsOnCurrentPage = 0;
+      }
+
+      // Draw row background (alternating colors)
+      if (rowIndex % 2 === 1) {
+        page.drawRectangle({
+          x: margin,
+          y: currentY - 2,
+          width: usableWidth,
+          height: lineHeight + 2,
+          color: rgb(0.98, 0.98, 0.98),
+        });
+      }
+
+      // Draw cells
+      row.forEach((cell, colIndex) => {
+        const x = margin + colIndex * columnWidth + 5;
+        const text = formatValue(cell);
+
+        page.drawText(text, {
+          x,
+          y: currentY + 2,
+          size: fontSize,
+          font: courierFont,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+
+        // Draw vertical separator
+        if (colIndex < row.length - 1) {
+          page.drawLine({
+            start: { x: margin + (colIndex + 1) * columnWidth, y: currentY - 2 },
+            end: { x: margin + (colIndex + 1) * columnWidth, y: currentY + lineHeight },
+            thickness: 0.5,
+            color: rgb(0.9, 0.9, 0.9),
+          });
+        }
+      });
+
+      currentY -= lineHeight;
+      rowsOnCurrentPage++;
+    });
+
+    // Save the PDF and return as Blob
+    const pdfBytes = await pdfDoc.save();
+    return new Blob([pdfBytes], { type: 'application/pdf' });
   }
 
   /**

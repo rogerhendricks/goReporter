@@ -12,17 +12,16 @@ import (
 )
 
 func SetupTokenCleanup() {
-    // Clean up expired tokens every hour
-    ticker := time.NewTicker(1 * time.Hour)
-    go func() {
-        for range ticker.C {
-            if err := models.CleanupExpiredTokens(); err != nil {
-                log.Printf("Error cleaning up expired tokens: %v", err)
-            }
-        }
-    }()
+	// Clean up expired tokens every hour
+	ticker := time.NewTicker(1 * time.Hour)
+	go func() {
+		for range ticker.C {
+			if err := models.CleanupExpiredTokens(); err != nil {
+				log.Printf("Error cleaning up expired tokens: %v", err)
+			}
+		}
+	}()
 }
-
 
 func MigrateAndSeed() error {
 	if err := migrate(config.DB); err != nil {
@@ -71,6 +70,7 @@ func migrate(db *gorm.DB) error {
 		&models.Task{},
 		&models.TaskNote{},
 		&models.TaskTemplate{},
+		&models.CustomReport{},
 	)
 }
 
@@ -85,7 +85,6 @@ func shouldSeed(db *gorm.DB) bool {
 func pointer(i int) *int {
 	return &i
 }
-
 
 func seed(db *gorm.DB) error {
 	log.Println("Seeding database...")

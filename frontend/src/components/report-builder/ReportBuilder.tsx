@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlayCircle, Save } from 'lucide-react';
-import { FieldSelector } from '@/components/report-builder/FieldSelector';
-import { FilterBuilder } from '@/components/report-builder/FilterBuilder';
-import { ReportPreview } from '@/components/report-builder/ReportPreview';
+import { FieldSelector } from './FieldSelector';
+import { FilterBuilder } from './FilterBuilder';
+import { ReportPreview } from './ReportPreview';
 import { SortableItem } from '@/components/ui/sortable-list';
 import { type ReportResult, type ReportField } from './types';
 import { useReportBuilder } from '@/hooks/useReportBuilder';
+import { reportBuilderService } from '@/services/reportBuilderService';
 import { toast } from 'sonner';
 
 export const ReportBuilder: React.FC = () => {
@@ -83,8 +84,46 @@ export const ReportBuilder: React.FC = () => {
     }
   };
 
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    toast.success(`Exporting as ${format.toUpperCase()}...`);
+  const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
+    if (!reportResult) {
+      toast.error('Please run the report first before exporting');
+      return;
+    }
+
+    try {
+      toast.info(`Exporting as ${format.toUpperCase()}...`);
+      
+      let blob: Blob;
+      let filename: string;
+      const timestamp = new Date().toISOString().split('T')[0];
+      const reportName = reportDefinition.name || 'report';
+      
+      switch (format) {
+        case 'csv':
+          blob = await reportBuilderService.exportToCSV(reportDefinition);
+          filename = `${reportName}_${timestamp}.csv`;
+          break;
+        case 'excel':
+          blob = await reportBuilderService.exportToExcel(reportDefinition);
+          filename = `${reportName}_${timestamp}.xlsx`;
+          break;
+        case 'pdf':
+          // Generate PDF on frontend using pdf-lib
+          blob = await reportBuilderService.generatePDF(
+            reportResult,
+            reportDefinition.name || 'Custom Report',
+            reportDefinition.description
+          );
+          filename = `${reportName}_${timestamp}.pdf`;
+          break;
+      }
+      
+      reportBuilderService.downloadFile(blob, filename);
+      toast.success(`Report exported successfully as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(`Failed to export report as ${format.toUpperCase()}`);
+    }
   };
 
   return (

@@ -12,35 +12,34 @@ import (
 )
 
 var authLimiter = limiter.New(limiter.Config{
-    Max:        50,  // Allow 50 attempts per IP (protects against brute force across multiple accounts)
-    Expiration: 15 * time.Minute,
-	    KeyGenerator: func(c *fiber.Ctx) string {
-        // Use real IP for rate limiting
-        return security.GetRealIP(c)
-    },
-    LimitReached: func(c *fiber.Ctx) error {
-        return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-            "error": "Too many login attempts from this IP address. Please try again later.",
-        })
-    },
+	Max:        50, // Allow 50 attempts per IP (protects against brute force across multiple accounts)
+	Expiration: 15 * time.Minute,
+	KeyGenerator: func(c *fiber.Ctx) string {
+		// Use real IP for rate limiting
+		return security.GetRealIP(c)
+	},
+	LimitReached: func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+			"error": "Too many login attempts from this IP address. Please try again later.",
+		})
+	},
 })
-
 
 func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/csrf-token", handlers.GetCSRFToken)
 	// Auth routes
 	auth := app.Group("/api/auth")
-	auth.Post("/login",authLimiter, handlers.Login)
+	auth.Post("/login", authLimiter, handlers.Login)
 	auth.Post("/register", middleware.AuthenticateJWT, middleware.RequireAdmin, handlers.Register)
 	auth.Post("/logout", middleware.AuthenticateJWT, handlers.Logout)
 	auth.Post("/refresh-token", handlers.RefreshToken)
 	auth.Get("/me", middleware.AuthenticateJWT, handlers.GetMe)
 
 	app.Use(middleware.AuthenticateJWT)
-	
+
 	// Apply security logging AFTER authentication so user context is available
-    app.Use(middleware.SecurityLoggerMiddleware)
-	
+	app.Use(middleware.SecurityLoggerMiddleware)
+
 	// Admin routes
 	// app.Get("/api/admin", handlers.GetAdminData)
 	app.Get("/api/admin/security-logs", middleware.RequireAdmin, handlers.GetSecurityLogs)
@@ -106,11 +105,16 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Report Builder routes
 	reportBuilder := handlers.NewReportBuilderHandler(db)
-	app.Get("/report-builder/fields", middleware.RequireAdminOrUser, reportBuilder.GetAvailableFields)
-    app.Post("/report-builder/execute", middleware.RequireAdminOrUser, reportBuilder.ExecuteReport)
-    app.Post("/report-builder/reports", middleware.RequireAdminOrUser, reportBuilder.SaveReport)
-    app.Get("/report-builder/reports", middleware.RequireAdminOrUser, reportBuilder.GetSavedReports)
-    app.Delete("/report-builder/reports/:id", middleware.RequireAdminOrUser, reportBuilder.DeleteReport)
+	app.Get("/api/report-builder/fields", reportBuilder.GetAvailableFields)
+	app.Post("/api/report-builder/execute", reportBuilder.ExecuteReport)
+	app.Post("/api/report-builder/reports", reportBuilder.SaveReport)
+	app.Get("/api/report-builder/reports", reportBuilder.GetSavedReports)
+	app.Get("/api/report-builder/reports/:id", reportBuilder.GetReportById)
+	app.Put("/api/report-builder/reports/:id", reportBuilder.UpdateReport)
+	app.Delete("/api/report-builder/reports/:id", reportBuilder.DeleteReport)
+	app.Post("/api/report-builder/export/csv", reportBuilder.ExportToCSV)
+	app.Post("/api/report-builder/export/excel", reportBuilder.ExportToExcel)
+	app.Post("/api/report-builder/export/pdf", reportBuilder.ExportToPDF)
 
 	// Search routes
 	app.Get("/api/search/patients", middleware.SetUserRole, handlers.SearchPatientsComplex)
@@ -128,39 +132,38 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	tags.Put("/:id", middleware.RequireAdminOrUser, handlers.UpdateTag)
 	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
 
-
-// Task routes
-    app.Get("/api/tasks", middleware.RequireAdminOrUser, handlers.GetTasks)
-    app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
-    app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
-    app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
-    app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
-    app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
+	// Task routes
+	app.Get("/api/tasks", middleware.RequireAdminOrUser, handlers.GetTasks)
+	app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
+	app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
+	app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
+	app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
+	app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
 	app.Put("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.UpdateTaskNote)
 	app.Delete("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeleteTaskNote)
-    
-    // Patient-specific tasks
-    app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)
-    
-    // Task template routes (if you want to add them)
-    app.Get("/api/task-templates", middleware.RequireAdminOrUser, handlers.GetTaskTemplates)
-    app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)
-    app.Put("/api/task-templates/:id", middleware.RequireAdmin, handlers.UpdateTaskTemplate)
-    app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
+
+	// Patient-specific tasks
+	app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)
+
+	// Task template routes (if you want to add them)
+	app.Get("/api/task-templates", middleware.RequireAdminOrUser, handlers.GetTaskTemplates)
+	app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)
+	app.Put("/api/task-templates/:id", middleware.RequireAdmin, handlers.UpdateTaskTemplate)
+	app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
 	app.Post("/api/task-templates/:id/assign", middleware.RequireAdminOrUser, handlers.AssignTemplateToPatient)
 	app.Get("/api/task-templates/:id/patients", middleware.RequireAdminOrUser, handlers.GetPatientsWithTemplate)
 
 	// Patient consent routes
-    app.Get("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientConsents)
-    app.Get("/api/patients/:patientId/consents/active", middleware.AuthorizeDoctorPatientAccess, handlers.GetActiveConsents)
-    app.Post("/api/patients/:patientId/consents", middleware.RequireAdminOrUser, handlers.CreateConsent)
-    app.Put("/api/consents/:id", middleware.RequireAdminOrUser, handlers.UpdateConsent)
-    app.Post("/api/consents/:id/reaccept-terms", middleware.RequireAdminOrUser, handlers.ReacceptTerms)
-    app.Post("/api/consents/:id/revoke", middleware.RequireAdminOrUser, handlers.RevokeConsent)
-    app.Get("/api/patients/:patientId/consents/check", middleware.AuthorizeDoctorPatientAccess, handlers.CheckConsentStatus)
-    app.Delete("/api/consents/:id", middleware.RequireAdmin, handlers.DeleteConsent)
+	app.Get("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientConsents)
+	app.Get("/api/patients/:patientId/consents/active", middleware.AuthorizeDoctorPatientAccess, handlers.GetActiveConsents)
+	app.Post("/api/patients/:patientId/consents", middleware.RequireAdminOrUser, handlers.CreateConsent)
+	app.Put("/api/consents/:id", middleware.RequireAdminOrUser, handlers.UpdateConsent)
+	app.Post("/api/consents/:id/reaccept-terms", middleware.RequireAdminOrUser, handlers.ReacceptTerms)
+	app.Post("/api/consents/:id/revoke", middleware.RequireAdminOrUser, handlers.RevokeConsent)
+	app.Get("/api/patients/:patientId/consents/check", middleware.AuthorizeDoctorPatientAccess, handlers.CheckConsentStatus)
+	app.Delete("/api/consents/:id", middleware.RequireAdmin, handlers.DeleteConsent)
 
-    // Admin consent management
-    app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
-    app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
+	// Admin consent management
+	app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
+	app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
 }
