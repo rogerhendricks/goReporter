@@ -14,6 +14,7 @@ import { DonutChart } from '@/components/charts/DonutChart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TaskList } from '@/components/tasks/TaskList'
 import { SecurityLogsDashboard } from '@/components/admin/SecurityLogManager'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -42,11 +43,31 @@ type RecentReport = {
   createdBy?: string | null
 }
 
+type Tag = {
+  ID: number
+  name: string
+  color?: string
+  description?: string
+}
+
+type TagStats = {
+  tagId: number
+  tagName: string
+  totalPatients: number
+  patientsWithTag: number
+  patientsWithoutTag: number
+}
+
 export default function AdminDashboard() {
   const { user } = useAuthStore()
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [selectedTagId, setSelectedTagId] = useState<string | undefined>(undefined)
+  const [tagStats, setTagStats] = useState<TagStats | null>(null)
+  const [tagStatsLoading, setTagStatsLoading] = useState(false)
+  const [tagStatsError, setTagStatsError] = useState<string>('')
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -57,19 +78,54 @@ export default function AdminDashboard() {
     let mounted = true
     ;(async () => {
       try {
-        const [a, r] = await Promise.allSettled([
+        const [a, r, t] = await Promise.allSettled([
           api.get<AnalyticsResponse>('/analytics/summary'),
           api.get<RecentReport[]>('/reports/recent', { params: { limit: 10 } }),
+          api.get<Tag[]>('/tags'),
         ])
         if (!mounted) return
         if (a.status === 'fulfilled') setData(a.value.data)
         if (r.status === 'fulfilled') setRecentReports(r.value.data || [])
+        if (t.status === 'fulfilled') {
+          const tagList = t.value.data || []
+          setTags(tagList)
+          // Don't auto-select - let user choose
+        }
       } finally {
         if (mounted) setLoading(false)
       }
     })()
     return () => { mounted = false }
   }, [])
+
+  // Fetch tag statistics when selectedTagId changes
+  useEffect(() => {
+    // Only fetch if we have a valid tag ID
+    if (!selectedTagId) {
+      setTagStats(null)
+      return
+    }
+    let mounted = true
+    ;(async () => {
+      setTagStatsLoading(true)
+      setTagStatsError('')
+      try {
+        const response = await api.get<TagStats>('/tags/stats', {
+          params: { tagId: selectedTagId }
+        })
+        if (mounted) {
+          setTagStats(response.data)
+        }
+      } catch (error: any) {
+        if (mounted) {
+          setTagStatsError(error?.response?.data?.error || 'Failed to load tag statistics')
+        }
+      } finally {
+        if (mounted) setTagStatsLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [selectedTagId])
 
   // const adminActions = [
   //   {
@@ -121,12 +177,65 @@ export default function AdminDashboard() {
             <div className="p-4 text-sm text-destructive">Failed to load analytics.</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                 <div className="md:mb-6">
                   <DonutChart title="Implants by Manufacturer" slices={data.byManufacturer} />
                 </div>
                 <div className="md:mb-6">
                   <DonutChart title="Implants by Device Type" slices={data.byDeviceType} />
+                </div>
+                <div className="md:mb-6">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Patient Tag Distribution</CardTitle>
+                      <CardDescription className="text-xs">
+                        View how many patients have a specific tag
+                      </CardDescription>
+                      {tags.length > 0 ? (
+                        <Select 
+                          value={selectedTagId} 
+                          onValueChange={(value) => {
+                            if (value && value !== 'undefined') {
+                              setSelectedTagId(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full mt-2">
+                            <SelectValue placeholder="Select a tag to analyze" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tags.map((tag) => {
+                              const tagValue = String(tag.ID);
+                              return (
+                                <SelectItem key={tag.ID} value={tagValue}>
+                                  {tag.name}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="text-xs text-muted-foreground mt-2">No tags available</div>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {tagStatsLoading ? (
+                        <div className="text-sm text-muted-foreground">Loading statistics...</div>
+                      ) : tagStatsError ? (
+                        <div className="text-sm text-destructive">{tagStatsError}</div>
+                      ) : tagStats && selectedTagId ? (
+                        <DonutChart
+                          title=""
+                          slices={[
+                            { label: `With ${tagStats.tagName}`, count: tagStats.patientsWithTag },
+                            { label: `Without ${tagStats.tagName}`, count: tagStats.patientsWithoutTag },
+                          ]}
+                        />
+                      ) : (
+                        <div className="text-sm text-muted-foreground">Select a tag to view statistics</div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
                 <div className="flex items-center justify-between">
                   <Card>

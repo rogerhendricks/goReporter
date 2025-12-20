@@ -58,3 +58,44 @@ func DeleteTag(c *fiber.Ctx) error {
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+// GetPatientTagStats returns statistics about patients with/without a specific tag
+func GetPatientTagStats(c *fiber.Ctx) error {
+	tagID := c.Query("tagId")
+	if tagID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "tagId query parameter is required"})
+	}
+
+	// Get total number of patients
+	var totalPatients int64
+	if err := config.DB.Model(&models.Patient{}).Count(&totalPatients).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to count patients"})
+	}
+
+	// Count patients with this tag
+	var patientsWithTag int64
+	query := `
+		SELECT COUNT(DISTINCT patient_id) 
+		FROM patient_tags 
+		WHERE tag_id = ?
+	`
+	if err := config.DB.Raw(query, tagID).Scan(&patientsWithTag).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to count patients with tag"})
+	}
+
+	patientsWithoutTag := totalPatients - patientsWithTag
+
+	// Get tag name
+	var tag models.Tag
+	if err := config.DB.First(&tag, tagID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Tag not found"})
+	}
+
+	return c.JSON(fiber.Map{
+		"tagId":              tag.ID,
+		"tagName":            tag.Name,
+		"totalPatients":      totalPatients,
+		"patientsWithTag":    patientsWithTag,
+		"patientsWithoutTag": patientsWithoutTag,
+	})
+}

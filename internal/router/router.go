@@ -128,6 +128,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Tag routes
 	tags := app.Group("/api/tags")
 	tags.Get("/", handlers.GetAllTags)
+	tags.Get("/stats", handlers.GetPatientTagStats)
 	tags.Post("/", middleware.RequireAdminOrUser, handlers.CreateTag)
 	tags.Put("/:id", middleware.RequireAdminOrUser, handlers.UpdateTag)
 	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
