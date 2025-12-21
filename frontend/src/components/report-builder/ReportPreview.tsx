@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DonutChart } from '@/components/charts/DonutChart';
 import {
   Table,
   TableBody,
@@ -19,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { type ReportResult, type ReportDefinition } from './types';
+import { type ReportResult, type ReportDefinition, type ChartData } from './types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,10 +42,14 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
 
-  const totalPages = Math.ceil(result.rows.length / rowsPerPage);
+  // Handle case when only aggregation fields are selected (no table data)
+  const rows = result.rows || [];
+  const columns = result.columns || [];
+  
+  const totalPages = Math.ceil(rows.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const currentRows = result.rows.slice(startIndex, endIndex);
+  const currentRows = rows.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -141,7 +146,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
               </div>
               <div>
                 <p className="text-sm font-medium">Columns</p>
-                <p className="text-2xl font-bold">{result.columns.length}</p>
+                <p className="text-2xl font-bold">{columns.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -157,7 +162,24 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
         </CardContent>
       </Card>
 
+      {/* Charts Section */}
+      {result.charts && result.charts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {result.charts.map((chartData) => {
+            const fieldLabel = definition.selectedFields.find(f => f.id === chartData.fieldId)?.label || 'Chart';
+            return (
+              <DonutChart
+                key={chartData.fieldId}
+                title={fieldLabel}
+                slices={chartData.data.map(d => ({ label: d.label, count: d.count }))}
+              />
+            );
+          })}
+        </div>
+      )}
+
       {/* Data Table */}
+      {rows.length > 0 && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -241,6 +263,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Applied Filters Summary */}
       {definition.filters.length > 0 && (

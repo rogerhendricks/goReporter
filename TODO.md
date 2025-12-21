@@ -8,7 +8,8 @@
 - Trend Analysis: Add time-series charts showing device failure patterns, report completion rates over time
 - Predictive Analytics: Implement ML models to predict device maintenance needs based on historical data
 - Custom Report Builder: Allow users to create custom reports with drag-and-drop filters
-- Export Options: Add PDF, Excel, and CSV exports for all analytics views (I see you have some export functionality in
+- Export Options: Add PDF, Excel, and CSV exports for all analytics views
+
 #### Notification and Alert System
 ```
 // New service: frontend/src/services/notificationService.ts

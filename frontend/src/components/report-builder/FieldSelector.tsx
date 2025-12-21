@@ -57,6 +57,8 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
         return <FileText className="h-4 w-4" />;
       case 'tasks':
         return <CheckSquare className="h-4 w-4" />;
+      case 'analytics':
+        return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 2v10l6 3.5"/></svg>;
       default:
         return <Table className="h-4 w-4" />;
     }
@@ -72,6 +74,8 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
         return 'bg-purple-500/10 text-purple-500';
       case 'boolean':
         return 'bg-orange-500/10 text-orange-500';
+      case 'aggregation':
+        return 'bg-pink-500/10 text-pink-500';
       default:
         return 'bg-gray-500/10 text-gray-500';
     }

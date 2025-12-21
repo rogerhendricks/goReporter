@@ -1,5 +1,6 @@
 import api from '@/utils/axios';
-import { type ReportDefinition, type ReportResult, type ReportField } from '@/components/report-builder/types';
+import { type ReportDefinition, type ReportResult, type ReportField, type ChartData } from '@/components/report-builder/types';
+import { PDFChartGenerator } from './pdfChartGenerator';
 
 class ReportBuilderService {
   /**
@@ -362,26 +363,97 @@ class ReportBuilderService {
       return str.length > 30 ? str.substring(0, 28) + '...' : str;
     };
 
-    // Calculate total pages needed
+    // Calculate total pages needed (will be updated if charts are added)
+    let totalPages = 1;
     const rowsPerPage = Math.floor((pageHeight - headerHeight - margin - 40) / lineHeight) - 1;
-    const totalPages = Math.ceil(result.rows.length / rowsPerPage);
+    if (result.rows && result.rows.length > 0) {
+      totalPages = Math.ceil(result.rows.length / rowsPerPage);
+    }
 
-    // Generate pages
-    let page = addPage();
-    let currentY = drawHeader(page, 1, totalPages);
-    currentY = drawColumnHeaders(page, currentY);
-    let rowsOnCurrentPage = 0;
+    // Start generating pages
     let currentPageNumber = 1;
+    let page = addPage();
+    let currentY = drawHeader(page, currentPageNumber, totalPages);
 
-    result.rows.forEach((row, rowIndex) => {
-      // Check if we need a new page
-      if (rowsOnCurrentPage >= rowsPerPage) {
-        page = addPage();
-        currentPageNumber++;
-        currentY = drawHeader(page, currentPageNumber, totalPages);
-        currentY = drawColumnHeaders(page, currentY);
-        rowsOnCurrentPage = 0;
+    // Draw charts if they exist
+    if (result.charts && result.charts.length > 0) {
+      const chartsPerRow = PDFChartGenerator.getChartsPerRow(pageWidth, margin);
+      const chartDimensions = PDFChartGenerator.getChartDimensions(pageWidth, margin, chartsPerRow);
+      
+      // Add spacing below header before first chart
+      currentY -= 10;
+      
+      let chartX = margin;
+      let chartRowY = currentY; // Track the Y position for the current row
+      let chartIndex = 0;
+
+      for (const chartData of result.charts) {
+        // Check if we need a new row
+        if (chartIndex > 0 && chartIndex % chartsPerRow === 0) {
+          chartRowY -= chartDimensions.height + 25; // Move down for new row
+          chartX = margin; // Reset X to left margin
+          
+          // Check if we need a new page
+          if (chartRowY - chartDimensions.height < margin + 50) {
+            currentPageNumber++;
+            totalPages = Math.max(totalPages, currentPageNumber);
+            page = addPage();
+            chartRowY = drawHeader(page, currentPageNumber, totalPages) - 10;
+            currentY = chartRowY;
+            chartX = margin;
+            chartIndex = 0;
+          }
+        }
+
+        // Draw the chart
+        const chartTitle = chartData.fieldId.replace('analytics.', '').replace(/_/g, ' ').toUpperCase();
+        await PDFChartGenerator.drawDonutChart(
+          page,
+          pdfDoc,
+          chartData,
+          {
+            x: chartX,
+            y: chartRowY,
+            width: chartDimensions.width,
+            height: chartDimensions.height,
+            title: chartTitle,
+          },
+          rgb,
+          timesRomanFont,
+          timesRomanBoldFont
+        );
+
+        chartX += chartDimensions.width + 20; // Move right for next chart
+        chartIndex++;
       }
+
+      // Set currentY to bottom of last chart row for table placement
+      currentY = chartRowY - chartDimensions.height - 30;
+      
+      // Check if we need a new page for the table
+      if (currentY < margin + (rowsPerPage * lineHeight)) {
+        currentPageNumber++;
+        totalPages = Math.max(totalPages, currentPageNumber);
+        page = addPage();
+        currentY = drawHeader(page, currentPageNumber, totalPages);
+      }
+    }
+
+    // Generate table if there are rows
+    if (result.rows && result.rows.length > 0) {
+      currentY = drawColumnHeaders(page, currentY);
+      let rowsOnCurrentPage = 0;
+
+      result.rows.forEach((row, rowIndex) => {
+        // Check if we need a new page
+        if (rowsOnCurrentPage >= rowsPerPage) {
+          page = addPage();
+          currentPageNumber++;
+          totalPages = Math.max(totalPages, currentPageNumber);
+          currentY = drawHeader(page, currentPageNumber, totalPages);
+          currentY = drawColumnHeaders(page, currentY);
+          rowsOnCurrentPage = 0;
+        }
 
       // Draw row background (alternating colors)
       if (rowIndex % 2 === 1) {
@@ -420,7 +492,8 @@ class ReportBuilderService {
 
       currentY -= lineHeight;
       rowsOnCurrentPage++;
-    });
+      });
+    }
 
     // Save the PDF and return as Blob
     const pdfBytes = await pdfDoc.save();

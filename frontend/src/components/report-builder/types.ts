@@ -2,9 +2,12 @@ export interface ReportField {
   id: string;
   name: string;
   label: string;
-  type: 'string' | 'number' | 'date' | 'boolean';
+  type: 'string' | 'number' | 'date' | 'boolean' | 'aggregation';
   table: string; // 'patients', 'devices', 'reports', etc.
   aggregatable?: boolean; // Can use COUNT, SUM, AVG, etc.
+  aggregationType?: 'donut_chart' | 'bar_chart'; // For visualization fields
+  groupByField?: string; // The field to group by for aggregations
+  aggregationFunction?: 'COUNT' | 'SUM' | 'AVG'; // The function to apply
 }
 
 export interface FilterCondition {
@@ -49,9 +52,16 @@ export interface ReportDefinition {
   isTemplate?: boolean;
 }
 
+export interface ChartData {
+  fieldId: string;
+  chartType: 'donut_chart' | 'bar_chart';
+  data: Array<{ label: string; count: number }>;
+}
+
 export interface ReportResult {
   columns: string[];
   rows: any[][];
   totalRows: number;
   executionTime: number;
+  charts?: ChartData[]; // Include chart data for aggregation fields
 }

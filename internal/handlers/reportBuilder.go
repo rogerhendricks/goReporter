@@ -60,6 +60,68 @@ func (h *ReportBuilderHandler) GetAvailableFields(c *fiber.Ctx) error {
 		{ID: "tasks.due_date", Name: "due_date", Label: "Due Date", Type: "date", Table: "tasks"},
 		{ID: "tasks.status", Name: "status", Label: "Status", Type: "string", Table: "tasks"},
 		{ID: "tasks.priority", Name: "priority", Label: "Priority", Type: "string", Table: "tasks"},
+
+		// Analytics/Aggregation fields
+		{
+			ID:                  "analytics.implants_by_manufacturer",
+			Name:                "implants_by_manufacturer",
+			Label:               "Implants by Manufacturer",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "devices.manufacturer",
+			AggregationFunction: "COUNT",
+		},
+		{
+			ID:                  "analytics.implants_by_device_type",
+			Name:                "implants_by_device_type",
+			Label:               "Implants by Device Type",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "devices.type",
+			AggregationFunction: "COUNT",
+		},
+		{
+			ID:                  "analytics.reports_by_status",
+			Name:                "reports_by_status",
+			Label:               "Reports by Status",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "reports.report_status",
+			AggregationFunction: "COUNT",
+		},
+		{
+			ID:                  "analytics.reports_by_type",
+			Name:                "reports_by_type",
+			Label:               "Reports by Type",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "reports.report_type",
+			AggregationFunction: "COUNT",
+		},
+		{
+			ID:                  "analytics.tasks_by_status",
+			Name:                "tasks_by_status",
+			Label:               "Tasks by Status",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "tasks.status",
+			AggregationFunction: "COUNT",
+		},
+		{
+			ID:                  "analytics.tasks_by_priority",
+			Name:                "tasks_by_priority",
+			Label:               "Tasks by Priority",
+			Type:                "aggregation",
+			Table:               "analytics",
+			AggregationType:     "donut_chart",
+			GroupByField:        "tasks.priority",
+			AggregationFunction: "COUNT",
+		},
 	}
 
 	return c.JSON(fields)
@@ -74,59 +136,208 @@ func (h *ReportBuilderHandler) ExecuteReport(c *fiber.Ctx) error {
 		})
 	}
 
-	// Build SQL query
-	query, args, err := h.QueryBuilder.BuildQuery(definition)
-	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	// Execute query
-	startTime := time.Now()
-	rows, err := h.DB.Raw(query, args...).Rows()
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to execute query",
-		})
-	}
-	defer rows.Close()
-
-	// Get column names
-	columns, err := rows.Columns()
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to read columns",
-		})
-	}
-
-	// Read results
-	var results [][]interface{}
-	for rows.Next() {
-		// Create slice for scanning
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
-		for i := range values {
-			valuePtrs[i] = &values[i]
+	// Separate aggregation fields from regular fields
+	var regularFields []models.ReportField
+	var aggregationFields []models.ReportField
+	for _, field := range definition.SelectedFields {
+		if field.Type == "aggregation" {
+			aggregationFields = append(aggregationFields, field)
+		} else {
+			regularFields = append(regularFields, field)
 		}
+	}
 
-		if err := rows.Scan(valuePtrs...); err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to scan row",
+	var results [][]interface{}
+	var columns []string
+	executionTime := int64(0)
+
+	// Initialize with empty arrays to avoid null values
+	if results == nil {
+		results = [][]interface{}{}
+	}
+	if columns == nil {
+		columns = []string{}
+	}
+
+	// Execute regular query if there are non-aggregation fields
+	if len(regularFields) > 0 {
+		regularDef := definition
+		regularDef.SelectedFields = regularFields
+
+		query, args, err := h.QueryBuilder.BuildQuery(regularDef)
+		if err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
 			})
 		}
 
-		results = append(results, values)
+		startTime := time.Now()
+		rows, err := h.DB.Raw(query, args...).Rows()
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to execute query",
+			})
+		}
+		defer rows.Close()
+
+		columns, err = rows.Columns()
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to read columns",
+			})
+		}
+
+		for rows.Next() {
+			values := make([]interface{}, len(columns))
+			valuePtrs := make([]interface{}, len(columns))
+			for i := range values {
+				valuePtrs[i] = &values[i]
+			}
+
+			if err := rows.Scan(valuePtrs...); err != nil {
+				continue
+			}
+
+			results = append(results, values)
+		}
+		executionTime = time.Since(startTime).Milliseconds()
 	}
 
-	executionTime := time.Since(startTime).Milliseconds()
+	// Execute aggregation queries and build chart data
+	type ChartData struct {
+		FieldID   string                   `json:"fieldId"`
+		ChartType string                   `json:"chartType"`
+		Data      []map[string]interface{} `json:"data"`
+	}
+	var charts []ChartData
 
-	return c.JSON(fiber.Map{
+	for _, aggField := range aggregationFields {
+		chartData, err := h.executeAggregationQuery(aggField)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+				"error": fmt.Sprintf("Failed to execute aggregation: %v", err),
+			})
+		}
+		charts = append(charts, ChartData{
+			FieldID:   aggField.ID,
+			ChartType: aggField.AggregationType,
+			Data:      chartData,
+		})
+	}
+
+	response := fiber.Map{
 		"columns":        columns,
 		"rows":           results,
 		"total_rows":     len(results),
 		"execution_time": executionTime,
-	})
+	}
+
+	if len(charts) > 0 {
+		response["charts"] = charts
+	}
+
+	return c.JSON(response)
+}
+
+// executeAggregationQuery executes a query for an aggregation field
+func (h *ReportBuilderHandler) executeAggregationQuery(field models.ReportField) ([]map[string]interface{}, error) {
+	var query string
+	var baseTable string
+
+	// Determine the query based on the aggregation field
+	switch field.ID {
+	case "analytics.implants_by_manufacturer":
+		query = `
+			SELECT COALESCE(devices.manufacturer, 'Unknown') AS label, COUNT(*) AS count
+			FROM implanted_devices
+			JOIN devices ON devices.id = implanted_devices.device_id
+			WHERE implanted_devices.deleted_at IS NULL AND implanted_devices.explanted_at IS NULL
+			GROUP BY devices.manufacturer
+			ORDER BY count DESC
+		`
+	case "analytics.implants_by_device_type":
+		query = `
+			SELECT COALESCE(devices.type, 'Unknown') AS label, COUNT(*) AS count
+			FROM implanted_devices
+			JOIN devices ON devices.id = implanted_devices.device_id
+			WHERE implanted_devices.deleted_at IS NULL AND implanted_devices.explanted_at IS NULL
+			GROUP BY devices.type
+			ORDER BY count DESC
+		`
+	case "analytics.reports_by_status":
+		query = `
+			SELECT COALESCE(report_status, 'Unknown') AS label, COUNT(*) AS count
+			FROM reports
+			WHERE deleted_at IS NULL
+			GROUP BY report_status
+			ORDER BY count DESC
+		`
+	case "analytics.reports_by_type":
+		query = `
+			SELECT COALESCE(report_type, 'Unknown') AS label, COUNT(*) AS count
+			FROM reports
+			WHERE deleted_at IS NULL
+			GROUP BY report_type
+			ORDER BY count DESC
+		`
+	case "analytics.tasks_by_status":
+		query = `
+			SELECT COALESCE(status, 'Unknown') AS label, COUNT(*) AS count
+			FROM tasks
+			WHERE deleted_at IS NULL
+			GROUP BY status
+			ORDER BY count DESC
+		`
+	case "analytics.tasks_by_priority":
+		query = `
+			SELECT COALESCE(priority, 'Unknown') AS label, COUNT(*) AS count
+			FROM tasks
+			WHERE deleted_at IS NULL
+			GROUP BY priority
+			ORDER BY count DESC
+		`
+	default:
+		// Generic aggregation based on field metadata
+		if field.GroupByField != "" {
+			parts := strings.Split(field.GroupByField, ".")
+			if len(parts) == 2 {
+				baseTable = parts[0]
+				fieldName := parts[1]
+				query = fmt.Sprintf(`
+					SELECT COALESCE(%s, 'Unknown') AS label, COUNT(*) AS count
+					FROM %s
+					WHERE deleted_at IS NULL
+					GROUP BY %s
+					ORDER BY count DESC
+				`, field.GroupByField, baseTable, fieldName)
+			}
+		}
+	}
+
+	if query == "" {
+		return nil, fmt.Errorf("unsupported aggregation field: %s", field.ID)
+	}
+
+	rows, err := h.DB.Raw(query).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []map[string]interface{}
+	for rows.Next() {
+		var label string
+		var count int64
+		if err := rows.Scan(&label, &count); err != nil {
+			continue
+		}
+		results = append(results, map[string]interface{}{
+			"label": label,
+			"count": count,
+		})
+	}
+
+	return results, nil
 }
 
 // SaveReport saves a custom report definition
