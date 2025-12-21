@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Trash2, Edit, Search } from 'lucide-react'
-
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import {
   Table,
   TableBody,
@@ -182,7 +182,7 @@ export default function LeadIndex() {
         <CardHeader><CardTitle>All Leads ({leads.length})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <TableSkeleton rows={10} columns={5} />
           ) : leads.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No leads found.</div>
           ) : (

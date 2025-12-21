@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Edit, Trash2, Phone, Mail, MapPin, Plus, Check, X, ClipboardList } from 'lucide-react'
+import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
 import {
   Command,
   CommandEmpty,
@@ -119,16 +120,7 @@ export default function PatientDetail() {
   ]
 
   if (loading) {
-    return (
-      <div className="container mx-auto py-6">
-        <BreadcrumbNav items={[
-          { label: 'Home', href: '/' },
-          { label: 'Patients', href: '/patients' },
-          { label: 'Loading...', current: true }
-        ]} />
-        <div className="text-center py-8">Loading...</div>
-      </div>
-    )
+    return <DetailPageSkeleton />
   }
 
   if (!currentPatient) {

@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 const ITEMS_PER_PAGE = 10;
 
 export function UserManagementTable() {
@@ -145,7 +147,9 @@ export function UserManagementTable() {
                         <TableBody>
                             {loading && users.length === 0 ? (
                                 <TableRow className="text-left">
-                                    <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                                    <TableCell colSpan={6} className="text-center">
+                                        <Skeleton className="h-8 w-full" />
+                                    </TableCell>
                                 </TableRow>
                             ) : (
                                 <>

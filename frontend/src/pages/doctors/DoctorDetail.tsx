@@ -4,7 +4,8 @@ import { useDoctorStore } from '@/stores/doctorStore'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Edit, Trash2, ArrowLeft, Phone, Mail, MapPin } from 'lucide-react'
+import { Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react'
+import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
 
 export default function DoctorDetail() {
   const { id } = useParams<{ id: string }>()
@@ -25,7 +26,7 @@ export default function DoctorDetail() {
   }
 
   if (loading) {
-    return <div className="container mx-auto py-6 text-center">Loading...</div>
+    return <DetailPageSkeleton />
   }
 
   if (!currentDoctor) {

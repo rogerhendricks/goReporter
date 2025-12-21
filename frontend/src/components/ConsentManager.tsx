@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { CalendarIcon, Plus, XCircle, CheckCircle, Clock, HelpCircle, Edit, Save, X, Trash2, FileText, AlertTriangle, Loader2} from 'lucide-react'
 import { toast } from 'sonner'
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import ReactMarkdown from 'react-markdown'
 import { consentService, type PatientConsent, type ConsentType } from '@/services/consentService'
 
@@ -368,7 +369,7 @@ const handleReacceptTerms = async () => {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-center py-8">Loading consents...</div>
+          <TableSkeleton rows={5} columns={8} />
         ) : consents.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No consent records found</div>
         ) : (

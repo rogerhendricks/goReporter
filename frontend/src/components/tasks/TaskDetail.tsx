@@ -16,6 +16,7 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { useAuthStore } from '@/stores/authStore'
+import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
 
 export function TaskDetail() {
   const { id } = useParams<{ id: string }>()
@@ -124,11 +125,7 @@ export function TaskDetail() {
   }
 
   if (isLoading && !currentTask) {
-    return <div className="container mx-auto py-6">Loading...</div>
-  }
-
-  if (isLoading && !currentTask) {
-    return <div className="container mx-auto py-6">Loading...</div>
+    return <DetailPageSkeleton />
   }
 
   if (!currentTask) {

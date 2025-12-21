@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
+import { CardSkeleton } from '@/components/ui/loading-skeletons'
 import type { TaskStatus, TaskPriority, Task } from '@/stores/taskStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Eye, Trash2, HelpCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -176,7 +177,10 @@ export function PatientTaskList({ patientId, showFilters = true }: TaskListProps
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading tasks...</div>
+        <div className="grid gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       ) : filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">

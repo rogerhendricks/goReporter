@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { User, FileDown, Plus, Check, X } from 'lucide-react'
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import {
   Command,
   CommandEmpty,
@@ -279,7 +280,7 @@ export default function PatientSearch() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <TableSkeleton rows={5} columns={5} />
           ) : searchResults.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No patients found. Use the filters above to start a search.</div>
           ) : (

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 
 export default function PatientReportList() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -165,7 +166,7 @@ export default function PatientReportList() {
         <CardHeader><CardTitle>All Reports ({reports?.length || 0})</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading reports...</div>
+            <TableSkeleton rows={5} columns={7} />
           ) : reports && reports.length > 0 ? (
             <Table>
               <TableHeader>

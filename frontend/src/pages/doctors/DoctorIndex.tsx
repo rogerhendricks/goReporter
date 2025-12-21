@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Trash2, Edit, Plus, Search } from 'lucide-react'
+import { Trash2, Edit, Search } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 export default function DoctorIndex() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
@@ -185,7 +186,7 @@ export default function DoctorIndex() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <TableSkeleton rows={10} columns={5} />
           ) : doctors.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No doctors found.

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
+import { CardSkeleton } from '@/components/ui/loading-skeletons'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
@@ -216,7 +217,11 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
           )}
 
       {isLoading ? (
-        <div className="text-center py-8">Loading tasks...</div>
+        <div className="grid gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       ) : filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">

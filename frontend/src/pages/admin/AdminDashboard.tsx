@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TaskList } from '@/components/tasks/TaskList'
 import { SecurityLogsDashboard } from '@/components/admin/SecurityLogManager'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -172,7 +173,15 @@ export default function AdminDashboard() {
 
         <TabsContent value="overview" className="space-y-6">
           {loading ? (
-            <div className="p-4 text-sm text-muted-foreground">Loading…</div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <DonutChartSkeleton />
+                <DonutChartSkeleton />
+                <DonutChartSkeleton />
+                <DonutChartSkeleton />
+              </div>
+              <TableSkeleton rows={10} columns={6} />
+            </>
           ) : !data ? (
             <div className="p-4 text-sm text-destructive">Failed to load analytics.</div>
           ) : (
@@ -220,7 +229,9 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       {tagStatsLoading ? (
-                        <div className="text-sm text-muted-foreground">Loading statistics...</div>
+                        <div className="flex justify-center py-6">
+                          <div className="h-48 w-48 rounded-full bg-accent animate-pulse" />
+                        </div>
                       ) : tagStatsError ? (
                         <div className="text-sm text-destructive">{tagStatsError}</div>
                       ) : tagStats && selectedTagId ? (

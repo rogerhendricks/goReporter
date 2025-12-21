@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Trash2, Edit, Plus, Search, User } from 'lucide-react'
+import { Trash2, Edit, Search, User } from 'lucide-react'
+import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import {
   Table,
   TableBody,
@@ -117,7 +118,7 @@ export default function PatientIndex() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <TableSkeleton rows={10} columns={7} />
           ) : patients.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No patients found

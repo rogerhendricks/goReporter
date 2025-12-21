@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Link } from 'react-router-dom' 
 import { CheckSquare } from 'lucide-react'
 import { TaskList } from '@/components/tasks/TaskList'
+import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -90,7 +91,17 @@ useEffect(() => {
   ]
   
   if (loading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading…</div>
+    return (
+      <div className="container mx-auto py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DonutChartSkeleton />
+          <DonutChartSkeleton />
+        </div>
+        <div className="mt-6">
+          <TableSkeleton rows={10} columns={6} />
+        </div>
+      </div>
+    )
   }
   if (!data) {
     return <div className="p-4 text-sm text-destructive">Failed to load analytics.</div>
@@ -207,7 +218,7 @@ useEffect(() => {
               </CardHeader>
               <CardContent>
                 {/* Pass the current user's ID to filter tasks */}
-                <TaskList assignedToId={Number(user?.id ?? 0)} showFilters={true} />
+                <TaskList assignedToId={Number(user?.ID ?? 0)} showFilters={true} />
               </CardContent>
             </Card>
           </div>

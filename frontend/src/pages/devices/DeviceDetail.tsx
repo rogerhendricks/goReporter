@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Edit, Trash2, ArrowLeft } from 'lucide-react'
+import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
 
 export default function DeviceDetail() {
   const { id } = useParams<{ id: string }>()
@@ -37,7 +38,7 @@ export default function DeviceDetail() {
   }
 
   if (loading) {
-    return <div className="container mx-auto py-6 text-center">Loading...</div>
+    return <DetailPageSkeleton />
   }
 
   if (!currentDevice) {
