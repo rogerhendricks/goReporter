@@ -160,7 +160,7 @@ export default function AdminDashboard() {
   // ]
 
   return (
-    <div className="container py-6 mx-auto">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
 
       <Tabs defaultValue="overview" className="mt-6">

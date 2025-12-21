@@ -146,7 +146,7 @@ export default function PatientSearch() {
   ]
   
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
 
       <Card className="mb-6">

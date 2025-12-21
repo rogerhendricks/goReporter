@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { format } from "date-fns"
 import { useReportStore } from '@/stores/reportStore'
@@ -16,7 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, CalendarIcon, Loader2, Link as LinkIcon, FileText} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Trash2, CalendarIcon, Loader2, Link as LinkIcon, FileText, Save, Clock} from 'lucide-react'
 import api from '@/utils/axios'
 import { usePdfManager } from '@/hooks/usePdfManager'
 import { PdfUploader } from '@/components/PdfUploader'
@@ -137,6 +138,97 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  
+  // Auto-save draft state
+  const [draftStatus, setDraftStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const draftKey = `report-draft-${patient.id}-${reportId || 'new'}`
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    if (!isEdit) {
+      const savedDraft = localStorage.getItem(draftKey)
+      if (savedDraft) {
+        try {
+          const parsedDraft = JSON.parse(savedDraft)
+          // Convert date strings back to Date objects
+          if (parsedDraft.reportDate) {
+            parsedDraft.reportDate = new Date(parsedDraft.reportDate)
+          }
+          if (parsedDraft.lastSaved) {
+            setLastSaved(new Date(parsedDraft.lastSaved))
+          }
+          setFormData(parsedDraft)
+          toast.info('Draft restored', {
+            description: 'Your unsaved changes have been restored',
+            action: {
+              label: 'Discard',
+              onClick: () => {
+                localStorage.removeItem(draftKey)
+                setFormData(initialFormData)
+                setLastSaved(null)
+                toast.success('Draft discarded')
+              }
+            }
+          })
+        } catch (error) {
+          console.error('Failed to load draft:', error)
+          localStorage.removeItem(draftKey)
+        }
+      }
+    }
+  }, [draftKey, isEdit])
+
+  // Auto-save to localStorage
+  const saveDraft = useCallback(() => {
+    if (!isEdit && formData !== initialFormData) {
+      try {
+        const draftData = {
+          ...formData,
+          lastSaved: new Date().toISOString()
+        }
+        localStorage.setItem(draftKey, JSON.stringify(draftData))
+        setDraftStatus('saved')
+        setLastSaved(new Date())
+      } catch (error) {
+        console.error('Failed to save draft:', error)
+        toast.error('Failed to auto-save draft')
+      }
+    }
+  }, [formData, draftKey, isEdit])
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!isEdit && formData !== initialFormData) {
+      setDraftStatus('unsaved')
+      
+      // Clear existing timer
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+
+      // Set new timer for auto-save (3 seconds after last change)
+      autoSaveTimerRef.current = setTimeout(() => {
+        setDraftStatus('saving')
+        saveDraft()
+      }, 3000)
+    }
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [formData, isEdit, saveDraft])
+
+  // Clear draft after successful submission
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(draftKey)
+    setLastSaved(null)
+    setDraftStatus('saved')
+  }, [draftKey])
 
   useEffect(() => {
     const loadTags = async () => {
@@ -661,6 +753,8 @@ export function ReportForm({ patient }: ReportFormProps) {
       // Clear the PDF files after successful submission
       // This prevents the same files from being uploaded again
       pdfManager.files.forEach(() => pdfManager.removeFile(0))
+      // Clear the draft after successful submission
+      clearDraft()
       // navigate(`/patients/${patient.id}/reports`)
     } catch (error) {
       console.error("Failed to submit report", error)
@@ -702,8 +796,32 @@ export function ReportForm({ patient }: ReportFormProps) {
   return (
     <div className="container mx-auto py-6">
     <BreadcrumbNav items={breadcrumbItems} />
-    <div className="flex justify-end mb-4">
-    <FileImporter onDataImported={handleDataImported} />
+    <div className="flex justify-between items-center mb-4">
+      <div className="flex items-center gap-3">
+        {!isEdit && (
+          <>
+            {draftStatus === 'saved' && lastSaved && (
+              <Badge variant="outline" className="gap-1.5">
+                <Save className="h-3 w-3" />
+                Draft saved {format(lastSaved, 'HH:mm:ss')}
+              </Badge>
+            )}
+            {draftStatus === 'saving' && (
+              <Badge variant="secondary" className="gap-1.5">
+                <Clock className="h-3 w-3 animate-pulse" />
+                Saving draft...
+              </Badge>
+            )}
+            {draftStatus === 'unsaved' && (
+              <Badge variant="secondary" className="gap-1.5 opacity-60">
+                <Clock className="h-3 w-3" />
+                Unsaved changes
+              </Badge>
+            )}
+          </>
+        )}
+      </div>
+      <FileImporter onDataImported={handleDataImported} />
     </div>
     <div>
   {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
