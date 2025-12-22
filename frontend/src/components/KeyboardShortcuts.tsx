@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import {
-  CommandDialog,
+  Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -11,6 +11,10 @@ import {
   CommandShortcut,
 } from "@/components/ui/command"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog"
 import { 
   UserPlus, 
   FilePlus, 
@@ -130,126 +134,127 @@ export function KeyboardShortcuts() {
     }
   }
 
-  return (
-    <CommandDialog open={open} onOpenChange={handleOpenChange} shouldFilter={false}>
-      <CommandInput 
-        placeholder="Search for patients, devices, reports, tasks..." 
-        value={searchQuery}
-        onValueChange={setSearchQuery}
-      />
-      <CommandList>
-        {/* Debug info */}
-        {console.log('Render state:', { searchQuery, isSearching, resultsLength: searchResults.length })}
-        
-        {/* Search Results */}
-        {searchQuery && (
-          <>
-            {isSearching && (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            
-            {!isSearching && searchResults.length === 0 && (
-              <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
+ return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="overflow-hidden p-0 shadow-lg">
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder="Search for patients, devices, reports, tasks..." 
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
+          <CommandList>
+            {/* Search Results */}
+            {searchQuery && (
+              <>
+                {isSearching && (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                
+                {!isSearching && searchResults.length === 0 && (
+                  <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
+                )}
+
+                {!isSearching && searchResults.length > 0 && (
+                  <CommandGroup heading="Search Results">
+                    {searchResults.map((result) => (
+                      <CommandItem
+                        key={`${result.type}-${result.id}`}
+                        onSelect={() => runCommand(() => navigate(result.url))}
+                        className="flex items-start gap-2"
+                      >
+                        {getEntityIcon(result.type)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{result.title}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {globalSearchService.getEntityLabel(result.type as EntityType)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
+                          {result.description && (
+                            <p className="text-xs text-muted-foreground/70 truncate">{result.description}</p>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </>
             )}
 
-            {!isSearching && searchResults.length > 0 && (
-              <CommandGroup heading="Search Results">
-                {searchResults.map((result) => (
+            {/* Search History */}
+            {!searchQuery && searchHistory.length > 0 && (
+              <CommandGroup heading="Recent Searches">
+                {searchHistory.slice(0, 5).map((query, index) => (
                   <CommandItem
-                    key={`${result.type}-${result.id}`}
-                    onSelect={() => runCommand(() => navigate(result.url))}
-                    className="flex items-start gap-2"
+                    key={`history-${index}`}
+                    onSelect={() => setSearchQuery(query)}
                   >
-                    {getEntityIcon(result.type)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{result.title}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {globalSearchService.getEntityLabel(result.type as EntityType)}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
-                      {result.description && (
-                        <p className="text-xs text-muted-foreground/70 truncate">{result.description}</p>
-                      )}
-                    </div>
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span>{query}</span>
                   </CommandItem>
                 ))}
+                <CommandItem
+                  onSelect={() => {
+                    globalSearchService.clearHistory()
+                    setSearchHistory([])
+                  }}
+                  className="text-muted-foreground"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  <span>Clear history</span>
+                </CommandItem>
               </CommandGroup>
             )}
-          </>
-        )}
 
-        {/* Search History */}
-        {!searchQuery && searchHistory.length > 0 && (
-          <CommandGroup heading="Recent Searches">
-            {searchHistory.slice(0, 5).map((query, index) => (
-              <CommandItem
-                key={`history-${index}`}
-                onSelect={() => setSearchQuery(query)}
-              >
-                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>{query}</span>
-              </CommandItem>
-            ))}
-            <CommandItem
-              onSelect={() => {
-                globalSearchService.clearHistory()
-                setSearchHistory([])
-              }}
-              className="text-muted-foreground"
-            >
-              <X className="mr-2 h-4 w-4" />
-              <span>Clear history</span>
-            </CommandItem>
-          </CommandGroup>
-        )}
-
-        {/* Quick Actions - show when not searching */}
-        {!searchQuery && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading="Quick Actions">
-              <CommandItem onSelect={() => runCommand(() => navigate("/"))}>
-                <Home className="mr-2 h-4 w-4" />
-                <span>Dashboard</span>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => navigate("/patients/search"))}>
-                <Search className="mr-2 h-4 w-4" />
-                <span>Advanced Patient Search</span>
-              </CommandItem>
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="New">
-              <CommandItem onSelect={() => runCommand(() => navigate("/patients/new"))}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                <span>New Patient</span>
-                <CommandShortcut>⌘N</CommandShortcut>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => navigate("/reports/new"))}>
-                <FilePlus className="mr-2 h-4 w-4" />
-                <span>New Report</span>
-                <CommandShortcut>⌘R</CommandShortcut>
-              </CommandItem>
-              <CommandItem onSelect={() => runCommand(() => navigate("/tasks/new"))}>
-                <CheckSquare className="mr-2 h-4 w-4" />
-                <span>New Task</span>
-                <CommandShortcut>⌘T</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="Help">
-              <CommandItem onSelect={() => setOpen(true)}>
-                <Keyboard className="mr-2 h-4 w-4" />
-                <span>Keyboard Shortcuts</span>
-                <CommandShortcut>?</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-          </>
-        )}
-      </CommandList>
-    </CommandDialog>
+            {/* Quick Actions - show when not searching */}
+            {!searchQuery && (
+              <>
+                <CommandSeparator />
+                <CommandGroup heading="Quick Actions">
+                  <CommandItem onSelect={() => runCommand(() => navigate("/"))}>
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => runCommand(() => navigate("/patients/search"))}>
+                    <Search className="mr-2 h-4 w-4" />
+                    <span>Advanced Patient Search</span>
+                  </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="New">
+                  <CommandItem onSelect={() => runCommand(() => navigate("/patients/new"))}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    <span>New Patient</span>
+                    <CommandShortcut>⌘N</CommandShortcut>
+                  </CommandItem>
+                  <CommandItem onSelect={() => runCommand(() => navigate("/reports/new"))}>
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    <span>New Report</span>
+                    <CommandShortcut>⌘R</CommandShortcut>
+                  </CommandItem>
+                  <CommandItem onSelect={() => runCommand(() => navigate("/tasks/new"))}>
+                    <CheckSquare className="mr-2 h-4 w-4" />
+                    <span>New Task</span>
+                    <CommandShortcut>⌘T</CommandShortcut>
+                  </CommandItem>
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup heading="Help">
+                  <CommandItem onSelect={() => setOpen(true)}>
+                    <Keyboard className="mr-2 h-4 w-4" />
+                    <span>Keyboard Shortcuts</span>
+                    <CommandShortcut>?</CommandShortcut>
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   )
 }
