@@ -51,7 +51,7 @@ export function KeyboardShortcuts() {
 
   // Perform search when debounced query changes
   React.useEffect(() => {
-    if (debouncedSearch.trim().length > 0) {
+    if (debouncedSearch.trim().length >= 3) {
       performSearch(debouncedSearch)
     } else {
       setSearchResults([])
@@ -147,17 +147,23 @@ export function KeyboardShortcuts() {
             {/* Search Results */}
             {searchQuery && (
               <>
-                {isSearching && (
+                {searchQuery.trim().length < 3 && (
+                  <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                    Type at least 3 characters to search...
+                  </div>
+                )}
+
+                {searchQuery.trim().length >= 3 && isSearching && (
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 )}
                 
-                {!isSearching && searchResults.length === 0 && (
+                {searchQuery.trim().length >= 3 && !isSearching && searchResults.length === 0 && (
                   <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
                 )}
 
-                {!isSearching && searchResults.length > 0 && (
+                {searchQuery.trim().length >= 3  && !isSearching && searchResults.length > 0 && (
                   <CommandGroup heading="Search Results">
                     {searchResults.map((result) => (
                       <CommandItem
