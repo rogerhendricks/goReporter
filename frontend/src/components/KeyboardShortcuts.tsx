@@ -66,9 +66,6 @@ export function KeyboardShortcuts() {
         type: selectedType,
         limit: 10,
       })
-      console.log('Search response:', response)
-      console.log('Search results:', response.results)
-      console.log('Results length:', response.results?.length)
       setSearchResults(response.results || [])
       setSearchHistory(globalSearchService.getHistory())
     } catch (error) {
