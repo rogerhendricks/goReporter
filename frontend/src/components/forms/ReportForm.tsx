@@ -30,7 +30,7 @@ import { AutocompleteTextarea } from '@/components/ui/autocomplete-textarea'
 import { REPORT_COMMENT_SUGGESTIONS } from '@/data/commentSuggestions'
 import { tagService } from '@/services/tagService'
 import type { Tag } from '@/services/tagService'
-
+import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 
 const initialFormData: Partial<Report> = {
   // Report info
@@ -764,6 +764,8 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
   }
 
+    useFormShortcuts(handleSubmit);
+    
     const activeDevices = (patient?.devices ?? []).filter(
     (d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt
     )

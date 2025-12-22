@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { DefaultLayout } from './DefaultLayout'
 import { HomeLayout } from './HomeLayout'
 
+
 interface LayoutWrapperProps {
   children: ReactNode
   layout?: 'default' | 'home'

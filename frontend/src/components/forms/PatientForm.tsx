@@ -10,7 +10,7 @@ import type { Patient, Address, PatientDoctor } from "@/stores/patientStore";
 import { tagService, type Tag } from "@/services/tagService";
 import { useDoctorStore } from "@/stores/doctorStore";
 import { useDeviceStore } from "@/stores/deviceStore";
-import { useLeadStore, type Lead as StoreLead } from "@/stores/leadStore";
+import { useLeadStore, type Lead } from "@/stores/leadStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 
 interface PatientFormData {
   mrn: string;
@@ -299,7 +300,7 @@ export default function PatientForm() {
       devices: [
         ...prev.devices,
         {
-          deviceId: device.id,
+          deviceId: device.ID,
           serial: "",
           status: "Active",
           implantedAt: "",
@@ -312,13 +313,13 @@ export default function PatientForm() {
     setDeviceSearch("");
   };
 
-  const addLead = (lead: StoreLead) => {
+  const addLead = (lead: Lead) => {
     setFormData((prev) => ({
       ...prev,
       leads: [
         ...prev.leads,
         {
-          leadId: lead.id,
+          leadId: lead.ID,
           serial: "",
           chamber: "",
           status: "Active",
@@ -436,6 +437,8 @@ export default function PatientForm() {
       toast.error("Failed to save patient. Please try again.");
     }
   };
+
+  useFormShortcuts(handleSubmit);
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
@@ -1009,7 +1012,7 @@ export default function PatientForm() {
                         <CommandGroup>
                           {availableDevices.map((device) => (
                             <CommandItem
-                              key={device.id}
+                              key={device.ID}
                               onSelect={() => addDevice(device)}
                             >
                               <div>
@@ -1149,13 +1152,13 @@ export default function PatientForm() {
                         <CommandGroup>
                           {availableLeads.map((lead) => (
                             <CommandItem
-                              key={lead.id}
+                              key={lead.ID}
                               onSelect={() => addLead(lead)}
                             >
                               <div>
                                 <div className="font-medium">{lead.name}</div>
                                 <div className="text-sm text-muted-foreground">
-                                  {lead.manufacturer} {lead.leadModel}
+                                  {lead.manufacturer} {lead.model}
                                 </div>
                               </div>
                             </CommandItem>

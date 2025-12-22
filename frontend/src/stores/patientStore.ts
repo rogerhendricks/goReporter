@@ -32,17 +32,17 @@ export interface PatientDoctor {
 }
 
 export interface Device {
-  id: number;
+  ID: number;
   name: string;
   manufacturer: string;
   model: string;
 }
 
 export interface Lead {
-  id: number;
+  ID: number;
   name: string;
   manufacturer: string;
-  leadModel: string;
+  model: string;
 }
 
 export interface ImplantedDevice {

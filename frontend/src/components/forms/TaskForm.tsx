@@ -27,6 +27,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
+import { useFormShortcuts } from '@/hooks/useFormShortcuts'
+
 
 interface TaskFormProps {
   patientId?: number
@@ -136,6 +138,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     }
   }
 
+  useFormShortcuts(handleSubmit);
+  
   const toggleTag = (tag: any) => {
     setSelectedTags(prev => {
       const exists = prev.find(t => t.ID === tag.ID)

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { toast } from 'sonner'
+import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 
 interface LeadFormData {
   name: string
@@ -83,6 +84,8 @@ export default function LeadForm() {
       // error is handled in the store
     }
   }
+
+  useFormShortcuts(handleSubmit);
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },

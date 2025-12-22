@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-// import { ArrowLeft } from 'lucide-react'
+import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 import { toast } from 'sonner'
 
 interface DeviceFormData {
@@ -90,6 +90,8 @@ export default function DeviceForm() {
     }
   }
 
+  useFormShortcuts(handleSubmit);
+  
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Devices', href: '/devices' },

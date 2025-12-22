@@ -37,7 +37,7 @@ Automated alerts for suspicious activity patterns
 - OCR for scanned documents
 - Full-text search across all documents
 - Integration with your existing file.go handler
-#### Advanced Search & Filtering
+# Advanced Search & Filtering
 Enhance your existing search.go:
 
 - Fuzzy search across all entities
