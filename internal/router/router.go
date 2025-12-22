@@ -118,6 +118,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Search routes
 	app.Get("/api/search/patients", middleware.SetUserRole, handlers.SearchPatientsComplex)
+	app.Get("/api/search/global", middleware.SetUserRole, handlers.GlobalSearch)
 
 	// File routes
 	app.Get("/api/files/*", handlers.ServeFile)

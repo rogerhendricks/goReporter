@@ -3,11 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-<<<<<<< Updated upstream
 import { Search, Database, Table, FileText, CheckSquare } from 'lucide-react';
-=======
-import { Search, Database, Table as TableIcon, FileText, CheckSquare } from 'lucide-react';
->>>>>>> Stashed changes
 import { type ReportField } from './types';
 import {
   Accordion,
@@ -22,7 +18,6 @@ interface FieldSelectorProps {
   onFieldSelect: (field: ReportField) => void;
 }
 
-<<<<<<< Updated upstream
 export const FieldSelector: React.FC<FieldSelectorProps> = ({
   availableFields,
   selectedFields,
@@ -31,15 +26,6 @@ export const FieldSelector: React.FC<FieldSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Group fields by table
-=======
-export function FieldSelector({
-  availableFields,
-  selectedFields,
-  onFieldSelect,
-}: FieldSelectorProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-
->>>>>>> Stashed changes
   const groupedFields = availableFields.reduce((acc, field) => {
     if (!acc[field.table]) {
       acc[field.table] = [];
@@ -48,10 +34,7 @@ export function FieldSelector({
     return acc;
   }, {} as Record<string, ReportField[]>);
 
-<<<<<<< Updated upstream
   // Filter fields based on search
-=======
->>>>>>> Stashed changes
   const filteredGroups = Object.entries(groupedFields).reduce((acc, [table, fields]) => {
     const filteredFields = fields.filter(
       (field) =>
@@ -69,24 +52,15 @@ export function FieldSelector({
       case 'patients':
         return <Database className="h-4 w-4" />;
       case 'devices':
-<<<<<<< Updated upstream
         return <Table className="h-4 w-4" />;
-=======
-        return <TableIcon className="h-4 w-4" />;
->>>>>>> Stashed changes
       case 'reports':
         return <FileText className="h-4 w-4" />;
       case 'tasks':
         return <CheckSquare className="h-4 w-4" />;
-<<<<<<< Updated upstream
       case 'analytics':
         return <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 2v10l6 3.5"/></svg>;
       default:
         return <Table className="h-4 w-4" />;
-=======
-      default:
-        return <TableIcon className="h-4 w-4" />;
->>>>>>> Stashed changes
     }
   };
 
@@ -100,11 +74,8 @@ export function FieldSelector({
         return 'bg-purple-500/10 text-purple-500';
       case 'boolean':
         return 'bg-orange-500/10 text-orange-500';
-<<<<<<< Updated upstream
       case 'aggregation':
         return 'bg-pink-500/10 text-pink-500';
-=======
->>>>>>> Stashed changes
       default:
         return 'bg-gray-500/10 text-gray-500';
     }
@@ -186,8 +157,4 @@ export function FieldSelector({
       </CardContent>
     </Card>
   );
-<<<<<<< Updated upstream
 };
-=======
-}
->>>>>>> Stashed changes

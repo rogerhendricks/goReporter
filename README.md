@@ -151,6 +151,21 @@ goReporter/
 - Doctor search
 - Complex query support with multiple filters
 
+### 🔎 Global Search
+- **Unified Search**: Search across all entity types (patients, devices, reports, doctors, tasks, leads) simultaneously
+- **Entity Type Filtering**: Optional filtering by specific entity type
+- **Smart Relevance Ranking**: Results scored and sorted by relevance (exact match > starts with > contains > fuzzy match)
+- **Searchable Fields**:
+  - **Patients**: First name, last name, MRN
+  - **Devices**: Serial number, status
+  - **Reports**: Report type, status, comments
+  - **Doctors**: Full name, specialty
+  - **Tasks**: Title, description, status
+  - **Leads**: Serial number, status
+- **Access Control**: Results filtered by user role and doctor-patient relationships
+- **Pagination**: Configurable limit and offset for result sets
+- **Search History**: Client-side search history tracking
+
 ## 🛠️ Technology Stack
 
 ### Backend
@@ -380,6 +395,10 @@ After seeding, you can log in with:
 
 ### Search
 - `GET /api/search/patients` - Advanced patient search
+- `GET /api/search/global` - Global search across all entities
+  - Query params: `q` (query string), `type` (optional entity type filter), `limit`, `offset`
+  - Entity types: `patient`, `device`, `report`, `doctor`, `task`, `lead`
+  - Returns relevance-scored results with metadata
 
 ## 🔒 Security Implementation Status
 
