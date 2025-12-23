@@ -37,12 +37,12 @@ Automated alerts for suspicious activity patterns
 - OCR for scanned documents
 - Full-text search across all documents
 - Integration with your existing file.go handler
-# Advanced Search & Filtering
+#### Advanced Search & Filtering
 Enhance your existing search.go:
 
-- Fuzzy search across all entities
-- Saved search filters
-- Boolean operators (AND, OR, NOT)
+- **Done** Fuzzy search across all entities
+- **Done** Saved search filters
+- **Done** Boolean operators (AND, OR, NOT)
 - **Done** Search history and suggestions
 - **Done** Global search bar with quick results preview
 ####  Scheduling & Appointment System
