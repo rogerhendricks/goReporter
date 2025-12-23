@@ -168,4 +168,15 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Admin consent management
 	app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
 	app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
+	
+	searchGroup := app.Group("/api/search")
+	searchGroup.Use(middleware.RequireAdminOrUser)
+	{
+    searchGroup.Get("/filters", handlers.GetSavedSearchFilters)
+    searchGroup.Post("/filters", handlers.SaveSearchFilter)
+    searchGroup.Delete("/filters/:id", handlers.DeleteSavedSearchFilter)
+    searchGroup.Get("/history", handlers.GetSearchHistory)
+    searchGroup.Get("/suggestions", handlers.GetSearchSuggestions)
+	}
+
 }

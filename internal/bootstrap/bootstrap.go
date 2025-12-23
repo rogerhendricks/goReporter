@@ -71,6 +71,8 @@ func migrate(db *gorm.DB) error {
 		&models.TaskNote{},
 		&models.TaskTemplate{},
 		&models.CustomReport{},
+		&models.SavedSearchFilter{},
+		&models.SearchHistory{},
 	)
 }
 
@@ -454,10 +456,10 @@ func seed(db *gorm.DB) error {
 			DaysUntilDue:    pointer(14),
 		},
 		{
-			Name:            "Lab Results Review",
-			Description:     "Review and follow up on lab results",
-			Title:           "Review Lab Results",
-			TaskDescription: "Review recent laboratory results. Check for any abnormalities that require intervention. Update medication if needed.",
+			Name:            "Radiology Results Review",
+			Description:     "Review and follow up on radiology results",
+			Title:           "Review Radiology Results",
+			TaskDescription: "Review recent radiology results. Check for any abnormalities that require intervention. Update medication if needed.",
 			Priority:        models.TaskPriorityMedium,
 			DaysUntilDue:    pointer(3),
 		},
@@ -467,13 +469,117 @@ func seed(db *gorm.DB) error {
 			Title:           "Patient Education Follow-up",
 			TaskDescription: "Call patient to review device care instructions, answer questions, and ensure they understand warning signs to watch for.",
 			Priority:        models.TaskPriorityLow,
-			DaysUntilDue:    pointer(5),
+			DaysUntilDue:    pointer(7),
+		},
+				{
+			Name:            "Patient Follow Up Call",
+			Description:     "Follow up call for patients",
+			Title:           "Patient Follow-up",
+			TaskDescription: "Call patient to inform them about their remote transmission and address any concerns.",
+			Priority:        models.TaskPriorityLow,
+			DaysUntilDue:    pointer(7),
 		},
 	}
 
 	for _, template := range templates {
 		db.FirstOrCreate(&template, models.TaskTemplate{Name: template.Name})
 	}
+
+	    // Seed SavedSearchFilters
+    savedFilters := []models.SavedSearchFilter{
+        {
+            UserID:      admin.Username,
+            Name:        "Medtronic Pacemaker Patients",
+            Description: "All patients with Medtronic pacemakers",
+            Filters: models.JSON{
+                "deviceManufacturer": "Medtronic",
+                "fuzzyMatch":         true,
+                "booleanOperator":    "AND",
+            },
+            IsDefault: true,
+        },
+        {
+            UserID:      admin.Username,
+            Name:        "Dr. Smith's Patients",
+            Description: "Patients assigned to Dr. Alice Smith",
+            Filters: models.JSON{
+                "doctorName":      "Dr. Alice Smith",
+                "fuzzyMatch":      true,
+                "booleanOperator": "AND",
+            },
+            IsDefault: false,
+        },
+        {
+            UserID:      demoUser.Username,
+            Name:        "CRT-D Patients",
+            Description: "Patients with CRT-D devices",
+            Filters: models.JSON{
+                "deviceName":      "CRT-D",
+                "fuzzyMatch":      true,
+                "booleanOperator": "AND",
+            },
+            IsDefault: false,
+        },
+    }
+
+    for _, filter := range savedFilters {
+        if err := db.Create(&filter).Error; err != nil {
+            return err
+        }
+    }
+
+    // Seed SearchHistory
+    searchHistories := []models.SearchHistory{
+        {
+            UserID: admin.Username,
+            Query:  "John Doe",
+            Filters: models.JSON{
+                "firstName":       "John",
+                "lastName":        "Doe",
+                "fuzzyMatch":      true,
+                "booleanOperator": "AND",
+            },
+            Results: 1,
+        },
+        {
+            UserID: admin.Username,
+            Query:  "Jane Smith",
+            Filters: models.JSON{
+                "firstName":       "Jane",
+                "lastName":        "Smith",
+                "fuzzyMatch":      true,
+                "booleanOperator": "AND",
+            },
+            Results: 1,
+        },
+        {
+            UserID: admin.Username,
+            Query:  "Medtronic devices",
+            Filters: models.JSON{
+                "deviceManufacturer": "Medtronic",
+                "fuzzyMatch":         true,
+                "booleanOperator":    "AND",
+            },
+            Results: 2,
+        },
+        {
+            UserID: demoUser.Username,
+            Query:  "Robert Johnson",
+            Filters: models.JSON{
+                "firstName":       "Robert",
+                "lastName":        "Johnson",
+                "fuzzyMatch":      true,
+                "booleanOperator": "AND",
+            },
+            Results: 1,
+        },
+    }
+
+    for _, history := range searchHistories {
+        if err := db.Create(&history).Error; err != nil {
+            return err
+        }
+    }
 
 	log.Println("Seeding complete.")
 	return nil

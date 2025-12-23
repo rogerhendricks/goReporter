@@ -43,8 +43,8 @@ Enhance your existing search.go:
 - Fuzzy search across all entities
 - Saved search filters
 - Boolean operators (AND, OR, NOT)
-- Search history and suggestions
-- Global search bar with quick results preview
+- **Done** Search history and suggestions
+- **Done** Global search bar with quick results preview
 ####  Scheduling & Appointment System
 ```
 // New model: internal/models/appointment.go
