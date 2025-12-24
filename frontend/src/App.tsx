@@ -13,7 +13,6 @@ import { fetchCSRFToken } from './utils/axios'
 
 function App() {
   const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
-  
   useEffect(() => {
     fetchCSRFToken()
   }, [])

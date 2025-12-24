@@ -100,8 +100,14 @@ export function KeyboardShortcuts() {
       }
     }
 
+    const toggle = () => setOpen((open) => !open)
+
     document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
+    document.addEventListener("toggle-command-palette", toggle)
+    return () => {
+      document.removeEventListener("keydown", down)
+      document.removeEventListener("toggle-command-palette", toggle)
+    }
   }, [navigate])
 
   const runCommand = React.useCallback((command: () => void) => {
@@ -133,7 +139,7 @@ export function KeyboardShortcuts() {
 
  return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="overflow-hidden p-0 shadow-lg">
+      <DialogContent className="overflow-hidden shadow-lg p-2 border-5 border-color-primary/20 radius-xl">
         <Command shouldFilter={false}>
           <CommandInput 
             placeholder="Search for patients, devices, reports, tasks..." 

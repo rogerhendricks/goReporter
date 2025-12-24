@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation, href } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings, BarChart3, Plus, FileSpreadsheet } from 'lucide-react'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import logoUrl from '../../assets/rpm-fusion-logo.min.svg'
-
 export function Navbar() {
   const { user, isAuthenticated, logout, hasAccess } = useAuthStore()
   const { theme, setTheme } = useTheme()
@@ -26,6 +25,13 @@ export function Navbar() {
     await logout()
     navigate('/login', { replace: true })
   }
+
+  const handleSearchClick = () => {
+    document.dispatchEvent(new Event('toggle-command-palette'))
+  }
+
+  // Detect OS for keyboard shortcut display
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
   const navLinks = [
     { href: '/admin', label: 'Dashboard', icon: Settings, roles: ['admin'] },
@@ -81,6 +87,15 @@ export function Navbar() {
       {/* Right side: user dropdown */}
       <div className="ml-auto hidden md:flex items-center gap-2">
         {isAuthenticated && (
+          <>
+
+          <Button variant="outline" className="relative h-9 w-full justify-start text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" onClick={handleSearchClick}>
+            <Search className="mr-2 h-4 w-4" />
+            <span>Search...</span>
+            <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+              <span className="text-xs">{isMac ? '⌘' : 'Ctrl'}</span>K
+            </kbd>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
@@ -119,11 +134,24 @@ export function Navbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </>
+        
         )}
+
       </div>
 
       {/* Mobile Navigation Trigger */}
       <div className="md:hidden ml-auto">
+        {isAuthenticated && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleSearchClick}
+          >
+            <Search className="h-5 w-5" />
+            <span className="sr-only">Search</span>
+          </Button>
+        )}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
@@ -138,7 +166,7 @@ export function Navbar() {
               <nav className="grid gap-6 text-lg font-medium">
                 <Link to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
                   <HeartPulse className="h-6 w-6" />
-                  <span>CarePulse</span>
+                  <span>RPM Fusion</span>
                 </Link>
                 {isAuthenticated ? (
                   <>
