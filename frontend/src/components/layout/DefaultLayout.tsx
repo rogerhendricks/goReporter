@@ -1,5 +1,4 @@
 import type { ReactNode } from "react"
-import { Toaster } from "@/components/ui/sonner"
 import {Navbar }from "@/components/layout/Navbar"
 import { KeyboardShortcuts } from "../KeyboardShortcuts"
 
@@ -13,7 +12,6 @@ export function DefaultLayout({ children }: DefaultLayoutProps) {
         <Navbar />
         <main className=" container mx-auto flex-grow px-4 py-6">
           {children}
-          <Toaster />
         </main>
       </div>
     )

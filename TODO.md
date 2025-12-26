@@ -114,7 +114,7 @@ type CacheMiddleware struct {
 - API versioning (/api/v1/, /api/v2/)
 - Rate limiting per endpoint (enhance your existing limiter)
 - API documentation with Swagger/OpenAPI
-- Webhook support for third-party integrations
+- **Done** Webhook support for third-party integrations
 
 #### Testing Infrastrucure
 ```
@@ -167,7 +167,7 @@ func CreateDatabaseBackup() error {
 - Draggable widget system
 - User-specific dashboard layouts
 - Saved dashboard templates
-- Dark/light theme improvements (you have basic theme toggle)
+- **Done** ~~Dark/light theme improvements (smooth transitions, system sync, theme-aware toasts)~~
 - Accessibility improvements (ARIA labels, keyboard navigation)
 #### Data Visualization
 Enhance your DonutChart.tsx:
@@ -226,10 +226,10 @@ type RetentionPolicy struct {
 
 ### Integration Features
 ####  Third-Party Integrations
-- EMR system connectors (Epic, Cerner)
+- **Done** EMR system connectors (Epic, Cerner)
 - Medical device data import APIs
 - Calendar integration (Google Calendar, Outlook)
-- Slack/Teams notifications
+- **Done** Slack/Teams notifications
 - Zapier integration for custom workflows
 #### API for Mobile Apps
 - Dedicated mobile API endpoints
@@ -251,7 +251,7 @@ type RetentionPolicy struct {
 
 ### Quick Wins (Start Here)
 - **Add toast notifications** across the app (you're using Sonner)
-- **Implement dark mode polish **(you have basic theme support)
+- **Done** ~~Implement dark mode polish with smooth transitions~~
 - **Done** ~~Add loading skeletons (you have Skeleton)~~
 - **Create a changelog page** to track updates
 - **Done** ~~Add keyboard shortcuts for power users~~

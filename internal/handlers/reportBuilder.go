@@ -147,17 +147,9 @@ func (h *ReportBuilderHandler) ExecuteReport(c *fiber.Ctx) error {
 		}
 	}
 
-	var results [][]interface{}
-	var columns []string
+	results := [][]interface{}{}
+	columns := []string{}
 	executionTime := int64(0)
-
-	// Initialize with empty arrays to avoid null values
-	if results == nil {
-		results = [][]interface{}{}
-	}
-	if columns == nil {
-		columns = []string{}
-	}
 
 	// Execute regular query if there are non-aggregation fields
 	if len(regularFields) > 0 {

@@ -113,7 +113,23 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    transition-property: background-color, border-color, color, fill, stroke, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
+  
+  /* Disable transitions for elements that shouldn't animate */
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"] {
+    transition-property: background-color, border-color, color, box-shadow, transform;
+  }
+  
   body {
     @apply bg-background text-foreground;
   }
