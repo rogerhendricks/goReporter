@@ -18,6 +18,7 @@ import {
 } from '../components/ui/alert-dialog'
 import { format } from 'date-fns'
 import { Skeleton } from '../components/ui/skeleton'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 
 export default function WebhooksPage() {
   const navigate = useNavigate()
@@ -91,8 +92,15 @@ export default function WebhooksPage() {
     )
   }
 
+    const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Webhooks', href: '/webhooks', current: true },
+    { label: '+ Webhook', href: '/webhooks/new' }
+  ]
+
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto">
+        <BreadcrumbNav items={breadcrumbItems}/>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Webhooks</h1>
@@ -100,10 +108,6 @@ export default function WebhooksPage() {
             Configure webhooks to receive real-time notifications for events
           </p>
         </div>
-        <Button onClick={() => navigate('/webhooks/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Webhook
-        </Button>
       </div>
 
       {webhooks.length === 0 ? (
@@ -114,10 +118,7 @@ export default function WebhooksPage() {
             <p className="text-muted-foreground text-center mb-4">
               Get started by creating your first webhook to receive notifications for battery alerts, task reminders, and more.
             </p>
-            <Button onClick={() => navigate('/webhooks/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Webhook
-            </Button>
+
           </CardContent>
         </Card>
       ) : (

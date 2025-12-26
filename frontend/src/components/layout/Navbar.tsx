@@ -42,7 +42,7 @@ export function Navbar() {
     { href: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'doctor'] },
     { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
     { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
-    { href: '/reports/builder', label: 'Reports', icon: FileSpreadsheet, roles: ['admin'],}
+    { href: '/webhooks', label: 'Webhooks', icon: FileSpreadsheet, roles: ['admin'],}
   ]
 
   // Filter nav links based on user role

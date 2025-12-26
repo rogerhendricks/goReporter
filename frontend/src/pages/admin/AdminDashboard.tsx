@@ -16,6 +16,7 @@ import { TaskList } from '@/components/tasks/TaskList'
 import { SecurityLogsDashboard } from '@/components/admin/SecurityLogManager'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons'
+import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -168,6 +169,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="security-logs">Security Logs</TabsTrigger>
         </TabsList>
 
@@ -175,6 +177,7 @@ export default function AdminDashboard() {
           {loading ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <DonutChartSkeleton />
                 <DonutChartSkeleton />
                 <DonutChartSkeleton />
                 <DonutChartSkeleton />
@@ -369,9 +372,12 @@ export default function AdminDashboard() {
           </div>
 
         </TabsContent>
-          <TabsContent value="security-logs" className="space-y-6">
-            <SecurityLogsDashboard />
-          </TabsContent>
+        <TabsContent value="reports" className="space-y-6">
+          <ReportBuilder />
+        </TabsContent>
+        <TabsContent value="security-logs" className="space-y-6">
+          <SecurityLogsDashboard />
+        </TabsContent>
       </Tabs>
         <Card className="hover:shadow-lg transition-shadow mt-4">
             <CardHeader>
