@@ -135,6 +135,13 @@ export default function WebhooksPage() {
                         <Badge variant={webhook.active ? 'default' : 'secondary'}>
                           {webhook.active ? 'Active' : 'Inactive'}
                         </Badge>
+                        {webhook.integrationType && webhook.integrationType !== 'generic' && (
+                          <Badge variant="outline" className="capitalize">
+                            {webhook.integrationType === 'epic' && '🏥 Epic FHIR'}
+                            {webhook.integrationType === 'slack' && '💬 Slack'}
+                            {webhook.integrationType === 'teams' && '📋 Teams'}
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription className="mt-1.5">
                         {webhook.description || 'No description provided'}

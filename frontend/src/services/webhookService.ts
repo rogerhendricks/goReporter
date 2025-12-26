@@ -9,6 +9,11 @@ export interface Webhook {
   active: boolean
   description?: string
   createdBy?: number
+  integrationType?: string  // 'generic', 'epic', 'slack', 'teams'
+  epicClientId?: string
+  epicPrivateKey?: string
+  epicTokenUrl?: string
+  epicFhirBase?: string
   lastTriggeredAt?: string
   successCount: number
   failureCount: number
@@ -36,6 +41,11 @@ export interface CreateWebhookRequest {
   secret?: string
   description?: string
   active?: boolean
+  integrationType?: string
+  epicClientId?: string
+  epicPrivateKey?: string
+  epicTokenUrl?: string
+  epicFhirBase?: string
 }
 
 export const webhookService = {

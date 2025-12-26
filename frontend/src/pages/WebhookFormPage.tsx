@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, Info } from 'lucide-react'
+import { ArrowLeft, Info, AlertTriangle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -9,6 +9,13 @@ import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Checkbox } from '../components/ui/checkbox'
 import { Switch } from '../components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select'
 import { webhookService, AVAILABLE_EVENTS, type CreateWebhookRequest } from '../services/webhookService'
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
 
@@ -24,6 +31,11 @@ export default function WebhookFormPage() {
     secret: '',
     description: '',
     active: true,
+    integrationType: 'generic',
+    epicClientId: '',
+    epicPrivateKey: '',
+    epicTokenUrl: '',
+    epicFhirBase: '',
   })
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(isEdit)
@@ -39,6 +51,11 @@ export default function WebhookFormPage() {
       const webhook = await webhookService.getById(webhookId)
       setFormData({
         name: webhook.name,
+        integrationType: webhook.integrationType || 'generic',
+        epicClientId: webhook.epicClientId || '',
+        epicPrivateKey: webhook.epicPrivateKey || '',
+        epicTokenUrl: webhook.epicTokenUrl || '',
+        epicFhirBase: webhook.epicFhirBase || '',
         url: webhook.url,
         events: webhook.events,
         secret: webhook.secret || '',
@@ -75,6 +92,31 @@ export default function WebhookFormPage() {
     if (formData.events.length === 0) {
       toast.error('Please select at least one event')
       return
+    }
+
+    // Validate Epic configuration if Epic integration type
+    if (formData.integrationType === 'epic') {
+      if (!formData.epicClientId) {
+        toast.error('Epic Client ID is required for Epic integration')
+        return
+      }
+      if (!formData.epicPrivateKey) {
+        toast.error('Epic Private Key is required for Epic integration')
+        return
+      }
+      if (!formData.epicTokenUrl) {
+        toast.error('Epic Token URL is required for Epic integration')
+        return
+      }
+      if (!formData.epicFhirBase) {
+        toast.error('Epic FHIR Base URL is required for Epic integration')
+        return
+      }
+      // Validate private key format
+      if (!formData.epicPrivateKey.includes('BEGIN PRIVATE KEY')) {
+        toast.error('Epic Private Key must be in PEM format')
+        return
+      }
     }
 
     setLoading(true)
@@ -208,6 +250,119 @@ export default function WebhookFormPage() {
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Integration Type</CardTitle>
+            <CardDescription>
+              Select the type of webhook integration
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="integrationType">Type</Label>
+              <Select
+                value={formData.integrationType}
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  integrationType: value,
+                  // Clear Epic fields when switching away from Epic
+                  ...(value !== 'epic' && {
+                    epicClientId: '',
+                    epicPrivateKey: '',
+                    epicTokenUrl: '',
+                    epicFhirBase: ''
+                  })
+                }))}
+              >
+                <SelectTrigger id="integrationType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="generic">Generic Webhook</SelectItem>
+                  <SelectItem value="slack">Slack</SelectItem>
+                  <SelectItem value="teams">Microsoft Teams</SelectItem>
+                  <SelectItem value="epic">Epic EMR (FHIR)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.integrationType === 'epic' && 'Sends FHIR R4 DiagnosticReports with OAuth 2.0 authentication'}
+                {formData.integrationType === 'teams' && 'Automatically formats messages as Adaptive Cards'}
+                {formData.integrationType === 'slack' && 'Sends JSON payloads to Slack webhook'}
+                {formData.integrationType === 'generic' && 'Standard JSON webhook payload'}
+              </p>
+            </div>
+
+            {formData.integrationType === 'epic' && (
+              <>
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Epic FHIR Configuration Required</AlertTitle>
+                  <AlertDescription>
+                    Configure your Epic App Orchard credentials below. The private key must be in PEM format (PKCS8).
+                    See the <a href="/docs/epic-integration" className="underline">Epic Integration Guide</a> for setup instructions.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-4 border-l-4 border-blue-500 pl-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="epicClientId">Epic Client ID *</Label>
+                    <Input
+                      id="epicClientId"
+                      placeholder="your-epic-client-id"
+                      value={formData.epicClientId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, epicClientId: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Client ID from Epic App Orchard registration
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="epicPrivateKey">Epic Private Key (PEM) *</Label>
+                    <Textarea
+                      id="epicPrivateKey"
+                      placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIEvQIBADANBgk...&#10;-----END PRIVATE KEY-----"
+                      value={formData.epicPrivateKey}
+                      onChange={(e) => setFormData(prev => ({ ...prev, epicPrivateKey: e.target.value }))}
+                      rows={8}
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      RSA private key for JWT signing (PKCS8 PEM format)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="epicTokenUrl">Epic Token URL *</Label>
+                    <Input
+                      id="epicTokenUrl"
+                      placeholder="https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
+                      value={formData.epicTokenUrl}
+                      onChange={(e) => setFormData(prev => ({ ...prev, epicTokenUrl: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Epic OAuth 2.0 token endpoint
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="epicFhirBase">Epic FHIR Base URL *</Label>
+                    <Input
+                      id="epicFhirBase"
+                      placeholder="https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4"
+                      value={formData.epicFhirBase}
+                      onChange={(e) => setFormData(prev => ({ ...prev, epicFhirBase: e.target.value }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Base URL for Epic FHIR R4 API
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -437,7 +437,7 @@ export default function PatientDetail() {
                   {currentPatient.leads.map((implanted) => (
                     <TableRow key={implanted.id}>
                       <TableCell className="text-left">
-                        <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.leadModel}</div>
+                        <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.model}</div>
                         <div className="font-medium">{implanted.lead.name}</div>
                       </TableCell>
                       <TableCell className="text-left">{implanted.serial}</TableCell>

@@ -98,7 +98,7 @@ export function usePdfFormFiller() {
       fillTextField('ra_paced_percent', formData.mdc_idc_stat_brady_ra_percent_paced)
       fillTextField('rv_paced_percent', formData.mdc_idc_stat_brady_rv_percent_paced)
       fillTextField('lv_paced_percent', formData.mdc_idc_stat_brady_lv_percent_paced)
-      fillTextField('biv_paced_percent', formData.mdc_idc_stat_tachy_biv_percent_paced)
+      fillTextField('biv_paced_percent', formData.mdc_idc_stat_brady_biv_percent_paced)
 
       // Fill Battery & Device Diagnostics
       fillTextField('battery_voltage', formData.mdc_idc_batt_volt)

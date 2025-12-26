@@ -73,6 +73,13 @@ type Webhook struct {
 	Description string      `json:"description" gorm:"type:text"`
 	CreatedBy   uint        `json:"createdBy"`
 
+	// Epic FHIR Integration
+	IntegrationType string `json:"integrationType" gorm:"type:varchar(50);default:'generic'"` // generic, epic, slack, teams
+	EpicClientID    string `json:"epicClientId,omitempty" gorm:"type:varchar(255)"`
+	EpicPrivateKey  string `json:"epicPrivateKey,omitempty" gorm:"type:text"`       // JWT private key for Epic OAuth
+	EpicTokenURL    string `json:"epicTokenUrl,omitempty" gorm:"type:varchar(500)"` // Epic OAuth token endpoint
+	EpicFHIRBase    string `json:"epicFhirBase,omitempty" gorm:"type:varchar(500)"` // Epic FHIR base URL
+
 	// Statistics
 	LastTriggeredAt *string `json:"lastTriggeredAt" gorm:"type:varchar(100)"`
 	SuccessCount    int     `json:"successCount" gorm:"default:0"`

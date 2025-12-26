@@ -3,15 +3,20 @@ package services
 import (
 	"bytes"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rogerhendricks/goReporter/internal/models"
 	"gorm.io/gorm"
 )
@@ -63,13 +68,17 @@ func (ws *WebhookService) TriggerWebhooks(event models.WebhookEvent, data map[st
 func (ws *WebhookService) deliverWebhook(webhook models.Webhook, event models.WebhookEvent, data map[string]interface{}) {
 	startTime := time.Now()
 
-	// Check if this is a Microsoft Teams webhook
+	// Check webhook integration type
 	isTeams := ws.isTeamsWebhook(webhook.URL)
+	isEpic := webhook.IntegrationType == "epic"
 
 	var payloadBytes []byte
 	var err error
 
-	if isTeams {
+	if isEpic {
+		// Format as Epic FHIR DiagnosticReport
+		payloadBytes, err = ws.formatEpicFHIR(webhook, event, data)
+	} else if isTeams {
 		// Format as Teams Adaptive Card
 		payloadBytes, err = ws.formatTeamsMessage(event, data)
 	} else {
@@ -94,13 +103,30 @@ func (ws *WebhookService) deliverWebhook(webhook models.Webhook, event models.We
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	// Set content type based on integration type
+	if isEpic {
+		req.Header.Set("Content-Type", "application/fhir+json")
+	} else {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	req.Header.Set("User-Agent", "goReporter-Webhook/1.0")
 	req.Header.Set("X-Webhook-Event", string(event))
 	req.Header.Set("X-Webhook-ID", fmt.Sprintf("%d", webhook.ID))
 
-	// Add signature if secret is configured
-	if webhook.Secret != "" {
+	// Add Epic OAuth token for Epic integrations
+	if isEpic && webhook.EpicClientID != "" && webhook.EpicPrivateKey != "" && webhook.EpicTokenURL != "" {
+		accessToken, err := ws.getEpicAccessToken(webhook)
+		if err != nil {
+			ws.logDelivery(webhook.ID, event, string(payloadBytes), 0, "", false, fmt.Sprintf("Epic OAuth failed: %v", err), 0)
+			ws.updateWebhookStats(webhook.ID, false)
+			return
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	}
+
+	// Add signature if secret is configured (for non-Epic webhooks)
+	if !isEpic && webhook.Secret != "" {
 		signature := ws.generateSignature(payloadBytes, webhook.Secret)
 		req.Header.Set("X-Webhook-Signature", signature)
 	}
@@ -138,6 +164,88 @@ func (ws *WebhookService) generateSignature(payload []byte, secret string) strin
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write(payload)
 	return "sha256=" + hex.EncodeToString(h.Sum(nil))
+}
+
+// getEpicAccessToken obtains an OAuth 2.0 access token using JWT Bearer flow
+func (ws *WebhookService) getEpicAccessToken(webhook models.Webhook) (string, error) {
+	// Parse the private key
+	privateKey, err := parsePrivateKey(webhook.EpicPrivateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse Epic private key: %v", err)
+	}
+
+	// Create JWT claims
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"iss": webhook.EpicClientID,
+		"sub": webhook.EpicClientID,
+		"aud": webhook.EpicTokenURL,
+		"jti": fmt.Sprintf("%d-%d", webhook.ID, now.Unix()),
+		"exp": now.Add(5 * time.Minute).Unix(),
+	}
+
+	// Create and sign the JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodRS384, claims)
+	signedToken, err := token.SignedString(privateKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign JWT: %v", err)
+	}
+
+	// Exchange JWT for access token
+	data := url.Values{}
+	data.Set("grant_type", "client_credentials")
+	data.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	data.Set("client_assertion", signedToken)
+
+	req, err := http.NewRequest("POST", webhook.EpicTokenURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("failed to create token request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("token request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("token request returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResponse struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int    `json:"expires_in"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return "", fmt.Errorf("failed to decode token response: %v", err)
+	}
+
+	return tokenResponse.AccessToken, nil
+}
+
+// parsePrivateKey parses a PEM-encoded RSA private key
+func parsePrivateKey(pemKey string) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	// Try PKCS8 format first (most common for Epic)
+	if key, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
+		if rsaKey, ok := key.(*rsa.PrivateKey); ok {
+			return rsaKey, nil
+		}
+		return nil, fmt.Errorf("key is not RSA private key")
+	}
+
+	// Fallback to PKCS1 format
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
 // logDelivery records a webhook delivery attempt
@@ -191,6 +299,195 @@ func (ws *WebhookService) TestWebhook(webhookID uint) error {
 	go ws.deliverWebhook(webhook, "webhook.test", testData)
 
 	return nil
+}
+
+// formatEpicFHIR formats webhook data as Epic FHIR DiagnosticReport
+func (ws *WebhookService) formatEpicFHIR(webhook models.Webhook, event models.WebhookEvent, data map[string]interface{}) ([]byte, error) {
+	// Only format report.completed events as FHIR DiagnosticReports
+	if event != models.EventReportCompleted {
+		// For other events, return standard payload
+		payload := WebhookPayload{
+			Event:     string(event),
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+			Data:      data,
+		}
+		return json.Marshal(payload)
+	}
+
+	// Create FHIR DiagnosticReport
+	fhirReport := ws.createFHIRDiagnosticReport(data)
+	return json.Marshal(fhirReport)
+}
+
+// createFHIRDiagnosticReport creates a FHIR R4 DiagnosticReport resource
+func (ws *WebhookService) createFHIRDiagnosticReport(data map[string]interface{}) map[string]interface{} {
+	// Extract data with type assertions and defaults
+	reportID := fmt.Sprintf("%v", data["reportId"])
+	patientMRN := fmt.Sprintf("%v", data["patientMRN"])
+	reportDate := fmt.Sprintf("%v", data["reportDate"])
+	reportURL := fmt.Sprintf("%v", data["reportUrl"])
+
+	// Device information
+	deviceType := getStringValue(data, "deviceType")
+	deviceSerial := getStringValue(data, "deviceSerial")
+	deviceManufacturer := getStringValue(data, "deviceManufacturer")
+
+	// Battery information
+	batteryStatus := getStringValue(data, "batteryStatus")
+	batteryPercentage := getFloatValue(data, "batteryPercentage")
+
+	// Pacing information
+	atrialPacing := getFloatValue(data, "atrialPacing")
+	ventricularPacing := getFloatValue(data, "ventricularPacing")
+
+	// Build FHIR R4 DiagnosticReport
+	fhirReport := map[string]interface{}{
+		"resourceType": "DiagnosticReport",
+		"id":           reportID,
+		"status":       "final",
+		"category": []map[string]interface{}{
+			{
+				"coding": []map[string]interface{}{
+					{
+						"system":  "http://terminology.hl7.org/CodeSystem/v2-0074",
+						"code":    "MDC",
+						"display": "Medical Device Communication",
+					},
+				},
+			},
+		},
+		"code": map[string]interface{}{
+			"coding": []map[string]interface{}{
+				{
+					"system":  "http://loinc.org",
+					"code":    "34139-4",
+					"display": "Pacemaker device interrogation report",
+				},
+			},
+			"text": "Cardiac Device Interrogation Report",
+		},
+		"subject": map[string]interface{}{
+			"reference": fmt.Sprintf("Patient/%s", patientMRN),
+			"identifier": map[string]interface{}{
+				"system": "urn:oid:2.16.840.1.113883.4.1", // MRN system OID
+				"value":  patientMRN,
+			},
+		},
+		"effectiveDateTime": reportDate,
+		"issued":            time.Now().UTC().Format(time.RFC3339),
+		"conclusion":        fmt.Sprintf("Cardiac device interrogation completed. Battery status: %s", batteryStatus),
+		"presentedForm": []map[string]interface{}{
+			{
+				"contentType": "text/html",
+				"url":         reportURL,
+				"title":       "Full Interrogation Report",
+			},
+		},
+	}
+
+	// Add observations as result references
+	var results []map[string]interface{}
+
+	// Battery observations
+	if batteryStatus != "" {
+		results = append(results, map[string]interface{}{
+			"reference": fmt.Sprintf("#battery-status-%s", reportID),
+			"display":   fmt.Sprintf("Battery Status: %s", batteryStatus),
+		})
+	}
+
+	if batteryPercentage > 0 {
+		results = append(results, map[string]interface{}{
+			"reference": fmt.Sprintf("#battery-percentage-%s", reportID),
+			"display":   fmt.Sprintf("Battery Percentage: %.1f%%", batteryPercentage),
+		})
+	}
+
+	// Pacing observations
+	if atrialPacing > 0 {
+		results = append(results, map[string]interface{}{
+			"reference": fmt.Sprintf("#atrial-pacing-%s", reportID),
+			"display":   fmt.Sprintf("Atrial Pacing: %.1f%%", atrialPacing),
+		})
+	}
+
+	if ventricularPacing > 0 {
+		results = append(results, map[string]interface{}{
+			"reference": fmt.Sprintf("#ventricular-pacing-%s", reportID),
+			"display":   fmt.Sprintf("Ventricular Pacing: %.1f%%", ventricularPacing),
+		})
+	}
+
+	if len(results) > 0 {
+		fhirReport["result"] = results
+	}
+
+	// Add device information as contained resource
+	if deviceSerial != "" {
+		fhirReport["contained"] = []map[string]interface{}{
+			{
+				"resourceType": "Device",
+				"id":           fmt.Sprintf("device-%s", reportID),
+				"identifier": []map[string]interface{}{
+					{
+						"type": map[string]interface{}{
+							"coding": []map[string]interface{}{
+								{
+									"system":  "http://hl7.org/fhir/identifier-type",
+									"code":    "SNO",
+									"display": "Serial Number",
+								},
+							},
+						},
+						"value": deviceSerial,
+					},
+				},
+				"manufacturer": deviceManufacturer,
+				"deviceName": []map[string]interface{}{
+					{
+						"name": deviceType,
+						"type": "model-name",
+					},
+				},
+				"type": map[string]interface{}{
+					"coding": []map[string]interface{}{
+						{
+							"system":  "http://snomed.info/sct",
+							"code":    "360129009",
+							"display": "Cardiac pacemaker, device",
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return fhirReport
+}
+
+// Helper functions for data extraction
+func getStringValue(data map[string]interface{}, key string) string {
+	if val, ok := data[key]; ok && val != nil {
+		return fmt.Sprintf("%v", val)
+	}
+	return ""
+}
+
+func getFloatValue(data map[string]interface{}, key string) float64 {
+	if val, ok := data[key]; ok && val != nil {
+		switch v := val.(type) {
+		case float64:
+			return v
+		case int:
+			return float64(v)
+		case string:
+			// Try to parse string as float
+			var f float64
+			fmt.Sscanf(v, "%f", &f)
+			return f
+		}
+	}
+	return 0
 }
 
 // isTeamsWebhook detects if a URL is a Microsoft Teams webhook

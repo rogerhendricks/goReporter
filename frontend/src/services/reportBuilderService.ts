@@ -1,5 +1,5 @@
 import api from '@/utils/axios';
-import { type ReportDefinition, type ReportResult, type ReportField, type ChartData } from '@/components/report-builder/types';
+import { type ReportDefinition, type ReportResult, type ReportField } from '@/components/report-builder/types';
 import { PDFChartGenerator } from './pdfChartGenerator';
 
 class ReportBuilderService {

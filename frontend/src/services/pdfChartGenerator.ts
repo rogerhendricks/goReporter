@@ -130,7 +130,7 @@ export class PDFChartGenerator {
         const image = await pdfDoc.embedPng(imageBytes);
         
         // Draw the image
-        const imageDims = image.scale(1);
+        // const imageDims = image.scale(1);
         const drawWidth = width;
         const drawHeight = height - 30;
         

@@ -477,6 +477,47 @@ func UpdateReport(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated report data"})
 	}
 
+	// Trigger report.completed webhook if report is being marked as completed
+	if updatedData.IsCompleted != nil && *updatedData.IsCompleted {
+		// Check if it wasn't completed before
+		wasCompleted := existingReport.IsCompleted != nil && *existingReport.IsCompleted
+		if !wasCompleted {
+			// Load patient data for MRN
+			var patient models.Patient
+			if err := config.DB.First(&patient, finalReport.PatientID).Error; err == nil {
+				// Load device information if available
+				var implantedDevice models.ImplantedDevice
+				deviceInfo := map[string]interface{}{}
+				if err := config.DB.Preload("Device").Where("patient_id = ? AND status = ?", patient.ID, "Active").Order("implanted_at DESC").First(&implantedDevice).Error; err == nil {
+					deviceInfo["deviceType"] = implantedDevice.Device.Type
+					deviceInfo["deviceSerial"] = implantedDevice.Serial
+					deviceInfo["deviceManufacturer"] = implantedDevice.Device.Manufacturer
+					deviceInfo["deviceModel"] = implantedDevice.Device.Model
+				}
+
+				TriggerWebhook(models.EventReportCompleted, map[string]interface{}{
+					"reportId":           finalReport.ID,
+					"patientId":          finalReport.PatientID,
+					"patientMRN":         patient.MRN,
+					"patientName":        fmt.Sprintf("%s %s", patient.FirstName, patient.LastName),
+					"reportDate":         finalReport.ReportDate.Format(time.RFC3339),
+					"reportType":         finalReport.ReportType,
+					"reportStatus":       finalReport.ReportStatus,
+					"reportUrl":          getReportURL(finalReport.ID),
+					"batteryStatus":      getStringPointer(finalReport.MdcIdcBattStatus),
+					"batteryPercentage":  getFloatPointer(finalReport.MdcIdcBattPercentage),
+					"batteryVoltage":     getFloatPointer(finalReport.MdcIdcBattVolt),
+					"atrialPacing":       getFloatPointer(finalReport.MdcIdcStatBradyRaPercentPaced),
+					"ventricularPacing":  getFloatPointer(finalReport.MdcIdcStatBradyRvPercentPaced),
+					"deviceType":         deviceInfo["deviceType"],
+					"deviceSerial":       deviceInfo["deviceSerial"],
+					"deviceManufacturer": deviceInfo["deviceManufacturer"],
+					"deviceModel":        deviceInfo["deviceModel"],
+				})
+			}
+		}
+	}
+
 	return c.Status(http.StatusOK).JSON(toReportResponse(*finalReport))
 }
 
@@ -592,4 +633,29 @@ func DeleteReport(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(http.StatusNoContent)
+}
+
+// Helper functions for webhook data
+
+func getStringPointer(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
+}
+
+func getFloatPointer(ptr *float64) float64 {
+	if ptr == nil {
+		return 0
+	}
+	return *ptr
+}
+
+func getReportURL(reportID uint) string {
+	// TODO: Get this from config
+	baseURL := os.Getenv("APP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://yourapp.com"
+	}
+	return fmt.Sprintf("%s/reports/%d", baseURL, reportID)
 }

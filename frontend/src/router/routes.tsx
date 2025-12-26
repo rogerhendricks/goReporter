@@ -293,26 +293,26 @@ export const routes: RouteConfig[] = [
     roles: ['admin', 'doctor', 'user']
   },
   
-  // Webhook routes
+  // Webhook routes - admin only
   {
     path: '/webhooks',
     element: <WebhooksPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin']
   },
   {
     path: '/webhooks/new',
     element: <WebhookFormPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin']
   },
   {
     path: '/webhooks/:id',
     element: <WebhookFormPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin']
   }
 ]
