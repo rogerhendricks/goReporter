@@ -332,6 +332,39 @@ func CreateReport(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch created report data"})
 	}
 
+	// Trigger webhooks for report creation
+	TriggerWebhook(models.EventReportCreated, map[string]interface{}{
+		"reportId":     createdReport.ID,
+		"patientId":    createdReport.PatientID,
+		"reportType":   createdReport.ReportType,
+		"reportStatus": createdReport.ReportStatus,
+		"reportDate":   createdReport.ReportDate,
+	})
+
+	// Check for battery alerts
+	if createdReport.MdcIdcBattStatus != nil {
+		battStatus := *createdReport.MdcIdcBattStatus
+		if battStatus == "ERI" || battStatus == "EOL" {
+			TriggerWebhook(models.EventBatteryCritical, map[string]interface{}{
+				"reportId":          createdReport.ID,
+				"patientId":         createdReport.PatientID,
+				"batteryStatus":     battStatus,
+				"batteryVoltage":    createdReport.MdcIdcBattVolt,
+				"batteryPercentage": createdReport.MdcIdcBattPercentage,
+			})
+		}
+	}
+
+	// Check for low battery percentage
+	if createdReport.MdcIdcBattPercentage != nil && *createdReport.MdcIdcBattPercentage < 20 {
+		TriggerWebhook(models.EventBatteryLow, map[string]interface{}{
+			"reportId":          createdReport.ID,
+			"patientId":         createdReport.PatientID,
+			"batteryPercentage": *createdReport.MdcIdcBattPercentage,
+			"batteryVoltage":    createdReport.MdcIdcBattVolt,
+		})
+	}
+
 	return c.Status(http.StatusCreated).JSON(toReportResponse(*createdReport))
 }
 

@@ -168,15 +168,24 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Admin consent management
 	app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
 	app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
-	
+
 	searchGroup := app.Group("/api/search")
 	searchGroup.Use(middleware.RequireAdminOrUser)
 	{
-    searchGroup.Get("/filters", handlers.GetSavedSearchFilters)
-    searchGroup.Post("/filters", handlers.SaveSearchFilter)
-    searchGroup.Delete("/filters/:id", handlers.DeleteSavedSearchFilter)
-    searchGroup.Get("/history", handlers.GetSearchHistory)
-    searchGroup.Get("/suggestions", handlers.GetSearchSuggestions)
+		searchGroup.Get("/filters", handlers.GetSavedSearchFilters)
+		searchGroup.Post("/filters", handlers.SaveSearchFilter)
+		searchGroup.Delete("/filters/:id", handlers.DeleteSavedSearchFilter)
+		searchGroup.Get("/history", handlers.GetSearchHistory)
+		searchGroup.Get("/suggestions", handlers.GetSearchSuggestions)
 	}
+
+	// Webhook routes
+	app.Get("/api/webhooks", middleware.RequireAdminOrUser, handlers.GetWebhooks)
+	app.Get("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.GetWebhook)
+	app.Post("/api/webhooks", middleware.RequireAdminOrUser, handlers.CreateWebhook)
+	app.Put("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.UpdateWebhook)
+	app.Delete("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.DeleteWebhook)
+	app.Post("/api/webhooks/:id/test", middleware.RequireAdminOrUser, handlers.TestWebhook)
+	app.Get("/api/webhooks/:id/deliveries", middleware.RequireAdminOrUser, handlers.GetWebhookDeliveries)
 
 }

@@ -26,6 +26,8 @@ import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskDetail } from '@/components/tasks/TaskDetail'
 import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
 import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
+import WebhooksPage from '@/pages/WebhooksPage'
+import WebhookFormPage from '@/pages/WebhookFormPage'
 
 
 export interface RouteConfig {
@@ -289,5 +291,28 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['admin', 'doctor', 'user']
+  },
+  
+  // Webhook routes
+  {
+    path: '/webhooks',
+    element: <WebhooksPage />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'user']
+  },
+  {
+    path: '/webhooks/new',
+    element: <WebhookFormPage />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'user']
+  },
+  {
+    path: '/webhooks/:id',
+    element: <WebhookFormPage />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'user']
   }
 ]

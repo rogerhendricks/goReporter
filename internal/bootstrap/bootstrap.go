@@ -73,6 +73,8 @@ func migrate(db *gorm.DB) error {
 		&models.CustomReport{},
 		&models.SavedSearchFilter{},
 		&models.SearchHistory{},
+		&models.Webhook{},
+		&models.WebhookDelivery{},
 	)
 }
 
@@ -471,7 +473,7 @@ func seed(db *gorm.DB) error {
 			Priority:        models.TaskPriorityLow,
 			DaysUntilDue:    pointer(7),
 		},
-				{
+		{
 			Name:            "Patient Follow Up Call",
 			Description:     "Follow up call for patients",
 			Title:           "Patient Follow-up",
@@ -485,101 +487,101 @@ func seed(db *gorm.DB) error {
 		db.FirstOrCreate(&template, models.TaskTemplate{Name: template.Name})
 	}
 
-	    // Seed SavedSearchFilters
-    savedFilters := []models.SavedSearchFilter{
-        {
-            UserID:      admin.Username,
-            Name:        "Medtronic Pacemaker Patients",
-            Description: "All patients with Medtronic pacemakers",
-            Filters: models.JSON{
-                "deviceManufacturer": "Medtronic",
-                "fuzzyMatch":         true,
-                "booleanOperator":    "AND",
-            },
-            IsDefault: true,
-        },
-        {
-            UserID:      admin.Username,
-            Name:        "Dr. Smith's Patients",
-            Description: "Patients assigned to Dr. Alice Smith",
-            Filters: models.JSON{
-                "doctorName":      "Dr. Alice Smith",
-                "fuzzyMatch":      true,
-                "booleanOperator": "AND",
-            },
-            IsDefault: false,
-        },
-        {
-            UserID:      demoUser.Username,
-            Name:        "CRT-D Patients",
-            Description: "Patients with CRT-D devices",
-            Filters: models.JSON{
-                "deviceName":      "CRT-D",
-                "fuzzyMatch":      true,
-                "booleanOperator": "AND",
-            },
-            IsDefault: false,
-        },
-    }
+	// Seed SavedSearchFilters
+	savedFilters := []models.SavedSearchFilter{
+		{
+			UserID:      admin.Username,
+			Name:        "Medtronic Pacemaker Patients",
+			Description: "All patients with Medtronic pacemakers",
+			Filters: models.JSON{
+				"deviceManufacturer": "Medtronic",
+				"fuzzyMatch":         true,
+				"booleanOperator":    "AND",
+			},
+			IsDefault: true,
+		},
+		{
+			UserID:      admin.Username,
+			Name:        "Dr. Smith's Patients",
+			Description: "Patients assigned to Dr. Alice Smith",
+			Filters: models.JSON{
+				"doctorName":      "Dr. Alice Smith",
+				"fuzzyMatch":      true,
+				"booleanOperator": "AND",
+			},
+			IsDefault: false,
+		},
+		{
+			UserID:      demoUser.Username,
+			Name:        "CRT-D Patients",
+			Description: "Patients with CRT-D devices",
+			Filters: models.JSON{
+				"deviceName":      "CRT-D",
+				"fuzzyMatch":      true,
+				"booleanOperator": "AND",
+			},
+			IsDefault: false,
+		},
+	}
 
-    for _, filter := range savedFilters {
-        if err := db.Create(&filter).Error; err != nil {
-            return err
-        }
-    }
+	for _, filter := range savedFilters {
+		if err := db.Create(&filter).Error; err != nil {
+			return err
+		}
+	}
 
-    // Seed SearchHistory
-    searchHistories := []models.SearchHistory{
-        {
-            UserID: admin.Username,
-            Query:  "John Doe",
-            Filters: models.JSON{
-                "firstName":       "John",
-                "lastName":        "Doe",
-                "fuzzyMatch":      true,
-                "booleanOperator": "AND",
-            },
-            Results: 1,
-        },
-        {
-            UserID: admin.Username,
-            Query:  "Jane Smith",
-            Filters: models.JSON{
-                "firstName":       "Jane",
-                "lastName":        "Smith",
-                "fuzzyMatch":      true,
-                "booleanOperator": "AND",
-            },
-            Results: 1,
-        },
-        {
-            UserID: admin.Username,
-            Query:  "Medtronic devices",
-            Filters: models.JSON{
-                "deviceManufacturer": "Medtronic",
-                "fuzzyMatch":         true,
-                "booleanOperator":    "AND",
-            },
-            Results: 2,
-        },
-        {
-            UserID: demoUser.Username,
-            Query:  "Robert Johnson",
-            Filters: models.JSON{
-                "firstName":       "Robert",
-                "lastName":        "Johnson",
-                "fuzzyMatch":      true,
-                "booleanOperator": "AND",
-            },
-            Results: 1,
-        },
-    }
+	// Seed SearchHistory
+	searchHistories := []models.SearchHistory{
+		{
+			UserID: admin.Username,
+			Query:  "John Doe",
+			Filters: models.JSON{
+				"firstName":       "John",
+				"lastName":        "Doe",
+				"fuzzyMatch":      true,
+				"booleanOperator": "AND",
+			},
+			Results: 1,
+		},
+		{
+			UserID: admin.Username,
+			Query:  "Jane Smith",
+			Filters: models.JSON{
+				"firstName":       "Jane",
+				"lastName":        "Smith",
+				"fuzzyMatch":      true,
+				"booleanOperator": "AND",
+			},
+			Results: 1,
+		},
+		{
+			UserID: admin.Username,
+			Query:  "Medtronic devices",
+			Filters: models.JSON{
+				"deviceManufacturer": "Medtronic",
+				"fuzzyMatch":         true,
+				"booleanOperator":    "AND",
+			},
+			Results: 2,
+		},
+		{
+			UserID: demoUser.Username,
+			Query:  "Robert Johnson",
+			Filters: models.JSON{
+				"firstName":       "Robert",
+				"lastName":        "Johnson",
+				"fuzzyMatch":      true,
+				"booleanOperator": "AND",
+			},
+			Results: 1,
+		},
+	}
 
-    for _, history := range searchHistories {
-        if err := db.Create(&history).Error; err != nil {
-            return err
-        }
-    }
+	for _, history := range searchHistories {
+		if err := db.Create(&history).Error; err != nil {
+			return err
+		}
+	}
 
 	log.Println("Seeding complete.")
 	return nil

@@ -6,146 +6,148 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rogerhendricks/goReporter/internal/bootstrap"
 	"github.com/rogerhendricks/goReporter/internal/config"
-	"github.com/rogerhendricks/goReporter/internal/router"
-	"github.com/rogerhendricks/goReporter/internal/security"
 	"github.com/rogerhendricks/goReporter/internal/handlers"
 	"github.com/rogerhendricks/goReporter/internal/middleware"
-    "github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/router"
+	"github.com/rogerhendricks/goReporter/internal/security"
 )
 
-
 func main() {
-    defer func() {
-        if r := recover(); r != nil {
-            log.Fatalf("Application panicked: %v", r)
-        }
-        security.Close()
-        config.CloseDatabase()
-    }()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Fatalf("Application panicked: %v", r)
+		}
+		security.Close()
+		config.CloseDatabase()
+	}()
 
-    // Start background tasks
-    go startBackgroundTasks()
+	// Start background tasks
+	go startBackgroundTasks()
 
-    // Optional: reset SQLite DB file on startup if requested
-    // DB_RESET=file -> remove [reporter.db](http://_vscodecontentref_/1) before connecting
-    if os.Getenv("DB_RESET") == "file" {
-        if err := os.Remove("reporter.db"); err == nil {
-            log.Println("SQLite database file removed for reset.")
-        }
-    }
+	// Optional: reset SQLite DB file on startup if requested
+	// DB_RESET=file -> remove [reporter.db](http://_vscodecontentref_/1) before connecting
+	if os.Getenv("DB_RESET") == "file" {
+		if err := os.Remove("reporter.db"); err == nil {
+			log.Println("SQLite database file removed for reset.")
+		}
+	}
 
-    // Load config from .env file for port address
-    // cfg := config.LoadConfig()
+	// Load config from .env file for port address
+	// cfg := config.LoadConfig()
 
-    // Initialize the database connection
-    config.ConnectDatabase()
+	// Initialize the database connection
+	config.ConnectDatabase()
 
-    // Run migrations and seeding
-    if err := bootstrap.MigrateAndSeed(); err != nil {
-        log.Fatalf("Database migration/seed failed: %v", err)
-    }
+	// Run migrations and seeding
+	if err := bootstrap.MigrateAndSeed(); err != nil {
+		log.Fatalf("Database migration/seed failed: %v", err)
+	}
 
-    // Setup token cleanup background job
-    bootstrap.SetupTokenCleanup()
-    log.Println("Token cleanup scheduler initialized.")
+	// Setup token cleanup background job
+	bootstrap.SetupTokenCleanup()
+	log.Println("Token cleanup scheduler initialized.")
 
-// Initialize security logger
-    if err := security.InitSecurityLogger(); err != nil {
-        log.Fatalf("Failed to initialize security logger: %v", err)
-    }
-    log.Println("Security logger initialized.")
+	// Initialize security logger
+	if err := security.InitSecurityLogger(); err != nil {
+		log.Fatalf("Failed to initialize security logger: %v", err)
+	}
+	log.Println("Security logger initialized.")
 
-    // Initialize Fiber app
-    app := fiber.New(fiber.Config{
-        Prefork: false,
-        AppName: "GoReporter",
-        ErrorHandler: func(c *fiber.Ctx, err error) error {
-            code := fiber.StatusInternalServerError
-            if e, ok := err.(*fiber.Error); ok {
-                code = e.Code
-            }
-            return c.Status(code).JSON(fiber.Map{
-                "error": err.Error(),
-            })
-        },
-    })
-    log.Println("Fiber app initialized.")
+	// Initialize webhook service
+	handlers.InitWebhookService(config.DB)
+	log.Println("Webhook service initialized.")
 
-    log.Println("Setting up middleware (CORS, Logger, Limiter)...")
+	// Initialize Fiber app
+	app := fiber.New(fiber.Config{
+		Prefork: false,
+		AppName: "GoReporter",
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			code := fiber.StatusInternalServerError
+			if e, ok := err.(*fiber.Error); ok {
+				code = e.Code
+			}
+			return c.Status(code).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		},
+	})
+	log.Println("Fiber app initialized.")
 
-    // Add security headers
-    app.Use(helmet.New(helmet.Config{
-        XSSProtection:         "1; mode=block",
-        ContentTypeNosniff:    "nosniff",
-        XFrameOptions:         "DENY",
-        ReferrerPolicy:        "no-referrer",
-        ContentSecurityPolicy: "default-src 'self'",
-    }))
+	log.Println("Setting up middleware (CORS, Logger, Limiter)...")
 
-    // Configure CORS properly
-    app.Use(cors.New(cors.Config{
-        AllowOrigins:     "https://dev.nuttynarwhal.com, https://dev-mini.nuttynarwhal.com, https://nuttynarwhal.com, https://fiber.nuttynarwhal.com, http://localhost:3000, http://localhost:8000",
-        AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-        AllowHeaders:     "Origin,Content-Type,Accept,Authorization, X-CSRF-Token",
-        AllowCredentials: true,
-    }))
+	// Add security headers
+	app.Use(helmet.New(helmet.Config{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "DENY",
+		ReferrerPolicy:        "no-referrer",
+		ContentSecurityPolicy: "default-src 'self'",
+	}))
 
-    app.Use(logger.New(logger.Config{
-        Format: "[${time}] ${status} - ${method} ${path} ${latency}\n",
-    }))
+	// Configure CORS properly
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "https://dev.nuttynarwhal.com, https://dev-mini.nuttynarwhal.com, https://nuttynarwhal.com, https://fiber.nuttynarwhal.com, http://localhost:3000, http://localhost:8000",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization, X-CSRF-Token",
+		AllowCredentials: true,
+	}))
 
-    // Set up middleware (if any)
-    app.Use(limiter.New(limiter.Config{
-        Max:        100,
-        Expiration: 1 * time.Minute,
-        KeyGenerator: func(c *fiber.Ctx) string {
-            return c.IP()
-        },
-    }))
+	app.Use(logger.New(logger.Config{
+		Format: "[${time}] ${status} - ${method} ${path} ${latency}\n",
+	}))
 
-        // Add custom CSRF protection
-    app.Use(middleware.ValidateCSRF)
+	// Set up middleware (if any)
+	app.Use(limiter.New(limiter.Config{
+		Max:        100,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+	}))
 
-    // Security logging middleware
-    // app.Use(middleware.SecurityLoggerMiddleware)
-    // log.Println("Security logging middleware added.")
-    log.Println("Middleware setup complete.")
+	// Add custom CSRF protection
+	app.Use(middleware.ValidateCSRF)
 
-    // Set up routes
-    log.Println("Setting up API routes...")
-    router.SetupRoutes(app, config.DB)
-    log.Println("API routes setup complete.")
-    // fmt.Printf("%s●%s Server is listening on port %s\n", colorGreen, colorReset, cfg.Port)
-    
-    
-    // Serve static files (React app) - this should come AFTER API routes
-    log.Println("Setting up static file routes...")
-    handlers.SetupStaticRoutes(app)
-    log.Println("Static file routes setup complete.")
+	// Security logging middleware
+	// app.Use(middleware.SecurityLoggerMiddleware)
+	// log.Println("Security logging middleware added.")
+	log.Println("Middleware setup complete.")
 
-    log.Println("Starting server on port 5000...")
-    // Start the server
-    // Start the server
-    if err := app.Listen(":5000"); err != nil {
-        log.Fatalf("Fiber server failed to start: %v", err)
-    }
+	// Set up routes
+	log.Println("Setting up API routes...")
+	router.SetupRoutes(app, config.DB)
+	log.Println("API routes setup complete.")
+	// fmt.Printf("%s●%s Server is listening on port %s\n", colorGreen, colorReset, cfg.Port)
+
+	// Serve static files (React app) - this should come AFTER API routes
+	log.Println("Setting up static file routes...")
+	handlers.SetupStaticRoutes(app)
+	log.Println("Static file routes setup complete.")
+
+	log.Println("Starting server on port 5000...")
+	// Start the server
+	// Start the server
+	if err := app.Listen(":5000"); err != nil {
+		log.Fatalf("Fiber server failed to start: %v", err)
+	}
 }
 
 func startBackgroundTasks() {
-    ticker := time.NewTicker(24 * time.Hour) // Check daily
-    defer ticker.Stop()
+	ticker := time.NewTicker(24 * time.Hour) // Check daily
+	defer ticker.Stop()
 
-    for range ticker.C {
-        if err := models.CheckExpiredConsents(); err != nil {
-            log.Printf("Error checking expired consents: %v", err)
-        } else {
-            log.Println("Successfully checked and updated expired consents")
-        }
-    }
+	for range ticker.C {
+		if err := models.CheckExpiredConsents(); err != nil {
+			log.Printf("Error checking expired consents: %v", err)
+		} else {
+			log.Println("Successfully checked and updated expired consents")
+		}
+	}
 }

@@ -268,6 +268,18 @@ func CreateTask(c *fiber.Ctx) error {
 	// Reload with associations
 	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
 
+	// Trigger webhook for task creation
+	TriggerWebhook(models.EventTaskCreated, map[string]interface{}{
+		"taskId":      task.ID,
+		"title":       task.Title,
+		"description": task.Description,
+		"priority":    task.Priority,
+		"status":      task.Status,
+		"dueDate":     task.DueDate,
+		"patientId":   task.PatientID,
+		"assignedTo":  task.AssignedToID,
+	})
+
 	return c.Status(fiber.StatusCreated).JSON(task)
 }
 
