@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
+import { useAuthStore } from "@/stores/authStore"
 
-type Theme = "dark" | "light" | "system"
+type Theme = "dark" | "light" | "system" | "medical-blue" | "high-contrast"
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -26,14 +27,28 @@ export function ThemeProvider({
   storageKey = "vite-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  const { user, updateTheme, isAuthenticated } = useAuthStore()
+  
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // If user is authenticated and has a theme preference, use it
+    if (user?.themePreference) {
+      return user.themePreference
+    }
+    // Otherwise check localStorage
+    return (localStorage.getItem(storageKey) as Theme) || defaultTheme
+  })
+
+  // Apply user's theme preference when they log in
+  useEffect(() => {
+    if (isAuthenticated && user?.themePreference && user.themePreference !== theme) {
+      setThemeState(user.themePreference)
+    }
+  }, [isAuthenticated, user?.themePreference])
 
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
+    root.classList.remove("light", "dark", "medical-blue", "high-contrast")
 
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
@@ -46,7 +61,7 @@ export function ThemeProvider({
       // Listen for OS theme changes in real-time
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
       const handleChange = (e: MediaQueryListEvent) => {
-        root.classList.remove("light", "dark")
+        root.classList.remove("light", "dark", "medical-blue", "high-contrast")
         root.classList.add(e.matches ? "dark" : "light")
       }
 
@@ -59,9 +74,16 @@ export function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
+    setTheme: (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme)
+      setThemeState(newTheme)
+      
+      // If user is authenticated, save theme preference to backend
+      if (isAuthenticated) {
+        updateTheme(newTheme).catch(err => {
+          console.error('Failed to save theme preference:', err)
+        })
+      }
     },
   }
 

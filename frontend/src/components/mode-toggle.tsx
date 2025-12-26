@@ -1,10 +1,11 @@
-import { Moon, Sun, Monitor } from "lucide-react"
+import { Moon, Sun, Monitor, Stethoscope, Eye } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
@@ -36,6 +37,17 @@ export function ModeToggle() {
           <Monitor className="h-4 w-4" />
           System
           {theme === "system" && <span className="ml-auto text-xs">✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setTheme("medical-blue")} className="gap-2">
+          <Stethoscope className="h-4 w-4" />
+          Medical Blue
+          {theme === "medical-blue" && <span className="ml-auto text-xs">✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("high-contrast")} className="gap-2">
+          <Eye className="h-4 w-4" />
+          High Contrast
+          {theme === "high-contrast" && <span className="ml-auto text-xs">✓</span>}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

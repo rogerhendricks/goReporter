@@ -4,13 +4,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/models"
 
-	"github.com/rogerhendricks/goReporter/internal/utils"
 	"errors"
 	"html"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/rogerhendricks/goReporter/internal/utils"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -309,11 +310,11 @@ func validateUserUpdate(user *models.User, isAdmin bool) error {
 		return errors.New("invalid role")
 	}
 
-   // Validate password if provided (admin only updates) - use new complexity validation
-    if user.Password != "" {
-        if err := utils.ValidatePasswordComplexity(user.Password); err != nil {
-            return err
-    	}
+	// Validate password if provided (admin only updates) - use new complexity validation
+	if user.Password != "" {
+		if err := utils.ValidatePasswordComplexity(user.Password); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -345,4 +346,48 @@ func isValidRole(role string) bool {
 		}
 	}
 	return false
+}
+
+// UpdateUserTheme updates the theme preference for the authenticated user
+func UpdateUserTheme(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+
+	var req struct {
+		Theme string `json:"theme"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	// Validate theme
+	validThemes := []string{"light", "dark", "system", "medical-blue", "high-contrast"}
+	isValid := false
+	for _, theme := range validThemes {
+		if req.Theme == theme {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid theme. Must be one of: light, dark, system, medical-blue, high-contrast"})
+	}
+
+	// Update user's theme preference
+	user, err := models.GetUserByID(userID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+	}
+
+	user.ThemePreference = req.Theme
+	if err := models.UpdateUser(user); err != nil {
+		log.Printf("Failed to update theme for user %s: %v", userID, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update theme"})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Theme updated successfully",
+		"theme":   req.Theme,
+	})
 }

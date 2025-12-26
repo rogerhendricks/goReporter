@@ -1,10 +1,9 @@
-import { Link, useNavigate, useLocation, href } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet, Eye, Palette } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-// import { ModeToggle } from '../mode-toggle'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -15,11 +14,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import logoUrl from '../../assets/rpm-fusion-logo.min.svg'
+import { useState } from 'react'
+
 export function Navbar() {
   const { user, isAuthenticated, logout, hasAccess } = useAuthStore()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showThemeOptions, setShowThemeOptions] = useState(false)
+  const [showMobileThemeOptions, setShowMobileThemeOptions] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -111,22 +114,85 @@ export function Navbar() {
                 <div className="text-xs text-muted-foreground capitalize">Role: {user?.role}</div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Theme</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => setTheme('light')}>
-                <Sun className="mr-2 h-4 w-4" />
-                Light
-                {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
+              
+              {/* Theme Section */}
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setShowThemeOptions(!showThemeOptions)
+                }}
+                className="flex items-center justify-between cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4" />
+                  Theme
+                </div>
+                <ChevronRight className={cn(
+                  "h-4 w-4 transition-transform",
+                  showThemeOptions && "rotate-90"
+                )} />
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')}>
-                <Moon className="mr-2 h-4 w-4" />
-                Dark
-                {theme === 'dark' && <Check className="ml-auto h-4 w-4" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')}>
-                <Monitor className="mr-2 h-4 w-4" />
-                System
-                {theme === 'system' && <Check className="ml-auto h-4 w-4" />}
-              </DropdownMenuItem>
+              
+              {showThemeOptions && (
+                <>
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setTheme("light")
+                    }} 
+                    className="pl-8"
+                  >
+                    <Sun className="mr-2 h-4 w-4" />
+                    Light
+                    {theme === "light" && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setTheme("dark")
+                    }} 
+                    className="pl-8"
+                  >
+                    <Moon className="mr-2 h-4 w-4" />
+                    Dark
+                    {theme === "dark" && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setTheme("system")
+                    }} 
+                    className="pl-8"
+                  >
+                    <Monitor className="mr-2 h-4 w-4" />
+                    System
+                    {theme === "system" && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setTheme("medical-blue")
+                    }} 
+                    className="pl-8"
+                  >
+                    <Stethoscope className="mr-2 h-4 w-4" />
+                    Medical Blue
+                    {theme === "medical-blue" && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setTheme("high-contrast")
+                    }} 
+                    className="pl-8"
+                  >
+                    <Eye className="h-4 w-4" />
+                    High Contrast
+                    {theme === "high-contrast" && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                </>
+              )}
+              
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -163,7 +229,7 @@ export function Navbar() {
               <SheetHeader>
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               </SheetHeader>
-              <nav className="grid gap-6 text-lg font-medium">
+              <nav className="grid gap-6 text-lg font-medium pl-4 pr-4">
                 <Link to="/" className="flex items-center gap-2 text-lg font-semibold mb-4">
                   <HeartPulse className="h-6 w-6" />
                   <span>RPM Fusion</span>
@@ -183,17 +249,97 @@ export function Navbar() {
                         {link.label}
                       </Link>
                     ))}
-                  <div className="border-t pt-4 mt-auto">
-                    <div className="font-medium">{user?.username}</div>
-                    <div className="text-xs text-muted-foreground">{user?.email}</div>
-                    <div className="text-xs text-muted-foreground capitalize">Role: {user?.role}</div>
-                  </div>
-                    <Button variant="outline" onClick={handleLogout} className="mt-4">Logout</Button>
+                    
+                    {/* Mobile Theme Section */}
+                    <div className="border-t pt-4">
+                      <button
+                        onClick={() => setShowMobileThemeOptions(!showMobileThemeOptions)}
+                        className="flex items-center justify-between w-full hover:text-foreground transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Palette className="h-5 w-5" />
+                          <span className="text-lg font-medium">Theme</span>
+                        </div>
+                        <ChevronRight className={cn(
+                          "h-5 w-5 transition-transform",
+                          showMobileThemeOptions && "rotate-90"
+                        )} />
+                      </button>
+                      
+                      {showMobileThemeOptions && (
+                        <div className="mt-2 ml-7 space-y-2">
+                          <button
+                            onClick={() => setTheme("light")}
+                            className={cn(
+                              "flex items-center gap-2 w-full py-2 hover:text-foreground transition-colors",
+                              theme === "light" && "text-foreground font-medium"
+                            )}
+                          >
+                            <Sun className="h-4 w-4" />
+                            Light
+                            {theme === "light" && <Check className="ml-auto h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => setTheme("dark")}
+                            className={cn(
+                              "flex items-center gap-2 w-full py-2 hover:text-foreground transition-colors",
+                              theme === "dark" && "text-foreground font-medium"
+                            )}
+                          >
+                            <Moon className="h-4 w-4" />
+                            Dark
+                            {theme === "dark" && <Check className="ml-auto h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => setTheme("system")}
+                            className={cn(
+                              "flex items-center gap-2 w-full py-2 hover:text-foreground transition-colors",
+                              theme === "system" && "text-foreground font-medium"
+                            )}
+                          >
+                            <Monitor className="h-4 w-4" />
+                            System
+                            {theme === "system" && <Check className="ml-auto h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => setTheme("medical-blue")}
+                            className={cn(
+                              "flex items-center gap-2 w-full py-2 hover:text-foreground transition-colors",
+                              theme === "medical-blue" && "text-foreground font-medium"
+                            )}
+                          >
+                            <Stethoscope className="h-4 w-4" />
+                            Medical Blue
+                            {theme === "medical-blue" && <Check className="ml-auto h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => setTheme("high-contrast")}
+                            className={cn(
+                              "flex items-center gap-2 w-full py-2 hover:text-foreground transition-colors",
+                              theme === "high-contrast" && "text-foreground font-medium"
+                            )}
+                          >
+                            <Eye className="h-4 w-4" />
+                            High Contrast
+                            {theme === "high-contrast" && <Check className="ml-auto h-4 w-4" />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="border-t pt-4">
+                      <div className="font-medium">{user?.username}</div>
+                      <div className="text-xs text-muted-foreground">{user?.email}</div>
+                      <div className="text-xs text-muted-foreground capitalize">Role: {user?.role}</div>
+                    </div>
+                    <Button variant="outline" onClick={handleLogout} className="mt-4 w-full">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </Button>
                   </>
                 ) : (
                   <>
                     <Link to="/login" className="hover:text-foreground">Login</Link>
-                    {/* <Link to="/register" className="hover:text-foreground">Register</Link> */}
                   </>
                 )}
               </nav>

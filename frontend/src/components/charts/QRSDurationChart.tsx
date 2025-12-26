@@ -11,6 +11,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTheme } from '@/components/theme-provider'
 
 
 ChartJS.register(
@@ -34,6 +35,15 @@ interface QRSDurationChartProps {
 }
 
 export function QRSDurationChart({ reports }: QRSDurationChartProps) {
+  const { theme } = useTheme()
+  
+  // Get theme-aware colors
+  const root = document.documentElement
+  const style = getComputedStyle(root)
+  const primaryColor = style.getPropertyValue('--color-chart-1').trim() || 'hsl(var(--chart-1))'
+  const textColor = style.getPropertyValue('--color-foreground').trim() || 'hsl(var(--foreground))'
+  const gridColor = style.getPropertyValue('--color-border').trim() || 'hsl(var(--border))'
+  
   // Filter reports that have QRS duration data
   const qrsReports = reports
     // .filter((report) => report.qrs_duration !== null)
@@ -59,8 +69,8 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
       {
         label: 'QRS Duration (ms)',
         data: qrsReports.map((report) => report.qrs_duration),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: primaryColor,
+        backgroundColor: primaryColor.replace(')', ' / 0.2)'),
         tension: 0.1,
       },
     ],
@@ -71,10 +81,21 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          color: textColor,
+        },
       },
       title: {
         display: true,
         text: 'QRS Duration Measurements',
+        color: textColor,
+      },
+      tooltip: {
+        backgroundColor: 'hsl(var(--popover))',
+        titleColor: textColor,
+        bodyColor: textColor,
+        borderColor: gridColor,
+        borderWidth: 1,
       },
     },
     scales: {
@@ -83,12 +104,26 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
         title: {
           display: true,
           text: 'Duration (ms)',
+          color: textColor,
+        },
+        ticks: {
+          color: textColor,
+        },
+        grid: {
+          color: gridColor,
         },
       },
       x: {
         title: {
           display: true,
           text: 'Report Date',
+          color: textColor,
+        },
+        ticks: {
+          color: textColor,
+        },
+        grid: {
+          color: gridColor,
         },
       },
     },

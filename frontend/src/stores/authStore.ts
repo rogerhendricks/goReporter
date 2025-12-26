@@ -7,6 +7,7 @@ interface User {
   email: string
   username: string
   role: 'admin' | 'doctor' | 'user'
+  themePreference?: 'light' | 'dark' | 'system' | 'medical-blue' | 'high-contrast'
 }
 
 interface AuthState {
@@ -25,6 +26,7 @@ interface AuthState {
   logout: () => Promise<void>
   refreshToken: () => Promise<void>
   initializeAuth: () => Promise<void>
+  updateTheme: (theme: string) => Promise<void>
   get isAdmin(): boolean
   get isDoctor(): boolean
   get isUser(): boolean
@@ -180,7 +182,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       loading: false 
     })
   }
-}
+},
+
+  updateTheme: async (theme: string) => {
+    try {
+      await api.put('/users/theme', { theme }, { withCredentials: true })
+      
+      // Update user state with new theme preference
+      const { user } = get()
+      if (user) {
+        set({
+          user: {
+            ...user,
+            themePreference: theme as User['themePreference']
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to update theme preference:', error)
+      throw error
+    }
+  }
   // initializeAuth: async () => {
   //   if (get().isInitialized) return
 

@@ -49,6 +49,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/users", middleware.RequireAdmin, handlers.GetUsers)
 	app.Get("/api/users/:id", handlers.GetUserProfile)
 	app.Put("/api/users/:id", handlers.UpdateUser)
+	app.Put("/api/users/theme", handlers.UpdateUserTheme)
 	app.Delete("/api/users/:id", handlers.DeleteUser)
 	app.Post("/api/users", handlers.CreateUser)
 
