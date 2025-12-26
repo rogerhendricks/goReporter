@@ -91,7 +91,7 @@ func AuthenticateJWT(c *fiber.Ctx) error {
 
     c.Locals("userID", userID)
     c.Locals("user", &user)
-    // c.Locals("user_id", user.ID)
+    c.Locals("user_id", user.ID) // Legacy variable for task.go handlers
     c.Locals("user_role", user.Role)
 
     c.Locals("username", user.Username)
