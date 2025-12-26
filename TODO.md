@@ -7,7 +7,6 @@
 ### Future ideas
 - Trend Analysis: Add time-series charts showing device failure patterns, report completion rates over time
 - Predictive Analytics: Implement ML models to predict device maintenance needs based on historical data
-- Custom Report Builder: Allow users to create custom reports with drag-and-drop filters
 - Export Options: Add PDF, Excel, and CSV exports for all analytics views
 
 #### Notification and Alert System
@@ -37,14 +36,7 @@ Automated alerts for suspicious activity patterns
 - OCR for scanned documents
 - Full-text search across all documents
 - Integration with your existing file.go handler
-#### Advanced Search & Filtering
-Enhance your existing search.go:
 
-- **Done** Fuzzy search across all entities
-- **Done** Saved search filters
-- **Done** Boolean operators (AND, OR, NOT)
-- **Done** Search history and suggestions
-- **Done** Global search bar with quick results preview
 ####  Scheduling & Appointment System
 ```
 // New model: internal/models/appointment.go
@@ -64,6 +56,7 @@ type Appointment struct {
 - Automated appointment reminders
 - Recurring appointment templates
 - Integration with task system
+
 #### Mobile-Responsive Design Improvements
 - Progressive Web App (PWA) capabilities
 - Offline mode for critical data entry
@@ -187,28 +180,11 @@ Enhance your DonutChart.tsx:
 #### Form Improvements
 Building on ReportForm.tsx:
 
-- Auto-save draft functionality
 - Field validation with helpful error messages
 - Conditional field display
 - Multi-step forms with progress indicators
 - Form templates for common scenarios
 - Smart field pre-population
-
-#### Keyboard Shortcuts
-```
-// New component: frontend/src/components/KeyboardShortcuts.tsx
-const shortcuts = {
-  'Ctrl+K': 'Global search',
-  'Ctrl+N': 'New patient',
-  'Ctrl+R': 'New report',
-  'Ctrl+T': 'New task',
-  '?': 'Show shortcuts'
-}
-```
-- Command palette (Cmd+K)
-- Quick navigation shortcuts
-- Form submission shortcuts
-- Help overlay with all shortcuts
 
 #### Onboarding & Help System
 - Interactive product tour for new users
@@ -276,11 +252,11 @@ type RetentionPolicy struct {
 ### Quick Wins (Start Here)
 - **Add toast notifications** across the app (you're using Sonner)
 - **Implement dark mode polish **(you have basic theme support)
-- **Add loading skeletons **(you have Skeleton)
+- **Done** ~~Add loading skeletons (you have Skeleton)~~
 - **Create a changelog page** to track updates
-- **Add keyboard shortcuts** for power users
+- **Done** ~~Add keyboard shortcuts for power users~~
 - **Implement bulk operations** (delete, export, assign)
 - **Add data export to Excel/PDF** for all list views
-- **Create email templates **for common notifications
+- **Create email templates** for common notifications
 - **Add "Recently Viewed"** section to dashboards
 - **Implement auto-complete** for patient/device search

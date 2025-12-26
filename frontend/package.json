@@ -51,6 +51,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "xlsx": "^0.18.5",
+    "zod": "^4.2.1",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

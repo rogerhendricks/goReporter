@@ -7,12 +7,14 @@ import type { Arrhythmia } from '@/stores/reportStore'
 import type { Patient } from '@/stores/patientStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ValidatedInput } from '@/components/ui/validated-input'
 import { Label } from '@/components/ui/label'
 // import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Calendar } from "@/components/ui/calendar"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -31,6 +33,7 @@ import { REPORT_COMMENT_SUGGESTIONS } from '@/data/commentSuggestions'
 import { tagService } from '@/services/tagService'
 import type { Tag } from '@/services/tagService'
 import { useFormShortcuts } from '@/hooks/useFormShortcuts'
+import { fieldValidators } from '@/validation/reportSchema'
 
 const initialFormData: Partial<Report> = {
   // Report info
@@ -133,7 +136,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   const navigate = useNavigate()
   const isEdit = !!reportId
   const pdfManager = usePdfManager() 
-  const { currentReport, fetchReport, setCurrentReport } = useReportStore()
+  const { currentReport, fetchReport, fetchMostRecentReport, setCurrentReport } = useReportStore()
   const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
@@ -144,6 +147,14 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const draftKey = `report-draft-${patient.id}-${reportId || 'new'}`
+  
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  
+  // Pre-population state
+  const [previousReport, setPreviousReport] = useState<Report | null>(null)
+  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false)
+  const [prePopulatedFrom, setPrePopulatedFrom] = useState<number | null>(null)
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -242,6 +253,21 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
     loadTags()
   }, [])
+  
+  // Fetch most recent report for new reports
+  useEffect(() => {
+    const loadPreviousReport = async () => {
+      if (!isEdit && patient?.id) {
+        setIsLoadingPrevious(true)
+        const report = await fetchMostRecentReport(patient.id)
+        if (report) {
+          setPreviousReport(report)
+        }
+        setIsLoadingPrevious(false)
+      }
+    }
+    loadPreviousReport()
+  }, [isEdit, patient?.id, fetchMostRecentReport])
 
   const toggleTag = (tagId: number) => {
     setFormData(prev => {
@@ -263,6 +289,75 @@ export function ReportForm({ patient }: ReportFormProps) {
       return { ...prev, tags: newTags }
     })
   }
+  
+  // Pre-populate form from previous report
+  const loadFromPreviousReport = () => {
+    if (!previousReport) return
+    
+    // Fields to pre-populate (settings that typically don't change between reports)
+    const fieldsToPrePopulate = {
+      // Device settings - usually stay the same
+      mdc_idc_set_brady_mode: previousReport.mdc_idc_set_brady_mode,
+      mdc_idc_set_brady_lowrate: previousReport.mdc_idc_set_brady_lowrate,
+      mdc_idc_set_brady_max_tracking_rate: previousReport.mdc_idc_set_brady_max_tracking_rate,
+      mdc_idc_set_brady_max_sensor_rate: previousReport.mdc_idc_set_brady_max_sensor_rate,
+      mdc_idc_dev_sav: previousReport.mdc_idc_dev_sav,
+      mdc_idc_dev_pav: previousReport.mdc_idc_dev_pav,
+      
+      // Tachy settings - usually stay the same unless reprogrammed
+      VT1_detection_interval: previousReport.VT1_detection_interval,
+      VT1_therapy_1_atp: previousReport.VT1_therapy_1_atp,
+      VT1_therapy_1_no_bursts: previousReport.VT1_therapy_1_no_bursts,
+      VT1_therapy_2_atp: previousReport.VT1_therapy_2_atp,
+      VT1_therapy_2_no_bursts: previousReport.VT1_therapy_2_no_bursts,
+      VT1_therapy_3_cvrt: previousReport.VT1_therapy_3_cvrt,
+      VT1_therapy_3_energy: previousReport.VT1_therapy_3_energy,
+      VT1_therapy_4_cvrt: previousReport.VT1_therapy_4_cvrt,
+      VT1_therapy_4_energy: previousReport.VT1_therapy_4_energy,
+      VT1_therapy_5_cvrt: previousReport.VT1_therapy_5_cvrt,
+      VT1_therapy_5_energy: previousReport.VT1_therapy_5_energy,
+      VT1_therapy_5_max_num_shocks: previousReport.VT1_therapy_5_max_num_shocks,
+      
+      VT2_detection_interval: previousReport.VT2_detection_interval,
+      VT2_therapy_1_atp: previousReport.VT2_therapy_1_atp,
+      VT2_therapy_1_no_bursts: previousReport.VT2_therapy_1_no_bursts,
+      VT2_therapy_2_atp: previousReport.VT2_therapy_2_atp,
+      VT2_therapy_2_no_bursts: previousReport.VT2_therapy_2_no_bursts,
+      VT2_therapy_3_cvrt: previousReport.VT2_therapy_3_cvrt,
+      VT2_therapy_3_energy: previousReport.VT2_therapy_3_energy,
+      VT2_therapy_4_cvrt: previousReport.VT2_therapy_4_cvrt,
+      VT2_therapy_4_energy: previousReport.VT2_therapy_4_energy,
+      VT2_therapy_5_cvrt: previousReport.VT2_therapy_5_cvrt,
+      VT2_therapy_5_energy: previousReport.VT2_therapy_5_energy,
+      VT2_therapy_5_max_num_shocks: previousReport.VT2_therapy_5_max_num_shocks,
+      
+      VF_detection_interval: previousReport.VF_detection_interval,
+      VF_therapy_1_atp: previousReport.VF_therapy_1_atp,
+      VF_therapy_1_no_bursts: previousReport.VF_therapy_1_no_bursts,
+      VF_therapy_2_energy: previousReport.VF_therapy_2_energy,
+      VF_therapy_3_energy: previousReport.VF_therapy_3_energy,
+      VF_therapy_4_energy: previousReport.VF_therapy_4_energy,
+      VF_therapy_4_max_num_shocks: previousReport.VF_therapy_4_max_num_shocks,
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      ...fieldsToPrePopulate
+    }))
+    
+    setPrePopulatedFrom(previousReport.id)
+    toast.success('Settings loaded from previous report', {
+      description: `Report from ${new Date(previousReport.reportDate).toLocaleDateString()}`
+    })
+  }
+  
+  // Clear pre-populated data
+  const clearPrePopulatedData = () => {
+    setFormData(initialFormData)
+    setPrePopulatedFrom(null)
+    toast.info('Form cleared')
+  }
+  
   console.log('Rendering ReportForm with patient:', patient)
 
   const handleDataImported = (data: ParsedData) => {
@@ -640,10 +735,47 @@ export function ReportForm({ patient }: ReportFormProps) {
     toast.info(`Found ${fields.length} form fields. Check console for details.`)
   }
 
-    const handleMeasurementChange = (fieldName: keyof Report, value: string) => {
+    // Validation helper function
+  const validateField = (fieldName: string, value: any) => {
+    const validator = fieldValidators[fieldName as keyof typeof fieldValidators]
+    if (validator) {
+      const result = validator(value)
+      if (!result.isValid && result.error) {
+        setValidationErrors(prev => ({ ...prev, [fieldName]: result.error! }))
+      } else {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors[fieldName]
+          return newErrors
+        })
+      }
+    }
+  }
+
+  const handleBlurValidation = (fieldName: string, value: any) => {
+    validateField(fieldName, value)
+  }
+  
+  // Helper for validated measurement changes
+  const handleValidatedMeasurementChange = (
+    fieldName: keyof Report, 
+    value: string, 
+    validatorName: keyof typeof fieldValidators
+  ) => {
     const numValue = value === '' ? undefined : parseFloat(value);
     setFormData(prev => ({ ...prev, [fieldName]: numValue }));
-  };
+    // Validate on change for measurements
+    if (numValue !== undefined) {
+      validateField(validatorName, numValue)
+    } else {
+      // Clear error if empty
+      setValidationErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[validatorName]
+        return newErrors
+      })
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
@@ -770,6 +902,8 @@ export function ReportForm({ patient }: ReportFormProps) {
     (d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt
     )
     console.log('activedevices', activeDevices)
+    
+    // Device capability detection
     const hasDefibrillator = activeDevices.some((d: any) => {
       const typeStr = (
         d?.device?.type ||
@@ -786,6 +920,46 @@ export function ReportForm({ patient }: ReportFormProps) {
         typeStr.includes('cardioverter')
       )
     })
+    
+    // Check if device has BiV/CRT capability (left ventricular lead)
+    const hasBiventricularPacing = activeDevices.some((d: any) => {
+      const typeStr = (
+        d?.device?.type ||
+        d?.device_type ||
+        d?.device?.name ||
+        ''
+      ).toLowerCase()
+      return (
+        typeStr.includes('crt') ||
+        typeStr.includes('biventricular') ||
+        typeStr.includes('bi-v') ||
+        typeStr.includes('biv')
+      )
+    }) || (patient?.leads ?? []).some((l: any) => 
+      String(l?.status || '').toLowerCase() === 'active' && 
+      !l?.explantedAt && 
+      l?.chamber?.toLowerCase().includes('lv')
+    )
+    
+    // Check if device has atrial pacing (dual chamber)
+    const hasAtrialPacing = activeDevices.some((d: any) => {
+      const typeStr = (
+        d?.device?.type ||
+        d?.device_type ||
+        d?.device?.name ||
+        d?.device?.model ||
+        ''
+      ).toLowerCase()
+      return (
+        typeStr.includes('dual') ||
+        typeStr.includes('ddd') ||
+        typeStr.includes('crt') // CRT devices are typically dual chamber
+      )
+    }) || (patient?.leads ?? []).some((l: any) => 
+      String(l?.status || '').toLowerCase() === 'active' && 
+      !l?.explantedAt && 
+      (l?.chamber?.toLowerCase().includes('ra') || l?.chamber?.toLowerCase().includes('atrial'))
+    )
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -822,8 +996,70 @@ export function ReportForm({ patient }: ReportFormProps) {
             )}
           </>
         )}
+        {!isEdit && prePopulatedFrom && (
+          <Badge variant="default" className="gap-1.5">
+            <FileText className="h-3 w-3" />
+            Loaded from previous report
+          </Badge>
+        )}
       </div>
-      <FileImporter onDataImported={handleDataImported} />
+      <div className="flex items-center gap-2">
+        {!isEdit && previousReport && (
+          <>
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <Button
+                  type="button"
+                  variant={prePopulatedFrom ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={loadFromPreviousReport}
+                  disabled={isLoadingPrevious || prePopulatedFrom === previousReport.id}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Load from Previous
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold">Auto-fill from Previous Report</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Loads device settings and tachy parameters from your last report dated{' '}
+                    <span className="font-medium">
+                      {new Date(previousReport.reportDate).toLocaleDateString()}
+                    </span>
+                  </p>
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium">What gets loaded:</p>
+                    <ul className="list-disc list-inside mt-1 space-y-0.5">
+                      <li>Pacing mode & rate limits</li>
+                      <li>AV delays</li>
+                      <li>Tachy zones & therapies</li>
+                    </ul>
+                    <p className="font-medium mt-2">What stays blank:</p>
+                    <ul className="list-disc list-inside mt-1 space-y-0.5">
+                      <li>Measurements (impedances, sensing)</li>
+                      <li>Battery diagnostics</li>
+                      <li>Pacing percentages</li>
+                      <li>Arrhythmias & comments</li>
+                    </ul>
+                  </div>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            {prePopulatedFrom && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearPrePopulatedData}
+              >
+                Clear
+              </Button>
+            )}
+          </>
+        )}
+        <FileImporter onDataImported={handleDataImported} />
+      </div>
     </div>
     <div>
   {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
@@ -956,12 +1192,14 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Label htmlFor="currentHeartRate" className="text-xs font-medium leading-tight">
                 Heart Rate (bpm)
               </Label>
-              <Input
+              <ValidatedInput
                 id="currentHeartRate"
                 name="currentHeartRate"
                 type="number"
                 value={formData.currentHeartRate || ''}
                 onChange={handleChange}
+                onBlurValidation={(value) => handleBlurValidation('heartRate', parseFloat(value) || undefined)}
+                error={validationErrors.heartRate}
                 placeholder="e.g., 60"
                 className="h-8 text-sm"
               />
@@ -1005,13 +1243,15 @@ export function ReportForm({ patient }: ReportFormProps) {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium leading-tight">QRS Duration</Label>
-              <Input
+              <Label className="text-xs font-medium leading-tight">QRS Duration (ms)</Label>
+              <ValidatedInput
                 id="qrs_duration"
                 name="qrs_duration"
                 type="number"
                 value={formData.qrs_duration || ''}
                 onChange={handleChange}
+                onBlurValidation={(value) => handleBlurValidation('qrsDuration', parseFloat(value) || undefined)}
+                error={validationErrors.qrsDuration}
                 placeholder="e.g., 80-120"
                 className="h-8 text-sm"
               />
@@ -1081,15 +1321,39 @@ export function ReportForm({ patient }: ReportFormProps) {
           </div>
           <div className="space-y-2 min-w-0">
             <Label htmlFor="mdc_idc_set_brady_lowrate">LRL (bpm)</Label>
-            <Input id="mdc_idc_set_brady_lowrate" name="mdc_idc_set_brady_lowrate" type="number" value={formData.mdc_idc_set_brady_lowrate || ''} onChange={handleChange} />
+            <ValidatedInput 
+              id="mdc_idc_set_brady_lowrate" 
+              name="mdc_idc_set_brady_lowrate" 
+              type="number" 
+              value={formData.mdc_idc_set_brady_lowrate || ''} 
+              onChange={handleChange}
+              onBlurValidation={(value) => handleBlurValidation('heartRate', parseFloat(value) || undefined)}
+              error={validationErrors.heartRate && formData.mdc_idc_set_brady_lowrate !== undefined ? validationErrors.heartRate : undefined}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="mdc_idc_set_brady_max_tracking_rate">MTR (bpm)</Label>
-            <Input id="mdc_idc_set_brady_max_tracking_rate" name="mdc_idc_set_brady_max_tracking_rate" type="number" value={formData.mdc_idc_set_brady_max_tracking_rate || ''} onChange={handleChange} />
+            <ValidatedInput 
+              id="mdc_idc_set_brady_max_tracking_rate" 
+              name="mdc_idc_set_brady_max_tracking_rate" 
+              type="number" 
+              value={formData.mdc_idc_set_brady_max_tracking_rate || ''} 
+              onChange={handleChange}
+              onBlurValidation={(value) => handleBlurValidation('heartRate', parseFloat(value) || undefined)}
+              error={validationErrors.heartRate && formData.mdc_idc_set_brady_max_tracking_rate !== undefined ? validationErrors.heartRate : undefined}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="mdc_idc_set_brady_max_sensor_rate">MSR (bpm)</Label>
-            <Input id="mdc_idc_set_brady_max_sensor_rate" name="mdc_idc_set_brady_max_sensor_rate" type="number" value={formData.mdc_idc_set_brady_max_sensor_rate || ''} onChange={handleChange} />
+            <ValidatedInput 
+              id="mdc_idc_set_brady_max_sensor_rate" 
+              name="mdc_idc_set_brady_max_sensor_rate" 
+              type="number" 
+              value={formData.mdc_idc_set_brady_max_sensor_rate || ''} 
+              onChange={handleChange}
+              onBlurValidation={(value) => handleBlurValidation('heartRate', parseFloat(value) || undefined)}
+              error={validationErrors.heartRate && formData.mdc_idc_set_brady_max_sensor_rate !== undefined ? validationErrors.heartRate : undefined}
+            />
           </div>
         </CardContent>
       </Card>
@@ -1213,22 +1477,28 @@ export function ReportForm({ patient }: ReportFormProps) {
             <CardDescription>Enter the percentage of time each chamber was paced.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mdc_idc_stat_brady_ra_percent_paced">RA Paced (%)</Label>
-              <Input id="mdc_idc_stat_brady_ra_percent_paced" name="mdc_idc_stat_brady_ra_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_ra_percent_paced || ''} onChange={handleChange} />
-            </div>
+            {hasAtrialPacing && (
+              <div className="space-y-2">
+                <Label htmlFor="mdc_idc_stat_brady_ra_percent_paced">RA Paced (%)</Label>
+                <Input id="mdc_idc_stat_brady_ra_percent_paced" name="mdc_idc_stat_brady_ra_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_ra_percent_paced || ''} onChange={handleChange} />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="mdc_idc_stat_brady_rv_percent_paced">RV Paced (%)</Label>
               <Input id="mdc_idc_stat_brady_rv_percent_paced" name="mdc_idc_stat_brady_rv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_rv_percent_paced || ''} onChange={handleChange} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="mdc_idc_stat_brady_lv_percent_paced">LV Paced (%)</Label>
-              <Input id="mdc_idc_stat_brady_lv_percent_paced" name="mdc_idc_stat_brady_lv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_lv_percent_paced || ''} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">BiV Paced (%)</Label>
-              <Input id="mdc_idc_stat_brady_biv_percent_paced" name="mdc_idc_stat_brady_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_biv_percent_paced || ''} onChange={handleChange} />
-            </div>
+            {hasBiventricularPacing && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="mdc_idc_stat_brady_lv_percent_paced">LV Paced (%)</Label>
+                  <Input id="mdc_idc_stat_brady_lv_percent_paced" name="mdc_idc_stat_brady_lv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_lv_percent_paced || ''} onChange={handleChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">BiV Paced (%)</Label>
+                  <Input id="mdc_idc_stat_brady_biv_percent_paced" name="mdc_idc_stat_brady_biv_percent_paced" type="number" step="any" value={formData.mdc_idc_stat_brady_biv_percent_paced || ''} onChange={handleChange} />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1240,7 +1510,16 @@ export function ReportForm({ patient }: ReportFormProps) {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="mdc_idc_batt_volt">Battery Voltage (V)</Label>
-              <Input id="mdc_idc_batt_volt" name="mdc_idc_batt_volt" type="number" step="any" value={formData.mdc_idc_batt_volt || ''} onChange={handleChange} />
+              <ValidatedInput 
+                id="mdc_idc_batt_volt" 
+                name="mdc_idc_batt_volt" 
+                type="number" 
+                step="any" 
+                value={formData.mdc_idc_batt_volt || ''} 
+                onChange={handleChange}
+                onBlurValidation={(value) => handleBlurValidation('batteryVoltage', parseFloat(value) || undefined)}
+                error={validationErrors.batteryVoltage}
+              />
             </div>
             <div className="space-y-2">  
               <Label htmlFor="mdc_idc_batt_remaining">Longevity (yrs)</Label>
@@ -1248,7 +1527,16 @@ export function ReportForm({ patient }: ReportFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor='mdc_idc_batt_percentage' >Longevity (%)</Label>
-              <Input id="mdc_idc_batt_percentage" name="mdc_idc_batt_percentage" type="number" step="any" value={formData.mdc_idc_batt_percentage || ''} onChange={handleChange} />
+              <ValidatedInput 
+                id="mdc_idc_batt_percentage" 
+                name="mdc_idc_batt_percentage" 
+                type="number" 
+                step="any" 
+                value={formData.mdc_idc_batt_percentage || ''} 
+                onChange={handleChange}
+                onBlurValidation={(value) => handleBlurValidation('percentage', parseFloat(value) || undefined)}
+                error={validationErrors.percentage}
+              />
             </div>
             <div className="space-y-2 min-w-0">
               <Label>Battery Status</Label>
@@ -1263,10 +1551,21 @@ export function ReportForm({ patient }: ReportFormProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 min-w-0">
-              <Label htmlFor="mdc_idc_cap_charge_time">Charge Time (s)</Label>
-              <Input id="mdc_idc_cap_charge_time" name="mdc_idc_cap_charge_time" type="number" step="any" value={formData.mdc_idc_cap_charge_time || ''} onChange={handleChange} />
-            </div>
+            {hasDefibrillator && (
+              <div className="space-y-2 min-w-0">
+                <Label htmlFor="mdc_idc_cap_charge_time">Charge Time (s)</Label>
+                <ValidatedInput 
+                  id="mdc_idc_cap_charge_time" 
+                  name="mdc_idc_cap_charge_time" 
+                  type="number" 
+                  step="any" 
+                  value={formData.mdc_idc_cap_charge_time || ''} 
+                  onChange={handleChange}
+                  onBlurValidation={(value) => handleBlurValidation('chargeTime', parseFloat(value) || undefined)}
+                  error={validationErrors.chargeTime}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1288,33 +1587,142 @@ export function ReportForm({ patient }: ReportFormProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-semibold">RA</TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_ra_impedance_mean || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_ra_impedance_mean', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_ra_sensing || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_ra_sensing', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_ra_pacing_threshold || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_ra_pacing_threshold', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_ra_pw || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_ra_pw', e.target.value)} /></TableCell>
-              </TableRow>
+              {hasAtrialPacing && (
+                <TableRow>
+                  <TableCell className="font-semibold">RA</TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_ra_impedance_mean || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_ra_impedance_mean', e.target.value, 'impedance')}
+                      error={validationErrors.impedance && formData.mdc_idc_msmt_ra_impedance_mean !== undefined ? validationErrors.impedance : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_ra_sensing || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_ra_sensing', e.target.value, 'sensing')}
+                      error={validationErrors.sensing && formData.mdc_idc_msmt_ra_sensing !== undefined ? validationErrors.sensing : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_ra_pacing_threshold || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_ra_pacing_threshold', e.target.value, 'threshold')}
+                      error={validationErrors.threshold && formData.mdc_idc_msmt_ra_pacing_threshold !== undefined ? validationErrors.threshold : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_ra_pw || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_ra_pw', e.target.value, 'pulseWidth')}
+                      error={validationErrors.pulseWidth && formData.mdc_idc_msmt_ra_pw !== undefined ? validationErrors.pulseWidth : undefined}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
               <TableRow>
                 <TableCell className="font-semibold">RV</TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_rv_impedance_mean || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_rv_impedance_mean', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_rv_sensing || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_rv_sensing', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_rv_pacing_threshold || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_rv_pacing_threshold', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_rv_pw || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_rv_pw', e.target.value)} /></TableCell>
+                <TableCell>
+                  <ValidatedInput 
+                    type="number" 
+                    step="any" 
+                    value={formData.mdc_idc_msmt_rv_impedance_mean || ''} 
+                    onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_rv_impedance_mean', e.target.value, 'impedance')}
+                    error={validationErrors.impedance && formData.mdc_idc_msmt_rv_impedance_mean !== undefined ? validationErrors.impedance : undefined}
+                  />
+                </TableCell>
+                <TableCell>
+                  <ValidatedInput 
+                    type="number" 
+                    step="any" 
+                    value={formData.mdc_idc_msmt_rv_sensing || ''} 
+                    onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_rv_sensing', e.target.value, 'sensing')}
+                    error={validationErrors.sensing && formData.mdc_idc_msmt_rv_sensing !== undefined ? validationErrors.sensing : undefined}
+                  />
+                </TableCell>
+                <TableCell>
+                  <ValidatedInput 
+                    type="number" 
+                    step="any" 
+                    value={formData.mdc_idc_msmt_rv_pacing_threshold || ''} 
+                    onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_rv_pacing_threshold', e.target.value, 'threshold')}
+                    error={validationErrors.threshold && formData.mdc_idc_msmt_rv_pacing_threshold !== undefined ? validationErrors.threshold : undefined}
+                  />
+                </TableCell>
+                <TableCell>
+                  <ValidatedInput 
+                    type="number" 
+                    step="any" 
+                    value={formData.mdc_idc_msmt_rv_pw || ''} 
+                    onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_rv_pw', e.target.value, 'pulseWidth')}
+                    error={validationErrors.pulseWidth && formData.mdc_idc_msmt_rv_pw !== undefined ? validationErrors.pulseWidth : undefined}
+                  />
+                </TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell className="font-semibold">LV</TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_lv_impedance_mean || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_lv_impedance_mean', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_lv_sensing || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_lv_sensing', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_lv_pacing_threshold || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_lv_pacing_threshold', e.target.value)} /></TableCell>
-                <TableCell><Input type="number" step="any" value={formData.mdc_idc_msmt_lv_pw || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_lv_pw', e.target.value)} /></TableCell>
-              </TableRow>
+              {hasBiventricularPacing && (
+                <TableRow>
+                  <TableCell className="font-semibold">LV</TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_lv_impedance_mean || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_lv_impedance_mean', e.target.value, 'impedance')}
+                      error={validationErrors.impedance && formData.mdc_idc_msmt_lv_impedance_mean !== undefined ? validationErrors.impedance : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_lv_sensing || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_lv_sensing', e.target.value, 'sensing')}
+                      error={validationErrors.sensing && formData.mdc_idc_msmt_lv_sensing !== undefined ? validationErrors.sensing : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_lv_pacing_threshold || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_lv_pacing_threshold', e.target.value, 'threshold')}
+                      error={validationErrors.threshold && formData.mdc_idc_msmt_lv_pacing_threshold !== undefined ? validationErrors.threshold : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <ValidatedInput 
+                      type="number" 
+                      step="any" 
+                      value={formData.mdc_idc_msmt_lv_pw || ''} 
+                      onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_lv_pw', e.target.value, 'pulseWidth')}
+                      error={validationErrors.pulseWidth && formData.mdc_idc_msmt_lv_pw !== undefined ? validationErrors.pulseWidth : undefined}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-          <div className="mt-4 border-t pt-4">
-             <Label className='pb-2'>RV Shock Impedance (Ω)</Label>
-             <Input type="number" step="any" value={formData.mdc_idc_msmt_shock_impedance || ''} onChange={e => handleMeasurementChange('mdc_idc_msmt_shock_impedance', e.target.value)} className="max-w-xs" />
-          </div>
+          {hasDefibrillator && (
+            <div className="mt-4 border-t pt-4">
+              <Label className='pb-2'>RV Shock Impedance (Ω)</Label>
+              <ValidatedInput 
+                type="number" 
+                step="any" 
+                value={formData.mdc_idc_msmt_shock_impedance || ''} 
+                onChange={e => handleValidatedMeasurementChange('mdc_idc_msmt_shock_impedance', e.target.value, 'shockImpedance')}
+                error={validationErrors.shockImpedance}
+                className="max-w-xs" 
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

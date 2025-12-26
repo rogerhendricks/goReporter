@@ -119,6 +119,7 @@ interface ReportState {
   // Actions
   fetchReportsForPatient: (patientId: number) => Promise<void>
   fetchReport: (reportId: number) => Promise<void>
+  fetchMostRecentReport: (patientId: number) => Promise<Report | null>
   // createReport: (data: Partial<Report>) => Promise<Report>
   // updateReport: (id: number, data: Partial<Report>) => Promise<Report>
   setCurrentReport: (report: Report) => void 
@@ -154,6 +155,20 @@ export const useReportStore = create<ReportState>((set) => ({
       set({ currentReport: response.data, loading: false })
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to fetch report', loading: false })
+    }
+  },
+
+  fetchMostRecentReport: async (patientId) => {
+    try {
+      const response = await api.get(`/patients/${patientId}/reports?limit=1&sort=reportDate&order=desc`)
+      const reports = response.data.reports || response.data
+      if (reports && reports.length > 0) {
+        return reports[0]
+      }
+      return null
+    } catch (error) {
+      console.error('Failed to fetch most recent report:', error)
+      return null
     }
   },
 
