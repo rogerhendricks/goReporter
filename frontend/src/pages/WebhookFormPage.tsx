@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, Info, AlertTriangle } from 'lucide-react'
+import { Info, AlertTriangle } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -18,6 +18,7 @@ import {
 } from '../components/ui/select'
 import { webhookService, AVAILABLE_EVENTS, type CreateWebhookRequest } from '../services/webhookService'
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 
 export default function WebhookFormPage() {
   const navigate = useNavigate()
@@ -158,18 +159,14 @@ export default function WebhookFormPage() {
     )
   }
 
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Webhooks', href: '/webhooks' },
+    { label: isEdit ? 'Edit Webhook' : 'New Webhook', href: isEdit ? `/webhooks/${id}` : '/webhooks/new', current: true }
+  ]
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-4"
-        onClick={() => navigate('/webhooks')}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Webhooks
-      </Button>
-
+    <div className="container mx-auto  max-w-4xl">
+        <BreadcrumbNav items={breadcrumbItems} />
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">
           {isEdit ? 'Edit Webhook' : 'Create Webhook'}
