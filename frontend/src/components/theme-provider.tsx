@@ -30,20 +30,21 @@ export function ThemeProvider({
   const { user, updateTheme, isAuthenticated } = useAuthStore()
   
   const [theme, setThemeState] = useState<Theme>(() => {
-    // If user is authenticated and has a theme preference, use it
-    if (user?.themePreference) {
-      return user.themePreference
-    }
-    // Otherwise check localStorage
+    // Start with localStorage or default theme
+    // User preference will be applied via useEffect when auth initializes
     return (localStorage.getItem(storageKey) as Theme) || defaultTheme
   })
 
-  // Apply user's theme preference when they log in
+  // Apply user's theme preference when authenticated and user data is loaded
   useEffect(() => {
-    if (isAuthenticated && user?.themePreference && user.themePreference !== theme) {
-      setThemeState(user.themePreference)
+    console.log('Theme sync effect triggered:', { isAuthenticated, userTheme: user?.themePreference, currentTheme: theme })
+    if (isAuthenticated && user?.themePreference) {
+      // Always apply user's saved preference from backend
+      console.log('Applying user theme preference:', user.themePreference)
+      setThemeState(user.themePreference as Theme)
+      localStorage.setItem(storageKey, user.themePreference)
     }
-  }, [isAuthenticated, user?.themePreference])
+  }, [isAuthenticated, user?.themePreference, storageKey])
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -75,12 +76,16 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (newTheme: Theme) => {
+      console.log('setTheme called:', { newTheme, isAuthenticated, userId: user?.ID })
       localStorage.setItem(storageKey, newTheme)
       setThemeState(newTheme)
       
       // If user is authenticated, save theme preference to backend
       if (isAuthenticated) {
-        updateTheme(newTheme).catch(err => {
+        console.log('Saving theme to backend...')
+        updateTheme(newTheme).then(() => {
+          console.log('Theme saved to backend successfully')
+        }).catch(err => {
           console.error('Failed to save theme preference:', err)
         })
       }

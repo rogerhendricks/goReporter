@@ -3,11 +3,15 @@ import { create } from 'zustand'
 import api from '../utils/axios'
 
 interface User {
-  ID: string
+  ID: number
   email: string
   username: string
   role: 'admin' | 'doctor' | 'user'
-  themePreference?: 'light' | 'dark' | 'system' | 'medical-blue' | 'high-contrast'
+  fullName?: string
+  themePreference?: string
+  CreatedAt?: string
+  UpdatedAt?: string
+  DeletedAt?: string | null
 }
 
 interface AuthState {
@@ -71,6 +75,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user } = response.data
       
       console.log('Login successful:', user)
+      console.log('User theme preference from login:', user?.themePreference)
 
       set({
         user,
@@ -164,6 +169,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
     
     const user = response.data
+    
+    console.log('Auth initialized, user data:', user)
+    console.log('User theme preference from /me:', user?.themePreference)
 
     set({
       user,
@@ -186,20 +194,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   updateTheme: async (theme: string) => {
     try {
-      await api.put('/users/theme', { theme }, { withCredentials: true })
+      console.log('updateTheme called with:', theme)
+      const response = await api.put('/users/theme', { theme }, { withCredentials: true })
+      console.log('updateTheme response:', response.data)
       
       // Update user state with new theme preference
       const { user } = get()
       if (user) {
-        set({
-          user: {
-            ...user,
-            themePreference: theme as User['themePreference']
-          }
-        })
+        const updatedUser = {
+          ...user,
+          themePreference: theme
+        }
+        console.log('Updating user state with theme:', updatedUser)
+        set({ user: updatedUser })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update theme preference:', error)
+      console.error('Error response:', error.response?.data)
       throw error
     }
   }
