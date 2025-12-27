@@ -75,7 +75,7 @@ type Appointment struct {
 Building on your FileImporter.tsx:
 
 - Bulk patient import from CSV/Excel
-- HL7/FHIR integration for EMR systems
+- HL7/FHIR integration for EMR systems (Partial-> Epic)
 - Automated data validation during import
 - Import history and rollback capability
 - Template downloads for batch imports
@@ -95,7 +95,7 @@ interface WorkflowRule {
 - Custom workflow builder UI
 
 ### Tecnical Improvements
-#### Performance OPtimizations
+#### Performance Optimizations
 ```
 // Backend caching in internal/middleware/cache.go
 type CacheMiddleware struct {
@@ -133,7 +133,7 @@ type CacheMiddleware struct {
 - Integration tests for API endpoints
 - E2E tests with Playwright/Cypress
 - Load testing with k6
- - Test coverage reporting
+- Test coverage reporting
 
 #### Security Enhancements
 Building on your security.go:

@@ -360,7 +360,17 @@ export function ReportForm({ patient }: ReportFormProps) {
   
   console.log('Rendering ReportForm with patient:', patient)
 
-  const handleDataImported = (data: ParsedData) => {
+  const handleDataImported = (data: ParsedData, file: File) => {
+    // If the imported file is a PDF, add it to the upload queue
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      const dataTransfer = new DataTransfer()
+      dataTransfer.items.add(file)
+      pdfManager.addFiles(dataTransfer.files)
+      toast.success('PDF file added to attachments', {
+        description: file.name
+      })
+    }
+    
     // Map the parsed data to your form fields
     const updatedFormData = { ...formData };
 

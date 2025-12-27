@@ -8,7 +8,7 @@ import { Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FileImporterProps {
-  onDataImported: (data: ParsedData) => void;
+  onDataImported: (data: ParsedData, file: File) => void;
 }
 
 export function FileImporter({ onDataImported }: FileImporterProps) {
@@ -32,7 +32,7 @@ export function FileImporter({ onDataImported }: FileImporterProps) {
     try {
       const parsedData = await importFile(file);
       if (parsedData) {
-        onDataImported(parsedData);
+        onDataImported(parsedData, file);
         console.log('Imported data:', parsedData);
         toast.success(`Successfully imported data from ${file.name}`);
         
