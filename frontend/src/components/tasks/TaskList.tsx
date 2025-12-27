@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
-import type { TaskStatus, TaskPriority, Task } from '@/stores/taskStore'
+import type { TaskStatus, TaskPriority, Task, DueDateFilter } from '@/stores/taskStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -52,6 +52,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const { users, fetchUsers } = useUserStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
+  const [dueDateFilter, setDueDateFilter] = useState<DueDateFilter>('all')
 
   useEffect(() => {
     if (isAdmin) {
@@ -72,6 +73,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       
       if (statusFilter !== 'all') filters.status = statusFilter
       if (priorityFilter !== 'all') filters.priority = priorityFilter
+      if (dueDateFilter !== 'all') filters.dueDate = dueDateFilter
       if (patientId) filters.patientId = patientId
       if (assignedToId) filters.assignedTo = assignedToId 
 
@@ -83,7 +85,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     }
 
     loadTasks()
-  }, [patientId, assignedToId, statusFilter, priorityFilter, fetchTasks, fetchTasksByPatient])
+  }, [patientId, assignedToId, statusFilter, priorityFilter, dueDateFilter, fetchTasks, fetchTasksByPatient])
 
   const getDueDateInfo = (dueDate?: string) => {
     if (!dueDate) return null
@@ -207,6 +209,23 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                   <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={dueDateFilter} onValueChange={(v) => setDueDateFilter(v as DueDateFilter)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Due Date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                  <SelectItem value="this_week">This Week</SelectItem>
+                  <SelectItem value="this_month">This Month</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="no_due_date">No Due Date</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')}>
                 <Plus className="mr-2 h-4 w-4" />
                 New Task

@@ -112,6 +112,52 @@ func GetTasks(c *fiber.Ctx) error {
 		query = query.Where("assigned_to_id = ?", assignedTo)
 	}
 
+	// Due date filters
+	if dueDateFilter := c.Query("dueDate"); dueDateFilter != "" {
+		now := time.Now()
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		tomorrow := today.AddDate(0, 0, 1)
+
+		switch dueDateFilter {
+		case "overdue":
+			// Tasks with due date in the past and not completed
+			query = query.Where("due_date < ? AND status != ?", today, "completed")
+		case "today":
+			// Tasks due today
+			query = query.Where("due_date >= ? AND due_date < ?", today, tomorrow)
+		case "tomorrow":
+			// Tasks due tomorrow
+			query = query.Where("due_date >= ? AND due_date < ?", tomorrow, tomorrow.AddDate(0, 0, 1))
+		case "this_week":
+			// Tasks due in the next 7 days
+			endOfWeek := today.AddDate(0, 0, 7)
+			query = query.Where("due_date >= ? AND due_date < ?", today, endOfWeek)
+		case "this_month":
+			// Tasks due this month
+			endOfMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
+			query = query.Where("due_date >= ? AND due_date < ?", today, endOfMonth)
+		case "no_due_date":
+			// Tasks with no due date
+			query = query.Where("due_date IS NULL")
+		case "upcoming":
+			// Tasks due in the future (excluding today)
+			query = query.Where("due_date >= ?", tomorrow)
+		}
+	}
+
+	// Custom date range filters
+	if dueDateFrom := c.Query("dueDateFrom"); dueDateFrom != "" {
+		if parsed, err := time.Parse("2006-01-02", dueDateFrom); err == nil {
+			query = query.Where("due_date >= ?", parsed)
+		}
+	}
+	if dueDateTo := c.Query("dueDateTo"); dueDateTo != "" {
+		if parsed, err := time.Parse("2006-01-02", dueDateTo); err == nil {
+			// Add one day to include the entire day
+			query = query.Where("due_date < ?", parsed.AddDate(0, 0, 1))
+		}
+	}
+
 	// Role-based filtering
 	if userRole != "admin" && userRole != "doctor" {
 		// Regular users only see tasks assigned to them or created by them

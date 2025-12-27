@@ -84,11 +84,16 @@ export interface UpdateTaskData {
   tagIds?: number[]
 }
 
+export type DueDateFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'no_due_date' | 'upcoming'
+
 interface TaskFilters {
   status?: TaskStatus
   priority?: TaskPriority
   patientId?: number
   assignedTo?: number
+  dueDate?: DueDateFilter
+  dueDateFrom?: string
+  dueDateTo?: string
 }
 
 interface TaskStore {
@@ -124,6 +129,9 @@ export const useTaskStore = create<TaskStore>((set) => ({
       if (filters?.priority) params.append('priority', filters.priority)
       if (filters?.patientId) params.append('patientId', filters.patientId.toString())
       if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo.toString())
+      if (filters?.dueDate && filters.dueDate !== 'all') params.append('dueDate', filters.dueDate)
+      if (filters?.dueDateFrom) params.append('dueDateFrom', filters.dueDateFrom)
+      if (filters?.dueDateTo) params.append('dueDateTo', filters.dueDateTo)
       
       const response = await axios.get(`/tasks?${params.toString()}`)
       set({ tasks: response.data, isLoading: false })
