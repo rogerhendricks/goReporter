@@ -23,5 +23,13 @@ export const taskTemplateService = {
       dueDate
     })
     return response.data
+  },
+
+  async assignToPatients(templateId: number, patientIds: number[], dueDate?: string): Promise<{ success: number; failed: number; errors: any[] }> {
+    const response = await axios.post(`/task-templates/${templateId}/assign-bulk`, {
+      patientIds,
+      dueDate
+    })
+    return response.data
   }
 }

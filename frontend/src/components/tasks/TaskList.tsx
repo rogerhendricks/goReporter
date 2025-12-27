@@ -3,15 +3,30 @@ import { useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
 import type { TaskStatus, TaskPriority, Task, DueDateFilter } from '@/stores/taskStore'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
+import { usePatientStore } from '@/stores/patientStore'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle, X, Search, XCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { CardSkeleton } from '@/components/ui/loading-skeletons'
+import { 
+  findPatientsBySerialNumbers, 
+  parseSerialNumbers,
+  assignTemplateToPatients,
+  type SerialNumberMatch 
+} from '@/utils/serialNumberMatcher'
 import { cn } from '@/lib/utils'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+
 import {
   Table,
   TableBody,
@@ -53,19 +68,37 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
   const [dueDateFilter, setDueDateFilter] = useState<DueDateFilter>('all')
+  const [openTemplateDialog, setOpenTemplateDialog] = useState(false)
+  const [templates, setTemplates] = useState<TaskTemplate[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
+  const [selectedPatients, setSelectedPatients] = useState<number[]>([])
+  const [selectedPatientObjects, setSelectedPatientObjects] = useState<any[]>([])
+  const [templateDueDate, setTemplateDueDate] = useState<Date | undefined>()
+  const [isAssigning, setIsAssigning] = useState(false)
+  const [patientSearch, setPatientSearch] = useState('')
+  const [openPatientSearch, setOpenPatientSearch] = useState(false)
+  const [assignmentTab, setAssignmentTab] = useState<'browse' | 'serial'>('browse')
+  const [serialNumberText, setSerialNumberText] = useState('')
+  const [serialMatches, setSerialMatches] = useState<SerialNumberMatch[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const { patients, fetchPatients, searchPatients } = usePatientStore()
 
+  // Load data when template dialog opens, not on mount
   useEffect(() => {
-    if (isAdmin) {
-      const loadUsers = async () => {
+    if (isAdmin && openTemplateDialog && templates.length === 0) {
+      const loadData = async () => {
         try {
-          fetchUsers()
+          await fetchUsers()
+          const templatesData = await taskTemplateService.getAll()
+          setTemplates(templatesData)
+          await fetchPatients()
         } catch (error) {
-          console.error('Failed to load users', error)
+          console.error('Failed to load data:', error)
         }
       }
-      loadUsers()
+      loadData()
     }
-  }, [isAdmin])
+  }, [isAdmin, openTemplateDialog])
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -151,6 +184,109 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     }
   }
 
+  const handlePatientSearch = async (query: string) => {
+    setPatientSearch(query)
+    if (query.length > 2) {
+      await searchPatients(query)
+    } else {
+      await fetchPatients()
+    }
+  }
+
+  const selectPatient = (patient: any) => {
+    if (!selectedPatients.includes(patient.id)) {
+      setSelectedPatients(prev => [...prev, patient.id])
+      setSelectedPatientObjects(prev => [...prev, patient])
+    }
+  }
+
+  const removePatient = (patientId: number) => {
+    setSelectedPatients(prev => prev.filter(id => id !== patientId))
+    setSelectedPatientObjects(prev => prev.filter(p => p.id !== patientId))
+  }
+
+  const handleSearchSerialNumbers = async () => {
+    const serialNumbers = parseSerialNumbers(serialNumberText)
+    
+    if (serialNumbers.length === 0) {
+      toast.error('Please enter at least one serial number')
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      const result = await findPatientsBySerialNumbers(serialNumbers)
+      setSerialMatches(result.matches)
+      
+      // Auto-select all found patients
+      const foundPatientIds = result.matches
+        .filter(m => m.found && m.patientId)
+        .map(m => m.patientId!)
+      
+      const foundPatients = result.matches
+        .filter(m => m.found && m.patientId)
+        .map(m => ({
+          id: m.patientId!,
+          fname: m.patientName?.split(' ')[0] || '',
+          lname: m.patientName?.split(' ').slice(1).join(' ') || '',
+          mrn: m.serialNumber
+        }))
+      
+      setSelectedPatients(foundPatientIds)
+      setSelectedPatientObjects(foundPatients)
+      
+      toast.success(`Found ${foundPatientIds.length} patient(s)`)
+    } catch (error) {
+      toast.error('Failed to search serial numbers')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleAssignTemplate = async () => {
+    if (!selectedTemplate || selectedPatients.length === 0) {
+      toast.error('Please select a template and at least one patient')
+      return
+    }
+
+    setIsAssigning(true)
+    try {
+      const result = await assignTemplateToPatients(
+        selectedTemplate,
+        selectedPatients,
+        templateDueDate ? format(templateDueDate, 'yyyy-MM-dd') : undefined
+      )
+
+      if (result.success > 0) {
+        toast.success(`Template assigned to ${result.success} patient(s)`)
+      }
+      if (result.failed > 0) {
+        toast.error(`Failed to assign to ${result.failed} patient(s)`)
+      }
+
+      setOpenTemplateDialog(false)
+      setSelectedTemplate(null)
+      setSelectedPatients([])
+      setSelectedPatientObjects([])
+      setTemplateDueDate(undefined)
+      setPatientSearch('')
+      setSerialNumberText('')
+      setSerialMatches([])
+      setAssignmentTab('browse')
+      
+      // Refresh tasks
+      const filters: any = {}
+      if (statusFilter !== 'all') filters.status = statusFilter
+      if (priorityFilter !== 'all') filters.priority = priorityFilter
+      if (dueDateFilter !== 'all') filters.dueDate = dueDateFilter
+      await fetchTasks(filters)
+    } catch (error) {
+      toast.error('Failed to assign template')
+    } finally {
+      setIsAssigning(false)
+    }
+  }
+
   const filteredTasks = tasks.filter(task => {
     if (statusFilter !== 'all' && task.status !== statusFilter) return false
     if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
@@ -225,6 +361,286 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                   <SelectItem value="no_due_date">No Due Date</SelectItem>
                 </SelectContent>
               </Select>
+
+              {isAdmin && !patientId && (
+                <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Assign Template
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Assign Task Template to Patients</DialogTitle>
+                      <DialogDescription>
+                        Select a template and patients to create tasks
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Template</Label>
+                        <Select value={selectedTemplate?.toString()} onValueChange={(v) => setSelectedTemplate(parseInt(v))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templates.map((template) => (
+                              <SelectItem key={template.id} value={template.id.toString()}>
+                                {template.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Due Date (Optional)</Label>
+                        <Input
+                          type="date"
+                          value={templateDueDate ? format(templateDueDate, 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              setTemplateDueDate(new Date(e.target.value))
+                            } else {
+                              setTemplateDueDate(undefined)
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <Tabs value={assignmentTab} onValueChange={(v) => setAssignmentTab(v as 'browse' | 'serial')}>
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="browse">Browse Patients</TabsTrigger>
+                          <TabsTrigger value="serial">By Serial Number</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="browse" className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Search and Select Patients</Label>
+                            <Popover open={openPatientSearch} onOpenChange={setOpenPatientSearch} modal={true}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="w-full justify-start"
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Add Patients ({selectedPatients.length} selected)
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                className="w-[500px] p-0" 
+                                align="start"
+                                onOpenAutoFocus={(e) => e.preventDefault()}
+                              >
+                                <div className="flex flex-col">
+                                  <div className="border-b p-3">
+                                    <Input
+                                      placeholder="Search patients by name or MRN..."
+                                      value={patientSearch}
+                                      onChange={(e) => handlePatientSearch(e.target.value)}
+                                      className="h-9"
+                                    />
+                                  </div>
+                                  <div className="max-h-[300px] overflow-y-auto">
+                                    {patients.filter(p => !selectedPatients.includes(p.id)).length === 0 ? (
+                                      <div className="p-8 text-center text-sm text-muted-foreground">
+                                        {patientSearch ? 'No patients found.' : 'All available patients selected.'}
+                                      </div>
+                                    ) : (
+                                      <div className="divide-y">
+                                        {patients
+                                          .filter(p => !selectedPatients.includes(p.id))
+                                          .map((patient) => (
+                                            <div
+                                              key={patient.id}
+                                              className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors"
+                                              onClick={() => selectPatient(patient)}
+                                            >
+                                              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <div className="font-medium truncate">
+                                                  {patient.fname} {patient.lname}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground truncate">
+                                                  MRN: {patient.mrn}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="border-t p-3">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => setOpenPatientSearch(false)}
+                                    >
+                                      Done
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label>Selected Patients ({selectedPatients.length})</Label>
+                              {selectedPatients.length > 0 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedPatients([])
+                                    setSelectedPatientObjects([])
+                                  }}
+                                >
+                                  Clear All
+                                </Button>
+                              )}
+                            </div>
+
+                            {selectedPatientObjects.length === 0 ? (
+                              <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                                No patients selected. Click "Add Patients" to search and select.
+                              </div>
+                            ) : (
+                              <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+                                <div className="divide-y">
+                                  {selectedPatientObjects.map((patient) => (
+                                    <div
+                                      key={patient.id}
+                                      className="flex items-center justify-between p-3 hover:bg-muted/50"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <div>
+                                          <p className="font-medium">
+                                            {patient.fname} {patient.lname}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            MRN: {patient.mrn}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removePatient(patient.id)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="serial" className="space-y-4">
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              Enter device or lead serial numbers (one per line, or comma/space separated). 
+                              The system will search for patients with matching devices or leads.
+                            </AlertDescription>
+                          </Alert>
+
+                          <div className="space-y-2">
+                            <Label>Serial Numbers</Label>
+                            <Textarea
+                              placeholder="e.g.,&#10;ABC123456&#10;XYZ789012&#10;or: ABC123456, XYZ789012"
+                              value={serialNumberText}
+                              onChange={(e) => setSerialNumberText(e.target.value)}
+                              rows={6}
+                            />
+                          </div>
+
+                          <Button
+                            onClick={handleSearchSerialNumbers}
+                            disabled={isSearching || !serialNumberText.trim()}
+                            className="w-full"
+                          >
+                            <Search className="mr-2 h-4 w-4" />
+                            {isSearching ? 'Searching...' : 'Search Serial Numbers'}
+                          </Button>
+
+                          {serialMatches.length > 0 && (
+                            <div className="space-y-2">
+                              <Label>Search Results ({serialMatches.filter(m => m.found).length} found, {selectedPatients.length} selected)</Label>
+                              <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+                                <div className="divide-y">
+                                  {serialMatches.map((match, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center space-x-3 p-3"
+                                    >
+                                      {match.found ? (
+                                        <>
+                                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                          <div className="flex-1">
+                                            <p className="font-medium">{match.patientName}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                              Serial: {match.serialNumber} ({match.deviceType})
+                                            </p>
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <XCircle className="h-4 w-4 text-red-500" />
+                                          <div className="flex-1">
+                                            <p className="font-medium text-muted-foreground">{match.serialNumber}</p>
+                                            <p className="text-sm text-red-500">
+                                              {match.error || 'No patient found'}
+                                            </p>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </TabsContent>
+                      </Tabs>
+
+                      <div className="flex gap-2 justify-end pt-4 border-t">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setOpenTemplateDialog(false)
+                            setSelectedTemplate(null)
+                            setSelectedPatients([])
+                            setSelectedPatientObjects([])
+                            setTemplateDueDate(undefined)
+                            setPatientSearch('')
+                            setSerialNumberText('')
+                            setSerialMatches([])
+                            setAssignmentTab('browse')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleAssignTemplate}
+                          disabled={isAssigning || !selectedTemplate || selectedPatients.length === 0}
+                        >
+                          {isAssigning ? 'Assigning...' : `Assign to ${selectedPatients.length} Patient(s)`}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')}>
                 <Plus className="mr-2 h-4 w-4" />

@@ -47,6 +47,12 @@ import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
 import { ConsentManager } from '@/components/ConsentManager'
+import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Calendar } from '@/components/ui/calendar'
+import { CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -55,9 +61,14 @@ export default function PatientDetail() {
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [openTagSearch, setOpenTagSearch] = useState(false)
   const [openTaskDialog, setOpenTaskDialog] = useState(false)
-
+  const [openTemplateDialog, setOpenTemplateDialog] = useState(false)
+  const [templates, setTemplates] = useState<TaskTemplate[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
+  const [templateDueDate, setTemplateDueDate] = useState<Date | undefined>()
+  const [isAssigning, setIsAssigning] = useState(false)
   useEffect(() => {
     loadTags()
+    loadTemplates()
     if (id) {
       fetchPatient(parseInt(id))
     }
@@ -69,6 +80,15 @@ export default function PatientDetail() {
       setAvailableTags(tags)
     } catch (error) {
       console.error("Failed to load tags:", error)
+    }
+  }
+
+  const loadTemplates = async () => {
+    try {
+      const templatesData = await taskTemplateService.getAll()
+      setTemplates(templatesData)
+    } catch (error) {
+      console.error("Failed to load templates:", error)
     }
   }
 
@@ -106,6 +126,38 @@ export default function PatientDetail() {
     toast.success('Task created successfully')
     if (id) {
       fetchPatient(parseInt(id))
+    }
+  }
+
+  const handleAssignTemplate = async () => {
+    if (!selectedTemplate || !currentPatient) {
+      toast.error('Please select a template')
+      return
+    }
+
+    setIsAssigning(true)
+    try {
+      const result = await taskTemplateService.assignToPatients(
+        selectedTemplate,
+        [currentPatient.id],
+        templateDueDate ? format(templateDueDate, 'yyyy-MM-dd') : undefined
+      )
+
+      if (result.success > 0) {
+        toast.success('Template assigned successfully')
+        setOpenTemplateDialog(false)
+        setSelectedTemplate(null)
+        setTemplateDueDate(undefined)
+        if (id) {
+          fetchPatient(parseInt(id))
+        }
+      } else if (result.failed > 0) {
+        toast.error(result.errors?.[0] || 'Failed to assign template')
+      }
+    } catch (error) {
+      toast.error('Failed to assign template')
+    } finally {
+      setIsAssigning(false)
     }
   }
 
@@ -148,6 +200,71 @@ export default function PatientDetail() {
           {currentPatient.fname} {currentPatient.lname}
         </h1>
         <div className="ml-auto flex gap-2">
+          <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Assign Template
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Assign Task Template</DialogTitle>
+                <DialogDescription>
+                  Select a task template to assign to {currentPatient.fname} {currentPatient.lname}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Template</Label>
+                  <Select value={selectedTemplate?.toString()} onValueChange={(v) => setSelectedTemplate(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Due Date (Optional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {templateDueDate ? format(templateDueDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={templateDueDate}
+                        onSelect={setTemplateDueDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleAssignTemplate} disabled={isAssigning || !selectedTemplate}>
+                    {isAssigning ? 'Assigning...' : 'Assign Template'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setOpenTemplateDialog(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
             <DialogTrigger asChild>
               <Button variant="outline">
