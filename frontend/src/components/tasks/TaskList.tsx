@@ -39,6 +39,7 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { TaskForm } from '@/components/forms/TaskForm'
 
 interface TaskListProps {
   patientId?: number
@@ -70,6 +71,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
   const [dueDateFilter, setDueDateFilter] = useState<DueDateFilter>('all')
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false)
+   const [openNewTaskDialog, setOpenNewTaskDialog] = useState(false)
   const [templates, setTemplates] = useState<TaskTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
   const [selectedPatients, setSelectedPatients] = useState<number[]>([])
@@ -139,6 +141,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     if (success) toast.success('Assignee updated')
     else toast.error('Failed to update assignee')
   }
+
   const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
     const success = await updateTask(taskId, { status: newStatus })
     if (success) {
@@ -285,6 +288,20 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       toast.error('Failed to assign template')
     } finally {
       setIsAssigning(false)
+    }
+  }
+
+    const handleTaskCreated = async () => {
+    setOpenNewTaskDialog(false)
+    // Refresh tasks
+    const filters: any = {}
+    if (statusFilter !== 'all') filters.status = statusFilter
+    if (priorityFilter !== 'all') filters.priority = priorityFilter
+    if (dueDateFilter !== 'all') filters.dueDate = dueDateFilter
+    if (patientId) {
+      await fetchTasksByPatient(patientId)
+    } else {
+      await fetchTasks(filters)
     }
   }
 
@@ -649,10 +666,27 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 </Dialog>
               )}
 
-              <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
-                New Task
-              </Button>
+              <Dialog open={openNewTaskDialog} onOpenChange={setOpenNewTaskDialog}>
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Task
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Task</DialogTitle>
+                    <DialogDescription>
+                      Add a new task{patientId ? ' for this patient' : ''}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <TaskForm
+                    patientId={patientId}
+                    onSuccess={handleTaskCreated}
+                    onCancel={() => setOpenNewTaskDialog(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </>
           </div>
       </div>
