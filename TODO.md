@@ -94,7 +94,7 @@ interface WorkflowRule {
 - Escalation rules for overdue tasks
 - Custom workflow builder UI
 
-### Tecnical Improvements
+### Technical Improvements
 #### Performance Optimizations
 ```
 // Backend caching in internal/middleware/cache.go
@@ -237,6 +237,31 @@ type RetentionPolicy struct {
 - Offline sync protocol
 - Mobile-optimized data payloads
 - QR code generation/scanning for quick access
+
+
+### Workflow & Productivity
+#### Report Review Reminders / Push notifications
+
+- Unsigned reports pending >24/48 hours
+- Reports awaiting co-signature
+- Escalate to supervisor after threshold
+- Upcoming Appointment Reminders
+
+- Scheduled in-clinic visits approaching
+- Pre-appointment task checklists incomplete
+- Patient confirmation status
+- Bulk Task Completion Summaries
+
+- Daily digest of completed tasks
+- Weekly productivity reports to managers
+- Team performance metrics
+- Audit & Compliance Alerts
+
+- Security log anomalies (multiple failed logins, unusual access patterns)
+- HIPAA compliance violations detected
+- Required documentation missing before deadlines
+- Consent renewal windows closing
+
 
 ### Nice-to-Have Features
 - **Multi-tenancy**: Support for multiple healthcare facilities
