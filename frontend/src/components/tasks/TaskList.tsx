@@ -38,6 +38,7 @@ import {
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
+import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 
 interface TaskListProps {
   patientId?: number
@@ -312,16 +313,21 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     isAdmin
   }
 
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Tasks', href: '/tasks', current: true }
+  ]
+
   return (
-    <div className="space-y-4 pt-4">
+    <div className="container mx-auto">
+      <BreadcrumbNav items={breadcrumbItems} />
       {/* Header with Filters */}
       {showFilters && (
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Tasks</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 pb-4">
             <>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TaskStatus | 'all')}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -334,7 +340,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
               </Select>
 
               <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as TaskPriority | 'all')}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,7 +353,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
               </Select>
 
               <Select value={dueDateFilter} onValueChange={(v) => setDueDateFilter(v as DueDateFilter)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Due Date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -365,9 +371,10 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
               {isAdmin && !patientId && (
                 <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
                   <DialogTrigger asChild>
-                    <Button variant="outline">
+                    <Button variant="outline" className="w-full sm:w-auto">
                       <Plus className="mr-2 h-4 w-4" />
-                      Assign Template
+                      <span className="hidden sm:inline">Assign Template</span>
+                      <span className="sm:hidden">Template</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -642,13 +649,13 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 </Dialog>
               )}
 
-              <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')}>
+              <Button onClick={() => navigate(patientId ? `/patients/${patientId}/tasks/new` : '/tasks/new')} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 New Task
               </Button>
             </>
           </div>
-        </div>
+      </div>
           )}
 
       {isLoading ? (

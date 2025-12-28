@@ -48,6 +48,7 @@ import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
 import { ConsentManager } from '@/components/ConsentManager'
 import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
+import { assignTemplateToPatients } from '@/utils/serialNumberMatcher'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
@@ -137,7 +138,7 @@ export default function PatientDetail() {
 
     setIsAssigning(true)
     try {
-      const result = await taskTemplateService.assignToPatients(
+      const result = await assignTemplateToPatients(
         selectedTemplate,
         [currentPatient.id],
         templateDueDate ? format(templateDueDate, 'yyyy-MM-dd') : undefined
@@ -195,11 +196,8 @@ export default function PatientDetail() {
   return (
     <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
-      <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">
-          {currentPatient.fname} {currentPatient.lname}
-        </h1>
-        <div className="ml-auto flex gap-2">
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-wrap gap-2">
           <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -248,7 +246,7 @@ export default function PatientDetail() {
                         mode="single"
                         selected={templateDueDate}
                         onSelect={setTemplateDueDate}
-                        initialFocus
+                        autoFocus
                       />
                     </PopoverContent>
                   </Popover>
