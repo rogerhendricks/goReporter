@@ -231,7 +231,7 @@ export default function PatientDetail() {
 
                 <div className="space-y-2">
                   <Label>Due Date (Optional)</Label>
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
