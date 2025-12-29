@@ -218,10 +218,10 @@ func (h *ReportBuilderHandler) ExecuteReport(c *fiber.Ctx) error {
 	}
 
 	response := fiber.Map{
-		"columns":        columns,
-		"rows":           results,
-		"total_rows":     len(results),
-		"execution_time": executionTime,
+		"columns":       columns,
+		"rows":          results,
+		"totalRows":     len(results),
+		"executionTime": executionTime,
 	}
 
 	if len(charts) > 0 {
