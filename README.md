@@ -460,7 +460,6 @@ This system handles Protected Health Information (PHI) and includes features des
 
 ## 📚 Additional Documentation
 
-- [CHATBOT_INTEGRATION.md](CHATBOT_INTEGRATION.md) - n8n chatbot integration guide
 - [deployment.md](deployment.md) - Deployment instructions
 - Frontend documentation in [frontend/README.md](frontend/README.md)
 

@@ -6,9 +6,6 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper'
 import { ThemeProvider } from "@/components/theme-provider"
 import { useTheme } from "@/components/theme-provider"
-import { ChatbotProvider } from '@/context/ChatbotContext'
-// import { Chatbot } from '@/components/Chatbot'
-import { ChatbotWrapper } from '@/components/ChatbotWrapper'
 import { routes } from './router/routes'
 import './App.css'
 import { fetchCSRFToken } from './utils/axios'
@@ -83,11 +80,6 @@ function AppContent() {
             } 
           />
         </Routes>
-        
-        {/* Chatbot - only show when authenticated */}
-        {isAuthenticated && (
-          <ChatbotWrapper />
-        )}
       </Router>
     </>
   )
@@ -96,9 +88,7 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <ChatbotProvider>
-        <AppContent />
-      </ChatbotProvider>
+      <AppContent />
     </ThemeProvider>
   )
 }

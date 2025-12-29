@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
-import { ChatbotHelpButtons } from "@/components/ChatbotTriggerButton";
 import { X, Plus } from "lucide-react";
 import {
   Command,
@@ -471,7 +470,6 @@ export default function PatientForm() {
             <CardTitle>
               {isEdit ? "Edit Patient" : "Create New Patient"}
             </CardTitle>
-            <ChatbotHelpButtons.Forms />
           </div>
         </CardHeader>
         <CardContent>

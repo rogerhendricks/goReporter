@@ -188,7 +188,7 @@ Building on ReportForm.tsx:
 
 #### Onboarding & Help System
 - Interactive product tour for new users
-- Contextual help tooltips (enhance your existing ChatbotContext.tsx)
+- Contextual help tooltips
 - Video tutorials library
 - In-app knowledge base
 - Guided workflows for common tasks
