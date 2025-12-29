@@ -25,6 +25,7 @@ type DBConfig struct {
 
 // ConnectDatabase connects to the database based on environment
 func ConnectDatabase() {
+    
     var err error
     var dialector gorm.Dialector
 
@@ -33,6 +34,9 @@ func ConnectDatabase() {
     if env == "" {
         env = "development"
     }
+
+    log.Printf("APP_ENV: %s", env)
+    log.Printf("DB_HOST: %s", os.Getenv("DB_HOST"))
 
     // Configure GORM logger
     gormLogger := logger.New(

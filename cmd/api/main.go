@@ -40,8 +40,9 @@ func main() {
 	}
 
 	// Load config from .env file for port address
-	// cfg := config.LoadConfig()
-
+	cfg := config.LoadConfig()
+	log.Printf("Config loaded - Port: %s", cfg.Port)
+	
 	// Initialize the database connection
 	config.ConnectDatabase()
 
