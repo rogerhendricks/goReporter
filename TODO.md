@@ -180,11 +180,11 @@ Enhance your DonutChart.tsx:
 #### Form Improvements
 Building on ReportForm.tsx:
 
-- **Done** Field validation with helpful error messages
-- **Done** Conditional field display
-- **Not implemented** Multi-step forms with progress indicators
+- **Done** ~~Field validation with helpful error messages~~
+- **Done** ~~Conditional field display~~
+- **Not implemented** ~~Multi-step forms with progress indicators~~
 - Form templates for common scenarios
-- **Done** Smart field pre-population
+- **Done** ~~Smart field pre-population~~
 
 #### Onboarding & Help System
 - Interactive product tour for new users
@@ -226,10 +226,10 @@ type RetentionPolicy struct {
 
 ### Integration Features
 ####  Third-Party Integrations
-- **Done** EMR system connectors (Epic, Cerner)
+- **Done** ~~EMR system connectors (Epic, Cerner)~~
 - Medical device data import APIs
 - Calendar integration (Google Calendar, Outlook)
-- **Done** Slack/Teams notifications
+- **Done** ~~Slack/Teams notifications~~
 - Zapier integration for custom workflows
 #### API for Mobile Apps
 - Dedicated mobile API endpoints
