@@ -92,9 +92,10 @@ goReporter/
 
 ### 👥 User Management
 - Multi-role user system (Admin, Doctor/User)
-- User profile management
+- User profile management with theme preferences
 - Doctor-patient assignment and access control
 - Account creation restricted to admins
+- **Productivity Analytics**: Individual and team performance tracking
 
 ### 🏥 Patient Management
 - Comprehensive patient demographics
@@ -120,6 +121,11 @@ goReporter/
 - Patient-specific report viewing
 - Recent reports dashboard
 - Arrhythmia tracking and analysis
+- **Smart Form Features**:
+  - Field validation with real-time error messages
+  - Conditional field display based on device type (ICD, CRT, dual/single chamber)
+  - Smart pre-population from previous reports (one-click auto-fill)
+  - Automatic device capability detection
 
 ### ✅ Task Management System
 - Task creation with priorities and due dates
@@ -130,6 +136,12 @@ goReporter/
 - Progress notes and comments
 - Patient-specific task lists
 - Dashboard view of all tasks
+- **Productivity Reports**: Weekly analytics for individual users and team managers
+  - Personal productivity metrics (completion rates, on-time vs late)
+  - Team performance dashboards
+  - Top performers leaderboard
+  - Customizable date ranges (7/30/90 days or custom)
+  - Charts showing tasks by priority and status
 
 ### 📋 Patient Consent Tracking
 - Multiple consent types (Treatment, Data Sharing, Remote Monitoring, etc.)
@@ -145,6 +157,29 @@ goReporter/
 - Task overview
 - System activity monitoring
 
+
+### 🔗 Integration & Automation
+- **Webhook System**: Event-driven notifications to external systems
+  - 13+ event types (report, battery, task, consent, device events)
+  - HMAC-SHA256 signature verification
+  - Delivery logging and retry tracking
+  - Test webhook functionality
+  - **Microsoft Teams Integration**: Automatic Adaptive Card formatting for Teams channels
+  - **Epic EMR Integration**: FHIR R4 DiagnosticReport sync via OAuth 2.0
+    - Automatic report push on completion
+    - SMART on FHIR support
+    - Patient matching via MRN
+    - LOINC-coded device data
+
+### 🎨 User Experience
+- **Theme System**: 
+  - Light, dark, and system themes
+  - Custom medical-blue and high-contrast themes
+  - Smooth color transitions between themes
+  - Theme-aware charts and components
+- **Keyboard Shortcuts**: Power user navigation (⌘K/Ctrl+K global search)
+- **Loading States**: Skeleton loaders for better perceived performance
+- **Responsive Design**: Mobile-optimized forms and tables
 ### 🔍 Advanced Search
 - Multi-field patient search
 - Device and lead search
@@ -252,7 +287,7 @@ goReporter/
    
    The server will start on `http://localhost:5000` (or the PORT specified in .env)
 
-### Frontend SetupP
+### Frontend Setup
 
 1. **Navigate to frontend directory:**
    ```bash
@@ -350,6 +385,23 @@ After seeding, you can log in with:
 - `POST /api/reports` - Create report with file upload
 - `GET /api/reports/recent` - Get recent reports
 - `GET /api/reports/:id` - Get report
+
+### Webhooks
+- `GET /api/webhooks` - List all webhooks (admin/user)
+- `GET /api/webhooks/:id` - Get webhook details (admin/user)
+- `POST /api/webhooks` - Create webhook (admin/user)
+- `PUT /api/webhooks/:id` - Update webhook (admin/user)
+- `DELETE /api/webhooks/:id` - Delete webhook (admin/user)
+- `POST /api/webhooks/:id/test` - Send test webhook (admin/user)
+- `GET /api/webhooks/:id/deliveries` - View delivery logs (admin/user)
+
+### Productivity Reports
+- `GET /api/productivity/my-report` - Get personal productivity report
+  - Query params: `startDate`, `endDate` (defaults to last 7 days)
+- `GET /api/productivity/team-report` - Get team productivity report (admin)
+  - Query params: `startDate`, `endDate`
+- `GET /api/productivity/users/:userId/report` - Get specific user's report (admin)
+  - Query params: `startDate`, `endDate`
 - `PUT /api/reports/:id` - Update report (admin/user)
 - `DELETE /api/reports/:id` - Delete report (admin/user)
 
@@ -415,7 +467,16 @@ After seeding, you can log in with:
 9. **Account Lockout** - Automatic locking after failed attempts
 10. **Security Event Logging** - Comprehensive audit trail
 11. **Security Headers** - Helmet middleware (XSS, clickjacking protection)
-12. **Patient Consent Tracking** - HIPAA-compliant consent management
+12.PRODUCTIVITY_REPORTS.md](PRODUCTIVITY_REPORTS.md) - Weekly productivity reporting system
+- [WEBHOOK_IMPLEMENTATION.md](WEBHOOK_IMPLEMENTATION.md) - Webhook system with event triggers
+- [EPIC_INTEGRATION.md](EPIC_INTEGRATION.md) - Epic EMR FHIR R4 integration
+- [TEAMS_INTEGRATION.md](TEAMS_INTEGRATION.md) - Microsoft Teams Adaptive Cards
+- [SMART_PREPOPULATION.md](SMART_PREPOPULATION.md) - Smart form auto-fill from previous reports
+- [CONDITIONAL_FIELDS.md](CONDITIONAL_FIELDS.md) - Dynamic form fields based on device type
+- [VALIDATION_IMPLEMENTATION.md](VALIDATION_IMPLEMENTATION.md) - Form validation with Zod
+- [THEME_IMPROVEMENTS.md](THEME_IMPROVEMENTS.md) - Theme system enhancements
+- [TASK_FILTERING.md](TASK_FILTERING.md) - Advanced task filtering capabilities
+- [ **Patient Consent Tracking** - HIPAA-compliant consent management
 
 ### 🔄 In Progress / Future Enhancements
 
