@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet, Eye, Palette } from 'lucide-react'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet, Eye, Palette, BarChart3, LayoutDashboard, Wrench } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,24 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu'
 import logoUrl from '../../assets/rpm-fusion-logo.min.svg'
 import { useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+
+interface NavLink {
+  href: string
+  label: string
+  icon: LucideIcon
+  roles?: string[]
+}
+
+interface NavGroup {
+  label: string
+  icon: LucideIcon
+  items: NavLink[]
+}
 
 export function Navbar() {
   const { user, isAuthenticated, logout, hasAccess } = useAuthStore()
@@ -36,22 +51,60 @@ export function Navbar() {
   // Detect OS for keyboard shortcut display
   const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
-  const navLinks = [
-    { href: '/admin', label: 'Dashboard', icon: Settings, roles: ['admin'] },
-    { href: '/doctor', label: 'Dashboard', icon: Stethoscope, roles: ['doctor'] },
-    { href: '/patients', label: 'Patients', icon: Users, roles: ['admin', 'doctor', 'user'] },
-    { href: '/search/patients', label: '+Search', icon: Users, roles: ['admin', 'doctor', 'user'] },
-    { href: '/tasks', label: 'Tasks', icon: Check, roles: ['admin', 'doctor', 'user'] },
-    { href: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'doctor'] },
-    { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
-    { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
-    { href: '/webhooks', label: 'Webhooks', icon: FileSpreadsheet, roles: ['admin'],}
+  // Dashboard links (role-specific)
+  const dashboardLinks: NavLink[] = [
+    { href: '/admin', label: 'Admin Dashboard', icon: Settings, roles: ['admin'] },
+    { href: '/doctor', label: 'Doctor Dashboard', icon: Stethoscope, roles: ['doctor'] },
   ]
 
-  // Filter nav links based on user role
-  const visibleNavLinks = navLinks.filter(link => 
+  // Organized navigation groups
+  const navGroups: NavGroup[] = [
+    {
+      label: 'Clinical',
+      icon: Users,
+      items: [
+        { href: '/patients', label: 'Patients', icon: Users, roles: ['admin', 'doctor', 'user'] },
+        { href: '/search/patients', label: 'Patient Search', icon: Search, roles: ['admin', 'doctor', 'user'] },
+        { href: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'doctor'] },
+      ]
+    },
+    {
+      label: 'Devices',
+      icon: CircuitBoard,
+      items: [
+        { href: '/devices', label: 'Devices', icon: CircuitBoard, roles: ['admin'] },
+        { href: '/leads', label: 'Leads', icon: CircuitBoard, roles: ['admin'] },
+      ]
+    },
+    {
+      label: 'Workflow',
+      icon: Check,
+      items: [
+        { href: '/tasks', label: 'Tasks', icon: Check, roles: ['admin', 'doctor', 'user'] },
+        { href: '/productivity', label: 'Productivity', icon: BarChart3, roles: ['admin', 'doctor', 'user'] },
+      ]
+    },
+    {
+      label: 'Admin',
+      icon: Wrench,
+      items: [
+        { href: '/webhooks', label: 'Webhooks', icon: FileSpreadsheet, roles: ['admin'] },
+      ]
+    }
+  ]
+
+  // Get the primary dashboard link for the current user
+  const primaryDashboard = dashboardLinks.find(link => 
     !link.roles || hasAccess(link.roles)
   )
+
+  // Filter nav groups and items based on user role
+  const visibleNavGroups = navGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => !item.roles || hasAccess(item.roles))
+    }))
+    .filter(group => group.items.length > 0)
 
   const displayName =
     user?.username || [user?.username].filter(Boolean).join(' ') || 'Account'
@@ -69,26 +122,71 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          {isAuthenticated && visibleNavLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                location.pathname.startsWith(link.href)
-                  ? "text-primary"
-                  : "text-muted-foreground"
+        <nav className="hidden lg:flex items-center gap-1">
+          {isAuthenticated && (
+            <>
+              {/* Dashboard Link */}
+              {primaryDashboard && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className={cn(
+                    "font-medium",
+                    location.pathname === primaryDashboard.href && "bg-accent"
+                  )}
+                >
+                  <Link to={primaryDashboard.href}>
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
               )}
-            >
-              {link.label}
-            </Link>
-          ))}
+
+              {/* Grouped Navigation Dropdowns */}
+              {visibleNavGroups.map((group) => (
+                <DropdownMenu key={group.label}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "font-medium",
+                        group.items.some(item => location.pathname.startsWith(item.href)) && "bg-accent"
+                      )}
+                    >
+                      <group.icon className="h-4 w-4 mr-2" />
+                      {group.label}
+                      <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuGroup>
+                      {group.items.map((item) => (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link
+                            to={item.href}
+                            className={cn(
+                              "cursor-pointer",
+                              location.pathname.startsWith(item.href) && "bg-accent"
+                            )}
+                          >
+                            <item.icon className="h-4 w-4 mr-2" />
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </>
+          )}
         </nav>
       </div>
 
       {/* Right side: user dropdown */}
-      <div className="ml-auto hidden md:flex items-center gap-2">
+      <div className="ml-auto hidden lg:flex items-center gap-2">
         {isAuthenticated && (
           <>
 
@@ -206,8 +304,8 @@ export function Navbar() {
 
       </div>
 
-      {/* Mobile Navigation Trigger */}
-      <div className="md:hidden ml-auto">
+      {/* Mobile/Tablet Navigation Trigger */}
+      <div className="lg:hidden ml-auto flex items-center gap-2">
         {isAuthenticated && (
           <Button
             variant="outline"
@@ -236,18 +334,40 @@ export function Navbar() {
                 </Link>
                 {isAuthenticated ? (
                   <>
-                    {visibleNavLinks.map(link => (
-                       <Link
-                        key={link.href}
-                        to={link.href}
+                    {/* Dashboard in mobile */}
+                    {primaryDashboard && (
+                      <Link
+                        to={primaryDashboard.href}
                         className={cn(
                           "hover:text-foreground flex items-center gap-2",
-                          location.pathname.startsWith(link.href) && "text-foreground"
+                          location.pathname === primaryDashboard.href && "text-foreground font-semibold"
                         )}
                       >
-                        <link.icon className="h-5 w-5" />
-                        {link.label}
+                        <LayoutDashboard className="h-5 w-5" />
+                        Dashboard
                       </Link>
+                    )}
+
+                    {/* Grouped sections in mobile */}
+                    {visibleNavGroups.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-2">
+                          {group.label}
+                        </div>
+                        {group.items.map(link => (
+                          <Link
+                            key={link.href}
+                            to={link.href}
+                            className={cn(
+                              "hover:text-foreground flex items-center gap-2 ml-2",
+                              location.pathname.startsWith(link.href) && "text-foreground font-semibold"
+                            )}
+                          >
+                            <link.icon className="h-5 w-5" />
+                            {link.label}
+                          </Link>
+                        ))}
+                      </div>
                     ))}
                     
                     {/* Mobile Theme Section */}

@@ -28,6 +28,7 @@ import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
 import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 import WebhooksPage from '@/pages/WebhooksPage'
 import WebhookFormPage from '@/pages/WebhookFormPage'
+import ProductivityReportPage from '@/pages/ProductivityReportPage'
 
 
 export interface RouteConfig {
@@ -314,5 +315,14 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['admin']
+  },
+
+  // Productivity Reports - all authenticated users
+  {
+    path: '/productivity',
+    element: <ProductivityReportPage />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
   }
 ]

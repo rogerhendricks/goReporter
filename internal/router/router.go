@@ -189,4 +189,9 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Post("/api/webhooks/:id/test", middleware.RequireAdminOrUser, handlers.TestWebhook)
 	app.Get("/api/webhooks/:id/deliveries", middleware.RequireAdminOrUser, handlers.GetWebhookDeliveries)
 
+	// Productivity report routes
+	app.Get("/api/productivity/my-report", middleware.RequireAdminOrUser, handlers.GetMyProductivityReport)
+	app.Get("/api/productivity/team-report", middleware.RequireAdminOrUser, handlers.GetTeamProductivityReport)
+	app.Get("/api/productivity/users/:userId/report", middleware.RequireAdmin, handlers.GetUserProductivityReport)
+
 }
