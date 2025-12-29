@@ -16,7 +16,7 @@ export function AutocompleteTextarea({
   ...props
 }: AutocompleteTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [inputValue, setInputValue] = useState(value || '')
+  const [inputValue, setInputValue] = useState(String(value || ''))
   const [cursorPosition, setCursorPosition] = useState(0)
   const {
     matches,

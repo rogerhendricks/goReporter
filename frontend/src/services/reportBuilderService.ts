@@ -1,6 +1,7 @@
 import api from '@/utils/axios';
 import { type ReportDefinition, type ReportResult, type ReportField } from '@/components/report-builder/types';
 import { PDFChartGenerator } from './pdfChartGenerator';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'; 
 
 class ReportBuilderService {
   /**
@@ -230,7 +231,7 @@ class ReportBuilderService {
     reportName: string = 'Custom Report',
     description?: string
   ): Promise<Blob> {
-    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    // const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
 
     // Create a new PDF document
     const pdfDoc = await PDFDocument.create();

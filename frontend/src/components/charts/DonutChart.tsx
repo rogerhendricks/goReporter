@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import type { ChartOptions } from 'chart.js'
-import { useTheme } from '@/components/theme-provider'
+// import { useTheme } from '@/components/theme-provider'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 

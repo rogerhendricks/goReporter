@@ -21,7 +21,7 @@ import { format } from 'date-fns'
 export function SecurityLogsDashboard() {
   const [logs, setLogs] = useState<SecurityLog[]>([])
   const [loading, setLoading] = useState(true)
-  const [setExporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<SecurityLogQuery>({
@@ -184,7 +184,7 @@ export function SecurityLogsDashboard() {
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
-            <Button onClick={handleExport} variant="outline">
+            <Button onClick={handleExport} variant="outline" disabled={exporting}>
               <Download className="h-4 w-4" />
             </Button>
           </div>

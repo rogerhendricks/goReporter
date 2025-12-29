@@ -530,7 +530,7 @@ This system handles Protected Health Information (PHI) and includes features des
 
 **Backend:**
 ```bash
-go build -o bin/goReporter cmd/api/main.go
+go build -o bin/server cmd/api/main.go
 ```
 
 **Frontend:**
