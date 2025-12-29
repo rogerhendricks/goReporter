@@ -123,18 +123,18 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     loadTasks()
   }, [patientId, assignedToId, statusFilter, priorityFilter, dueDateFilter, fetchTasks, fetchTasksByPatient])
 
-  const getDueDateInfo = (dueDate?: string) => {
-    if (!dueDate) return null
+  // const getDueDateInfo = (dueDate?: string) => {
+  //   if (!dueDate) return null
 
-    const date = new Date(dueDate)
-    const isOverdue = isPast(date) && !isToday(date)
+  //   const date = new Date(dueDate)
+  //   const isOverdue = isPast(date) && !isToday(date)
 
-    return {
-      text: isToday(date) ? 'Today' : isTomorrow(date) ? 'Tomorrow' : format(date, 'MMM d, yyyy'),
-      isOverdue,
-      date
-    }
-  }
+  //   return {
+  //     text: isToday(date) ? 'Today' : isTomorrow(date) ? 'Tomorrow' : format(date, 'MMM d, yyyy'),
+  //     isOverdue,
+  //     date
+  //   }
+  // }
 
   const handleAssigneeChange = async (taskId: number, userId: number | null) => {
     const success = await updateTask(taskId, { assignedToId: userId } as any)

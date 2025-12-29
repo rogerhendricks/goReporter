@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Download, Search, AlertTriangle, Info, AlertCircle } from 'lucide-react'
@@ -22,7 +21,7 @@ import { format } from 'date-fns'
 export function SecurityLogsDashboard() {
   const [logs, setLogs] = useState<SecurityLog[]>([])
   const [loading, setLoading] = useState(true)
-    const [exporting, setExporting] = useState(false)
+  const [setExporting] = useState(false)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<SecurityLogQuery>({
@@ -50,10 +49,10 @@ export function SecurityLogsDashboard() {
     }
   }
 
-  const handleSearch = () => {
-    setPage(1)
-    fetchLogs()
-  }
+  // const handleSearch = () => {
+  //   setPage(1)
+  //   fetchLogs()
+  // }
 
   const handleExport = async () => {
     try {

@@ -20,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { type ReportResult, type ReportDefinition, type ChartData } from './types';
+import { type ReportResult, type ReportDefinition } from './types';
 import {
   DropdownMenu,
   DropdownMenuContent,

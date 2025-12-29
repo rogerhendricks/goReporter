@@ -39,7 +39,7 @@ const getTextColor = () => {
 }
 
 export function DonutChart({ title, slices, colors }: DonutChartProps) {
-  const { theme } = useTheme()
+  // const { theme } = useTheme()
   const themeColors = colors || getChartColors()
   const borderColor = getBorderColor()
   const textColor = getTextColor()

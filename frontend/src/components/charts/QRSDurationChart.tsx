@@ -11,7 +11,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useTheme } from '@/components/theme-provider'
+// import { useTheme } from '@/components/theme-provider'
 
 
 ChartJS.register(
@@ -35,7 +35,7 @@ interface QRSDurationChartProps {
 }
 
 export function QRSDurationChart({ reports }: QRSDurationChartProps) {
-  const { theme } = useTheme()
+  // const { theme } = useTheme()
   
   // Get theme-aware colors
   const root = document.documentElement

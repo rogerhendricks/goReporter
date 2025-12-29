@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
 import { CardSkeleton } from '@/components/ui/loading-skeletons'
@@ -65,18 +65,18 @@ export function PatientTaskList({ patientId, showFilters = true }: TaskListProps
     loadTasks()
   }, [patientId, statusFilter, priorityFilter, fetchTasks, fetchTasksByPatient])
 
-  const getDueDateInfo = (dueDate?: string) => {
-    if (!dueDate) return null
+  // const getDueDateInfo = (dueDate?: string) => {
+  //   if (!dueDate) return null
 
-    const date = new Date(dueDate)
-    const isOverdue = isPast(date) && !isToday(date)
+  //   const date = new Date(dueDate)
+  //   const isOverdue = isPast(date) && !isToday(date)
 
-    return {
-      text: isToday(date) ? 'Today' : isTomorrow(date) ? 'Tomorrow' : format(date, 'MMM d, yyyy'),
-      isOverdue,
-      date
-    }
-  }
+  //   return {
+  //     text: isToday(date) ? 'Today' : isTomorrow(date) ? 'Tomorrow' : format(date, 'MMM d, yyyy'),
+  //     isOverdue,
+  //     date
+  //   }
+  // }
 
   const handleStatusChange = async (taskId: number, newStatus: TaskStatus) => {
     const success = await updateTask(taskId, { status: newStatus })

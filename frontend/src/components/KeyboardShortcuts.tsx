@@ -40,7 +40,7 @@ export function KeyboardShortcuts() {
   const [searchResults, setSearchResults] = React.useState<GlobalSearchResult[]>([])
   const [isSearching, setIsSearching] = React.useState(false)
   const [searchHistory, setSearchHistory] = React.useState<string[]>([])
-  const [selectedType, setSelectedType] = React.useState<EntityType>("all")
+  const [selectedType] = React.useState<EntityType>("all")
   const navigate = useNavigate()
   const debouncedSearch = useDebounce(searchQuery, 300)
 
