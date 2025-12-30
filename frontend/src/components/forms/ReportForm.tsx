@@ -244,7 +244,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const tags = await tagService.getAll()
+        const tags = await tagService.getAll('report')
         setAvailableTags(tags)
       } catch (error) {
         console.error('Failed to load tags:', error)

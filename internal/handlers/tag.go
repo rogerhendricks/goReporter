@@ -8,7 +8,15 @@ import (
 
 func GetAllTags(c *fiber.Ctx) error {
 	var tags []models.Tag
-	if err := config.DB.Find(&tags).Error; err != nil {
+	query := config.DB
+
+	// Filter by type if provided (patient, report, or all)
+	tagType := c.Query("type")
+	if tagType != "" && tagType != "all" {
+		query = query.Where("type = ?", tagType)
+	}
+
+	if err := query.Order("name ASC").Find(&tags).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch tags"})
 	}
 	return c.JSON(tags)
@@ -18,6 +26,20 @@ func CreateTag(c *fiber.Ctx) error {
 	var tag models.Tag
 	if err := c.BodyParser(&tag); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	// Validate tag type
+	if tag.Type == "" {
+		tag.Type = "patient" // default to patient tag
+	}
+	if tag.Type != "patient" && tag.Type != "report" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Tag type must be 'patient' or 'report'"})
+	}
+
+	// Check for duplicate name within the same type
+	var existingTag models.Tag
+	if err := config.DB.Where("name = ? AND type = ?", tag.Name, tag.Type).First(&existingTag).Error; err == nil {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "A tag with this name already exists for this type"})
 	}
 
 	if err := config.DB.Create(&tag).Error; err != nil {
@@ -97,5 +119,46 @@ func GetPatientTagStats(c *fiber.Ctx) error {
 		"totalPatients":      totalPatients,
 		"patientsWithTag":    patientsWithTag,
 		"patientsWithoutTag": patientsWithoutTag,
+	})
+}
+
+// GetReportTagStats returns statistics about reports with/without a specific tag
+func GetReportTagStats(c *fiber.Ctx) error {
+	tagID := c.Query("tagId")
+	if tagID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "tagId query parameter is required"})
+	}
+
+	// Get total number of reports
+	var totalReports int64
+	if err := config.DB.Model(&models.Report{}).Count(&totalReports).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to count reports"})
+	}
+
+	// Count reports with this tag
+	var reportsWithTag int64
+	query := `
+		SELECT COUNT(DISTINCT report_id) 
+		FROM report_tags 
+		WHERE tag_id = ?
+	`
+	if err := config.DB.Raw(query, tagID).Scan(&reportsWithTag).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to count reports with tag"})
+	}
+
+	reportsWithoutTag := totalReports - reportsWithTag
+
+	// Get tag name
+	var tag models.Tag
+	if err := config.DB.First(&tag, tagID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Tag not found"})
+	}
+
+	return c.JSON(fiber.Map{
+		"tagId":             tag.ID,
+		"tagName":           tag.Name,
+		"totalReports":      totalReports,
+		"reportsWithTag":    reportsWithTag,
+		"reportsWithoutTag": reportsWithoutTag,
 	})
 }

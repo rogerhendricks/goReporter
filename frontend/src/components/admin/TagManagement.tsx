@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tagService } from '../../services/tagService';
-import type { Tag } from '../../services/tagService';
+import type { Tag, TagType } from '../../services/tagService';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -19,6 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import {
@@ -33,23 +40,26 @@ const ITEMS_PER_PAGE = 5;
 
 export const TagManagement = () => {
   const [tags, setTags] = useState<Tag[]>([]);
+  const [filterType, setFilterType] = useState<TagType | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    type: 'patient' as TagType,
     color: '#808080',
     description: '',
   });
 
   useEffect(() => {
     loadTags();
-  }, []);
+  }, [filterType]);
 
   const loadTags = async () => {
     try {
-      const data = await tagService.getAll();
+      const data = await tagService.getAll(filterType);
       setTags(data);
+      setCurrentPage(1); // Reset to first page when filter changes
     } catch (error) {
       console.error('Failed to load tags:', error);
     }
@@ -75,6 +85,7 @@ export const TagManagement = () => {
   const handleEdit = (tag: Tag) => {
     setEditingTag(tag);
     setFormData({
+      type: tag.type,
       name: tag.name,
       color: tag.color,
       description: tag.description,
@@ -118,12 +129,22 @@ export const TagManagement = () => {
             <CardDescription>Create and manage tags for patients and reports.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between mb-4">
+          <Select value={filterType} onValueChange={(value) => setFilterType(value as TagType | 'all')}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tags</SelectItem>
+              <SelectItem value="patient">Patient Tags</SelectItem>
+              <SelectItem value="report">Report Tags</SelectItem>
+            </SelectContent>
+          </Select>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingTag(null);
-                setFormData({ name: '', color: '#808080', description: '' });
+                setFormData({ name: '', type: 'patient', color: '#808080', description: '' });
               }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Tag
@@ -142,6 +163,27 @@ export const TagManagement = () => {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
+                </div>
+                <div>
+                  <Label htmlFor="type">Type</Label>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(value) => setFormData({ ...formData, type: value as TagType })}
+                    disabled={!!editingTag}
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Select tag type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="patient">Patient Tag</SelectItem>
+                      <SelectItem value="report">Report Tag</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {editingTag && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Tag type cannot be changed after creation
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="color">Color</Label>
@@ -185,6 +227,7 @@ export const TagManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-left">Name</TableHead>
+                <TableHead className="text-left">Type</TableHead>
                 <TableHead className="text-left">Color</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -192,7 +235,7 @@ export const TagManagement = () => {
             <TableBody>
               {currentTags.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     No tags found.
                   </TableCell>
                 </TableRow>
@@ -205,6 +248,11 @@ export const TagManagement = () => {
                         style={{ backgroundColor: tag.color }}
                       >
                         {tag.name}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <span className="capitalize text-sm">
+                        {tag.type}
                       </span>
                     </TableCell>
                     <TableCell className="text-left">

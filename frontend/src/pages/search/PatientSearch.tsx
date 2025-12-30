@@ -97,7 +97,7 @@ export default function PatientSearch() {
 
   const loadTags = async () => {
     try {
-      const tags = await tagService.getAll()
+      const tags = await tagService.getAll('patient')
       setAvailableTags(tags)
     } catch (error) {
       console.error("Failed to load tags:", error)
