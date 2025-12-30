@@ -253,7 +253,7 @@ type RetentionPolicy struct {
 - Bulk Task Completion Summaries
 
 - Daily digest of completed tasks
-- **Done** Weekly productivity reports to managers
+- **Done** ~~Weekly productivity reports to managers~~
 - Team performance metrics
 - Audit & Compliance Alerts
 
