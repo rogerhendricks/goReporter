@@ -34,6 +34,13 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useFormShortcuts } from '@/hooks/useFormShortcuts'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface PatientFormData {
   mrn: string;
@@ -453,6 +460,8 @@ export default function PatientForm() {
       current: true,
     },
   ];
+
+  console.log("Form Data:", formData);
 
   return (
     <div className="container mx-auto">
@@ -918,9 +927,12 @@ export default function PatientForm() {
                       <X className="h-4 w-4" />
                     </Button>
                     <div className="font-semibold">
-                      {implanted.device.name} ({implanted.device.manufacturer})
+                      {implanted.device.name}{' '}
+                      {implanted.device.manufacturer
+                        ? `(${implanted.device.manufacturer})`
+                        : ''}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
                         <Label htmlFor={`device-serial-${index}`}>
                           Serial Number
@@ -953,22 +965,26 @@ export default function PatientForm() {
 
                       <div>
                         <Label htmlFor={`device-status-${index}`}>Status</Label>
-                        <select
-                          id={`device-status-${index}`}
-                          name="status"
+                        <Select
                           value={implanted.status}
-                          onChange={(e) =>
-                            handleImplantedDataChange("devices", index, e)
+                          onValueChange={(value) =>
+                            handleImplantedDataChange("devices", index, {
+                              target: { name: "status", value },
+                            } as any)
                           }
-                          className="w-full border rounded-md p-2"
                         >
-                          <option value="Active">Active</option>
-                          <option value="Inactive">Inactive</option>
-                          <option value="Explanted">Explanted</option>
-                        </select>
+                          <SelectTrigger id={`device-status-${index}`}>
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Inactive">Inactive</SelectItem>
+                            <SelectItem value="Explanted">Explanted</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
-                        <Label htmlFor={`device-explantedAt${index}`}>
+                        <Label htmlFor={`device-explantedAt-${index}`}>
                           Explant Date
                         </Label>
                         <Input
@@ -1052,7 +1068,7 @@ export default function PatientForm() {
                     <div className="font-semibold">
                       {implanted.lead.name} ({implanted.lead.manufacturer})
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                       <div>
                         <Label htmlFor={`lead-serial-${index}`}>
                           Serial Number
@@ -1069,15 +1085,45 @@ export default function PatientForm() {
                       </div>
                       <div>
                         <Label htmlFor={`lead-chamber-${index}`}>Chamber</Label>
-                        <Input
-                          id={`lead-chamber-${index}`}
-                          name="chamber"
+                        <Select
                           value={implanted.chamber}
-                          onChange={(e) =>
-                            handleImplantedDataChange("leads", index, e)
+                          onValueChange={(value) =>
+                            handleImplantedDataChange("leads", index, {
+                              target: { name: "chamber", value },
+                            } as any)
                           }
-                          required
-                        />
+                        >
+                          <SelectTrigger id={`lead-chamber-${index}`}>
+                            <SelectValue placeholder="Select Chamber" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Unknown">Unknown</SelectItem>
+                            <SelectItem value="RA">RA</SelectItem>
+                            <SelectItem value="RV">RV</SelectItem>
+                            <SelectItem value="RV LBB">RV LBB</SelectItem>
+                            <SelectItem value="LV">LV</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor={`lead-status-${index}`}>Status</Label>
+                        <Select
+                          value={implanted.status}
+                          onValueChange={(value) =>
+                            handleImplantedDataChange("leads", index, {
+                              target: { name: "status", value },
+                            } as any)
+                          }
+                        >
+                          <SelectTrigger id={`lead-status-${index}`}>
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Inactive">Inactive</SelectItem>
+                            <SelectItem value="Explanted">Explanted</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label htmlFor={`lead-implantedAt-${index}`}>
@@ -1094,22 +1140,7 @@ export default function PatientForm() {
                           required
                         />
                       </div>
-                      <div>
-                        <Label htmlFor={`lead-status-${index}`}>Status</Label>
-                        <select
-                          id={`lead-status-${index}`}
-                          name="status"
-                          value={implanted.status}
-                          onChange={(e) =>
-                            handleImplantedDataChange("leads", index, e)
-                          }
-                          className="w-full border rounded-md p-2"
-                        >
-                          <option value="Active">Active</option>
-                          <option value="Inactive">Inactive</option>
-                          <option value="Explanted">Explanted</option>
-                        </select>
-                      </div>
+
                       <div>
                         <Label htmlFor={`lead-explantedAt-${index}`}>
                           Explanted Date
