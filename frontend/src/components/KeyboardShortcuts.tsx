@@ -228,7 +228,7 @@ export function KeyboardShortcuts() {
                     <Home className="mr-2 h-4 w-4" />
                     <span>Dashboard</span>
                   </CommandItem>
-                  <CommandItem onSelect={() => runCommand(() => navigate("/patients/search"))}>
+                  <CommandItem onSelect={() => runCommand(() => navigate("/search/patients"))}>
                     <Search className="mr-2 h-4 w-4" />
                     <span>Advanced Patient Search</span>
                   </CommandItem>
