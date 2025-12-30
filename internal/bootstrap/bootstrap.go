@@ -106,7 +106,7 @@ func seed(db *gorm.DB) error {
 		return err
 	}
 
-	userPass, _ := models.HashPassword("UserPass123!")
+	userPass, _ := models.HashPassword("OFvYXGMFdC4P01#")
 	demoUser := models.User{
 		Username: "demo",
 		FullName: "Demo User",

@@ -84,13 +84,6 @@ export function Navbar() {
         { href: '/productivity', label: 'Productivity', icon: BarChart3, roles: ['admin', 'doctor', 'user'] },
       ]
     },
-    {
-      label: 'Admin',
-      icon: Wrench,
-      items: [
-        { href: '/webhooks', label: 'Webhooks', icon: FileSpreadsheet, roles: ['admin'] },
-      ]
-    }
   ]
 
   // Get the primary dashboard link for the current user

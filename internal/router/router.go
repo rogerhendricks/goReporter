@@ -181,13 +181,13 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	}
 
 	// Webhook routes
-	app.Get("/api/webhooks", middleware.RequireAdminOrUser, handlers.GetWebhooks)
-	app.Get("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.GetWebhook)
-	app.Post("/api/webhooks", middleware.RequireAdminOrUser, handlers.CreateWebhook)
-	app.Put("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.UpdateWebhook)
-	app.Delete("/api/webhooks/:id", middleware.RequireAdminOrUser, handlers.DeleteWebhook)
-	app.Post("/api/webhooks/:id/test", middleware.RequireAdminOrUser, handlers.TestWebhook)
-	app.Get("/api/webhooks/:id/deliveries", middleware.RequireAdminOrUser, handlers.GetWebhookDeliveries)
+	app.Get("/api/webhooks",  middleware.RequireAdmin, handlers.GetWebhooks)
+	app.Get("/api/webhooks/:id",  middleware.RequireAdmin, handlers.GetWebhook)
+	app.Post("/api/webhooks",  middleware.RequireAdmin, handlers.CreateWebhook)
+	app.Put("/api/webhooks/:id",  middleware.RequireAdmin, handlers.UpdateWebhook)
+	app.Delete("/api/webhooks/:id",  middleware.RequireAdmin, handlers.DeleteWebhook)
+	app.Post("/api/webhooks/:id/test",  middleware.RequireAdmin, handlers.TestWebhook)
+	app.Get("/api/webhooks/:id/deliveries",  middleware.RequireAdmin, handlers.GetWebhookDeliveries)
 
 	// Productivity report routes
 	app.Get("/api/productivity/my-report", middleware.RequireAdminOrUser, handlers.GetMyProductivityReport)

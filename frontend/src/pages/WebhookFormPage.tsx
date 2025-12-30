@@ -165,7 +165,7 @@ export default function WebhookFormPage() {
     { label: isEdit ? 'Edit Webhook' : 'New Webhook', href: isEdit ? `/webhooks/${id}` : '/webhooks/new', current: true }
   ]
   return (
-    <div className="container mx-auto  max-w-4xl">
+    <div className="container mx-auto">
         <BreadcrumbNav items={breadcrumbItems} />
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">
@@ -176,7 +176,7 @@ export default function WebhookFormPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>

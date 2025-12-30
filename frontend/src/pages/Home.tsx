@@ -92,7 +92,7 @@ useEffect(() => {
   
   if (loading) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DonutChartSkeleton />
           <DonutChartSkeleton />
@@ -107,10 +107,8 @@ useEffect(() => {
     return <div className="p-4 text-sm text-destructive">Failed to load analytics.</div>
   }
   return (
-    <div className="container mx-auto py-6">
-      <div className="p-4 space-y-6">
+    <div className="container mx-auto">
         <BreadcrumbNav items={breadcrumbItems} />
-      </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           <div className="md:mb-6">
             <DonutChart title="Implants by Manufacturer" slices={data.byManufacturer} />

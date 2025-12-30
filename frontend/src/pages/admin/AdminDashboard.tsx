@@ -17,6 +17,7 @@ import { SecurityLogsDashboard } from '@/components/admin/SecurityLogManager'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons'
 import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
+import { WebhookManagement } from '@/components/admin/WebhookManagement'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -170,6 +171,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="security-logs">Security Logs</TabsTrigger>
         </TabsList>
 
@@ -357,23 +359,18 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="admin" className="space-y-6">
-          <div>
             <TagManagement />
-          </div>
-
-          <div>
             <TaskTemplateManager />
-          </div>
         </TabsContent>
 
         <TabsContent value="management" className="space-y-6">
-          <div>
             <UserManagementTable />
-          </div>
-
         </TabsContent>
         <TabsContent value="reports" className="space-y-6">
           <ReportBuilder />
+        </TabsContent>
+        <TabsContent value="webhooks" className="space-y-6">
+          <WebhookManagement />
         </TabsContent>
         <TabsContent value="security-logs" className="space-y-6">
           <SecurityLogsDashboard />
@@ -396,7 +393,7 @@ export default function AdminDashboard() {
                 <li>Create, update and delete tags for categorization</li>
               </ul>
             </CardContent>
-          </Card>
+        </Card>
     </div>
   )
 }
