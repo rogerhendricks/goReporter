@@ -15,7 +15,7 @@ type Lead struct {
 	IsMri        bool            `json:"isMri" gorm:"default:false"`
 	Connector    string          `json:"connector" gorm:"type:varchar(50)"`
 	Polarity     string          `json:"polarity" gorm:"type:varchar(100)"`
-	Implanted    []ImplantedLead `json:"implanted"`
+	Implanted    []ImplantedLead `json:"implanted" gorm:"foreignKey:LeadID"`
 }
 
 // GetAllLeads retrieves all leads
@@ -78,29 +78,29 @@ func LeadHasImplantedLeads(leadID uint) (bool, error) {
 
 // GetLeadsPaginated retrieves leads with pagination and search
 func GetLeadsPaginated(search string, page, limit int) ([]Lead, int64, error) {
-    var leads []Lead
-    var total int64
-    
-    tx := config.DB.Model(&Lead{})
-    
-    // Apply search filter if provided
-    if search != "" {
-        searchQuery := "%" + strings.ToLower(search) + "%"
-        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?", 
-            searchQuery, searchQuery, searchQuery)
-    }
-    
-    // Get total count
-    if err := tx.Count(&total).Error; err != nil {
-        return nil, 0, err
-    }
-    
-    // Get paginated results
-    offset := (page - 1) * limit
-    err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&leads).Error
-    if err != nil {
-        return nil, 0, err
-    }
-    
-    return leads, total, nil
+	var leads []Lead
+	var total int64
+
+	tx := config.DB.Model(&Lead{})
+
+	// Apply search filter if provided
+	if search != "" {
+		searchQuery := "%" + strings.ToLower(search) + "%"
+		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?",
+			searchQuery, searchQuery, searchQuery)
+	}
+
+	// Get total count
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results
+	offset := (page - 1) * limit
+	err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&leads).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return leads, total, nil
 }

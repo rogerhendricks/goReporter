@@ -9,12 +9,12 @@ import (
 
 type Device struct {
 	gorm.Model
-	Name         string `json:"name" gorm:"type:varchar(255);not null"`
-	Manufacturer string `json:"manufacturer" gorm:"type:text"`
-	DevModel     string `json:"model" gorm:"type:varchar(100)"`
-	IsMri        bool   `json:"isMri" gorm:"default:false"`
-	Type         string `json:"type" gorm:"type:varchar(100)"`
-	Implanted []ImplantedDevice `json:"implanted"`
+	Name         string            `json:"name" gorm:"type:varchar(255);not null"`
+	Manufacturer string            `json:"manufacturer" gorm:"type:text"`
+	DevModel     string            `json:"model" gorm:"type:varchar(100)"`
+	IsMri        bool              `json:"isMri" gorm:"default:false"`
+	Type         string            `json:"type" gorm:"type:varchar(100)"`
+	Implanted    []ImplantedDevice `json:"implanted" gorm:"foreignKey:DeviceID"`
 }
 
 // GetAllDevices retrieves all devices
@@ -78,29 +78,29 @@ func DeviceHasImplantedDevices(deviceID uint) (bool, error) {
 
 // GetDevicesPaginated retrieves devices with pagination and search
 func GetDevicesPaginated(search string, page, limit int) ([]Device, int64, error) {
-    var devices []Device
-    var total int64
-    
-    tx := config.DB.Model(&Device{})
-    
-    // Apply search filter if provided
-    if search != "" {
-        searchQuery := "%" + strings.ToLower(search) + "%"
-        tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?", 
-            searchQuery, searchQuery, searchQuery)
-    }
-    
-    // Get total count
-    if err := tx.Count(&total).Error; err != nil {
-        return nil, 0, err
-    }
-    
-    // Get paginated results
-    offset := (page - 1) * limit
-    err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&devices).Error
-    if err != nil {
-        return nil, 0, err
-    }
-    
-    return devices, total, nil
+	var devices []Device
+	var total int64
+
+	tx := config.DB.Model(&Device{})
+
+	// Apply search filter if provided
+	if search != "" {
+		searchQuery := "%" + strings.ToLower(search) + "%"
+		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?",
+			searchQuery, searchQuery, searchQuery)
+	}
+
+	// Get total count
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results
+	offset := (page - 1) * limit
+	err := tx.Offset(offset).Limit(limit).Order("name ASC").Find(&devices).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return devices, total, nil
 }

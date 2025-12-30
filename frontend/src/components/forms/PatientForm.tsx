@@ -301,12 +301,22 @@ export default function PatientForm() {
   };
 
   const addDevice = (device: Device) => {
+    console.log("Adding device:", device);
+    const deviceId = (device as any).ID || (device as any).id;
+    if (!device || !deviceId) {
+      console.error("Invalid device selected - missing or no ID:", device);
+      return;
+    }
+    if (deviceId === 0) {
+      console.error("Invalid device selected - ID is 0:", device);
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       devices: [
         ...prev.devices,
         {
-          deviceId: device.ID,
+          deviceId: deviceId,
           serial: "",
           status: "Active",
           implantedAt: "",
@@ -320,12 +330,22 @@ export default function PatientForm() {
   };
 
   const addLead = (lead: Lead) => {
+    const leadId = (lead as any).ID || (lead as any).id;
+    if (!lead || !leadId) {
+      console.error("Invalid lead selected - missing or no ID:", lead);
+      return;
+    }
+    if (leadId === 0) {
+      console.error("Invalid lead selected - ID is 0:", lead);
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       leads: [
         ...prev.leads,
         {
-          leadId: lead.ID,
+         
+          leadId: leadId,
           serial: "",
           chamber: "",
           status: "Active",
@@ -386,6 +406,22 @@ export default function PatientForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+
+    // Validate devices have valid deviceIds
+    const invalidDevices = formData.devices.filter(d => !d.deviceId || d.deviceId === 0);
+    if (invalidDevices.length > 0) {
+      toast.error("Some devices don't have a valid device selected. Please remove them or select a valid device.");
+      console.error("Invalid devices:", invalidDevices);
+      return;
+    }
+
+    // Validate leads have valid leadIds
+    const invalidLeads = formData.leads.filter(l => !l.leadId || l.leadId === 0);
+    if (invalidLeads.length > 0) {
+      toast.error("Some leads don't have a valid lead selected. Please remove them or select a valid lead.");
+      console.error("Invalid leads:", invalidLeads);
+      return;
+    }
 
     try {
       const backendPayload = {
@@ -915,7 +951,11 @@ export default function PatientForm() {
                 {formData.devices.map((implanted, index) => (
                   <div
                     key={index}
-                    className="p-4 border rounded-md space-y-4 relative"
+                    className={`p-4 border rounded-md space-y-4 relative ${
+                      !implanted.deviceId || implanted.deviceId === 0
+                        ? "border-red-500 bg-red-50"
+                        : ""
+                    }`}
                   >
                     <Button
                       type="button"
@@ -927,10 +967,22 @@ export default function PatientForm() {
                       <X className="h-4 w-4" />
                     </Button>
                     <div className="font-semibold">
-                      {implanted.device.name}{' '}
-                      {implanted.device.manufacturer
-                        ? `(${implanted.device.manufacturer})`
-                        : ''}
+                      {!implanted.deviceId || implanted.deviceId === 0 ? (
+                        <span className="text-red-600">
+                          ⚠️ Invalid Device - Please remove this entry
+                        </span>
+                      ) : implanted.device ? (
+                        <>
+                          {implanted.device.name}{" "}
+                          {implanted.device.manufacturer
+                            ? `(${implanted.device.manufacturer})`
+                            : ""}
+                        </>
+                      ) : (
+                        <span className="text-yellow-600">
+                          Device ID: {implanted.deviceId} (details not loaded)
+                        </span>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div>
@@ -1054,7 +1106,11 @@ export default function PatientForm() {
                 {formData.leads.map((implanted, index) => (
                   <div
                     key={index}
-                    className="p-4 border rounded-md space-y-4 relative"
+                    className={`p-4 border rounded-md space-y-4 relative ${
+                      !implanted.leadId || implanted.leadId === 0
+                        ? "border-red-500 bg-red-50"
+                        : ""
+                    }`}
                   >
                     <Button
                       type="button"
@@ -1066,7 +1122,19 @@ export default function PatientForm() {
                       <X className="h-4 w-4" />
                     </Button>
                     <div className="font-semibold">
-                      {implanted.lead.name} ({implanted.lead.manufacturer})
+                      {!implanted.leadId || implanted.leadId === 0 ? (
+                        <span className="text-red-600">
+                          ⚠️ Invalid Lead - Please remove this entry
+                        </span>
+                      ) : implanted.lead ? (
+                        <>
+                          {implanted.lead.name} ({implanted.lead.manufacturer})
+                        </>
+                      ) : (
+                        <span className="text-yellow-600">
+                          Lead ID: {implanted.leadId} (details not loaded)
+                        </span>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                       <div>

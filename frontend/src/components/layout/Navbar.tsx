@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, FileSpreadsheet, Eye, Palette, BarChart3, LayoutDashboard, Wrench } from 'lucide-react'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, Eye, Palette, BarChart3, LayoutDashboard } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'

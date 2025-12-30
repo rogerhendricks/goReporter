@@ -6,6 +6,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+
 	// "regexp"
 	"strconv"
 	"strings"
@@ -258,8 +259,6 @@ func GetPatients(c *fiber.Ctx) error {
 // 	return c.JSON(patients)
 // }
 
-
-
 // GetAllPatients retrieves all patients (alternative endpoint)
 func GetAllPatients(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
@@ -336,56 +335,56 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 
 // GetPatientsPaginated retrieves patients with pagination based on user role
 func GetPatientsPaginated(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
-    userRole := c.Locals("userRole").(string)
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
 
-    // Parse pagination parameters
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "25"))
-    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "25"))
+	search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
 
-    if page < 1 {
-        page = 1
-    }
-    if limit < 1 || limit > 100 {
-        limit = 25
-    }
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
 
-    var patients []models.Patient
-    var total int64
-    var err error
+	var patients []models.Patient
+	var total int64
+	var err error
 
-    // Role-based patient retrieval
-    switch userRole {
-    case "admin", "user":
-        patients, total, err = models.GetPatientsPaginated(search, page, limit)
-    case "doctor":
-        patients, total, err = models.GetPatientsPaginatedForDoctor(userID, search, page, limit)
-    default:
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
-    }
+	// Role-based patient retrieval
+	switch userRole {
+	case "admin", "user":
+		patients, total, err = models.GetPatientsPaginated(search, page, limit)
+	case "doctor":
+		patients, total, err = models.GetPatientsPaginatedForDoctor(userID, search, page, limit)
+	default:
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+	}
 
-    if err != nil {
-        log.Printf("Error fetching paginated patients: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
-    }
+	if err != nil {
+		log.Printf("Error fetching paginated patients: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+	}
 
-    // Map to response format
-    var patientResponses []PatientResponse
-    for _, p := range patients {
-        patientResponses = append(patientResponses, toPatientResponse(p))
-    }
+	// Map to response format
+	var patientResponses []PatientResponse
+	for _, p := range patients {
+		patientResponses = append(patientResponses, toPatientResponse(p))
+	}
 
-    // Return paginated response
-    return c.JSON(fiber.Map{
-        "data": patientResponses,
-        "pagination": fiber.Map{
-            "page":       page,
-            "limit":      limit,
-            "total":      total,
-            "totalPages": (total + int64(limit) - 1) / int64(limit),
-        },
-    })
+	// Return paginated response
+	return c.JSON(fiber.Map{
+		"data": patientResponses,
+		"pagination": fiber.Map{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
 }
 
 // GetPatient retrieves a specific patient by ID
@@ -654,6 +653,18 @@ func UpdatePatient(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format: " + err.Error()})
 	}
 
+	// Debug logging
+	if input.Devices != nil {
+		for i, d := range *input.Devices {
+			log.Printf("Device %d: DeviceID=%d, Serial=%s, Status=%s", i, d.DeviceID, d.Serial, d.Status)
+		}
+	}
+	if input.Leads != nil {
+		for i, l := range *input.Leads {
+			log.Printf("Lead %d: LeadID=%d, Serial=%s, Chamber=%s", i, l.LeadID, l.Serial, l.Chamber)
+		}
+	}
+
 	tx := config.DB.Begin()
 	if tx.Error != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to start transaction"})
@@ -756,9 +767,18 @@ func UpdatePatient(c *fiber.Ctx) error {
 				ImplantedAt: implAt,
 				ExplantedAt: expAt,
 			}
+			log.Printf("Creating ImplantedDevice: PatientID=%d, DeviceID=%d, Serial=%s", dev.PatientID, dev.DeviceID, dev.Serial)
 			if err := tx.Create(&dev).Error; err != nil {
 				tx.Rollback()
+				log.Printf("Error creating device: %v", err)
 				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new device association"})
+			}
+			log.Printf("Successfully created ImplantedDevice with ID=%d, DeviceID after save=%d", dev.ID, dev.DeviceID)
+
+			// Verify what was actually saved
+			var savedDev models.ImplantedDevice
+			if err := tx.First(&savedDev, dev.ID).Error; err == nil {
+				log.Printf("Verification: ImplantedDevice ID=%d has DeviceID=%d in database", savedDev.ID, savedDev.DeviceID)
 			}
 		}
 	}
@@ -782,10 +802,13 @@ func UpdatePatient(c *fiber.Ctx) error {
 				ImplantedAt: implAt,
 				ExplantedAt: expAt,
 			}
+			log.Printf("Creating ImplantedLead: PatientID=%d, LeadID=%d, Serial=%s", lead.PatientID, lead.LeadID, lead.Serial)
 			if err := tx.Create(&lead).Error; err != nil {
 				tx.Rollback()
+				log.Printf("Error creating lead: %v", err)
 				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create new lead association"})
 			}
+			log.Printf("Successfully created ImplantedLead with ID=%d", lead.ID)
 		}
 	}
 
@@ -938,8 +961,6 @@ func validatePatient(patient *models.Patient) error {
 	}
 	return nil
 }
-
-
 
 // func validatePatientUpdate(patient *models.Patient) error {
 // 	if patient.Email != "" && !utils.IsValidEmail(patient.Email) {
