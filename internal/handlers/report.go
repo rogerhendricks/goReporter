@@ -365,6 +365,41 @@ func CreateReport(c *fiber.Ctx) error {
 		})
 	}
 
+	// Check if report is being created as completed
+	if createdReport.IsCompleted != nil && *createdReport.IsCompleted {
+		// Load patient data for MRN
+		var patient models.Patient
+		if err := config.DB.First(&patient, createdReport.PatientID).Error; err == nil {
+			// Load device information if available
+			var implantedDevice models.ImplantedDevice
+			deviceInfo := map[string]interface{}{}
+			if err := config.DB.Preload("Device").Where("patient_id = ? AND status = ?", patient.ID, "Active").Order("implanted_at DESC").First(&implantedDevice).Error; err == nil {
+				deviceInfo["deviceType"] = implantedDevice.Device.Type
+				deviceInfo["deviceSerial"] = implantedDevice.Serial
+				deviceInfo["deviceManufacturer"] = implantedDevice.Device.Manufacturer
+				deviceInfo["deviceModel"] = implantedDevice.Device.Model
+			}
+
+			TriggerWebhook(models.EventReportCompleted, map[string]interface{}{
+				"reportId":            createdReport.ID,
+				"patientId":           createdReport.PatientID,
+				"patientMRN":          patient.MRN,
+				"patientName":         fmt.Sprintf("%s %s", patient.FirstName, patient.LastName),
+				"reportDate":          createdReport.ReportDate.Format(time.RFC3339),
+				"reportType":          createdReport.ReportType,
+				"reportStatus":        createdReport.ReportStatus,
+				"reportUrl":           getReportURL(createdReport.ID),
+				"batteryStatus":       getStringPointer(createdReport.MdcIdcBattStatus),
+				"batteryPercentage":   getFloatPointer(createdReport.MdcIdcBattPercentage),
+				"batteryVoltage":      getFloatPointer(createdReport.MdcIdcBattVolt),
+				"atrialPacing":        getFloatPointer(createdReport.MdcIdcStatBradyRaPercentPaced),
+				"ventricularPacing":   getFloatPointer(createdReport.MdcIdcStatBradyRvPercentPaced),
+				"biventricularPacing": getFloatPointer(createdReport.MdcIdcStatTachyBivPercentPaced),
+				"device":              deviceInfo,
+			})
+		}
+	}
+
 	return c.Status(http.StatusCreated).JSON(toReportResponse(*createdReport))
 }
 
