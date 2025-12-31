@@ -584,7 +584,14 @@ func GetRecentReports(c *fiber.Ctx) error {
 	if err != nil {
 		limit = 10
 	}
-	reports, err := models.GetRecentReports(limit)
+	incompleteOnly := c.Query("incomplete", "false") == "true"
+	offsetStr := c.Query("offset", "0")
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		offset = 0
+	}
+
+	reports, err := models.GetRecentReports(limit, incompleteOnly, offset)
 	if err != nil {
 		log.Printf("Error fetching recent reports: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch recent reports"})

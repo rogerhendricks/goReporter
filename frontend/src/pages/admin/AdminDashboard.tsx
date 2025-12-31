@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-// import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { CheckSquare } from 'lucide-react'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
@@ -66,11 +66,32 @@ export default function AdminDashboard() {
   const [data, setData] = useState<AnalyticsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+  const [incompleteReports, setIncompleteReports] = useState<RecentReport[]>([])
+  const [incompleteOffset, setIncompleteOffset] = useState(0)
+  const [hasMoreIncomplete, setHasMoreIncomplete] = useState(false)
+  const [loadingMoreIncomplete, setLoadingMoreIncomplete] = useState(false)
   const [tags, setTags] = useState<Tag[]>([])
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>(undefined)
   const [tagStats, setTagStats] = useState<TagStats | null>(null)
   const [tagStatsLoading, setTagStatsLoading] = useState(false)
   const [tagStatsError, setTagStatsError] = useState<string>('')
+
+  const loadMoreIncomplete = async () => {
+    setLoadingMoreIncomplete(true)
+    try {
+      const response = await api.get<RecentReport[]>('/reports/recent', {
+        params: { limit: 10, incomplete: true, offset: incompleteOffset }
+      })
+      const newReports = response.data || []
+      setIncompleteReports(prev => [...prev, ...newReports])
+      setHasMoreIncomplete(newReports.length === 10)
+      setIncompleteOffset(prev => prev + 10)
+    } catch (error) {
+      console.error('Failed to load more incomplete reports:', error)
+    } finally {
+      setLoadingMoreIncomplete(false)
+    }
+  }
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -81,14 +102,21 @@ export default function AdminDashboard() {
     let mounted = true
     ;(async () => {
       try {
-        const [a, r, t] = await Promise.allSettled([
+        const [a, r, i, t] = await Promise.allSettled([
           api.get<AnalyticsResponse>('/analytics/summary'),
           api.get<RecentReport[]>('/reports/recent', { params: { limit: 10 } }),
+          api.get<RecentReport[]>('/reports/recent', { params: { limit: 10, incomplete: true, offset: 0 } }),
           api.get<Tag[]>('/tags'),
         ])
         if (!mounted) return
         if (a.status === 'fulfilled') setData(a.value.data)
         if (r.status === 'fulfilled') setRecentReports(r.value.data || [])
+        if (i.status === 'fulfilled') {
+          const reports = i.value.data || []
+          setIncompleteReports(reports)
+          setHasMoreIncomplete(reports.length === 10)
+          setIncompleteOffset(10)
+        }
         if (t.status === 'fulfilled') {
           const tagList = t.value.data || []
           setTags(tagList)
@@ -285,8 +313,76 @@ export default function AdminDashboard() {
               </div>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Recent Reports</CardTitle>
+                <CardHeader>                  <CardTitle className="text-amber-600 dark:text-amber-500">Reports Needing Completion</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {incompleteReports.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-left">MRN</TableHead>
+                          <TableHead className="text-left">Patient</TableHead>
+                          <TableHead className="text-left">Report Date</TableHead>
+                          <TableHead className="text-left">Created By</TableHead>
+                          <TableHead className="text-left">Status</TableHead>
+                          <TableHead className="text-left">Type</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {incompleteReports.map((r) => {
+                          const p = r.patient
+                          const patientName = p ? [p.lname, p.fname].filter(Boolean).join(', ') : '—'
+                          const mrn = p?.mrn || '—'
+                          const createdBy = r.createdBy || '—'
+                          const reportDateStr = r.reportDate ? new Date(r.reportDate).toLocaleDateString() : '—'
+
+                          const patientCell = p?.id
+                            ? (
+                              <Link to={`/patients/${p.id}`} className="text-primary text-left hover:underline">
+                                {patientName}
+                              </Link>
+                            )
+                            : patientName
+
+                          const reportDateCell = r.id
+                            ? (
+                              <Link to={`/reports/${r.id}/edit`} className="text-primary text-left hover:underline font-medium">
+                                {reportDateStr}
+                              </Link>
+                            )
+                            : reportDateStr
+                          return (
+                            <TableRow key={r.id}>
+                              <TableCell className="text-left">{mrn}</TableCell>
+                              <TableCell className="text-left">{patientCell}</TableCell>
+                              <TableCell className="text-left">{reportDateCell}</TableCell>
+                              <TableCell className="text-left">{createdBy}</TableCell>
+                              <TableCell className="text-left">{r.reportStatus || '—'}</TableCell>
+                              <TableCell className="text-left">{r.reportType || '—'}</TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No incomplete reports found.</div>
+                  )}
+                  {hasMoreIncomplete && (
+                    <div className="mt-4 flex justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={loadMoreIncomplete}
+                        disabled={loadingMoreIncomplete}
+                      >
+                        {loadingMoreIncomplete ? 'Loading...' : 'Load More'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>                  <CardTitle>Recent Reports</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {recentReports.length > 0 ? (

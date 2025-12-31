@@ -118,16 +118,26 @@ func GetReportByID(reportID uint) (*Report, error) {
 	return &report, nil
 }
 
-func GetRecentReports(limit int) ([]Report, error) {
+func GetRecentReports(limit int, incompleteOnly bool, offset int) ([]Report, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
+	if offset < 0 {
+		offset = 0
+	}
 	var reports []Report
-	err := config.DB.
+	query := config.DB.
 		Preload("Patient").
 		Preload("User").
-		Preload("Tags").
+		Preload("Tags")
+
+	if incompleteOnly {
+		query = query.Where("is_completed IS NULL OR is_completed = ?", false)
+	}
+
+	err := query.
 		Order("report_date DESC").
+		Offset(offset).
 		Limit(limit).
 		Find(&reports).Error
 	return reports, err
