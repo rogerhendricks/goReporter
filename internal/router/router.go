@@ -98,7 +98,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Report routes
 	app.Post("/api/reports", handlers.UploadFile, handlers.CreateReport)
-	app.Get("/api/reports/recent", middleware.AuthorizeDoctorPatientAccess, handlers.GetRecentReports)
+	app.Get("/api/reports/recent", middleware.RequireAdmin, handlers.GetRecentReports)
 	app.Get("/api/patients/:patientId/reports", middleware.AuthorizeDoctorPatientAccess, handlers.GetReportsByPatient)
 	app.Get("/api/reports/:id", handlers.GetReport)
 	app.Put("/api/reports/:id", middleware.RequireAdminOrUser, handlers.UploadFile, handlers.UpdateReport)
