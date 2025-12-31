@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Trash2, TestTube, Plus, CheckCircle, XCircle, Clock, Zap, Edit } from 'lucide-react'
+import { Trash2, TestTube, Plus, CheckCircle, XCircle, Clock, Zap, Edit, ChevronDown, ChevronUp, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { webhookService, type Webhook, AVAILABLE_EVENTS } from '@/services/webhookService'
+import { webhookService, type Webhook, type WebhookDelivery, AVAILABLE_EVENTS } from '@/services/webhookService'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 export function WebhookManagement() {
   const navigate = useNavigate()
@@ -24,6 +38,9 @@ export function WebhookManagement() {
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [testingId, setTestingId] = useState<number | null>(null)
+  const [expandedWebhook, setExpandedWebhook] = useState<number | null>(null)
+  const [deliveries, setDeliveries] = useState<Record<number, WebhookDelivery[]>>({})
+  const [loadingDeliveries, setLoadingDeliveries] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     loadWebhooks()
@@ -80,6 +97,53 @@ export function WebhookManagement() {
     return Math.round((webhook.successCount / total) * 100)
   }
 
+  const loadDeliveries = async (webhookId: number) => {
+    if (deliveries[webhookId]) {
+      // Already loaded
+      return
+    }
+
+    setLoadingDeliveries(prev => ({ ...prev, [webhookId]: true }))
+    try {
+      const result = await webhookService.getDeliveries(webhookId, 10, 0)
+      setDeliveries(prev => ({ ...prev, [webhookId]: result.deliveries }))
+    } catch (error) {
+      console.error('Failed to load deliveries:', error)
+      toast.error('Failed to load delivery logs')
+    } finally {
+      setLoadingDeliveries(prev => ({ ...prev, [webhookId]: false }))
+    }
+  }
+
+  const toggleExpanded = async (webhookId: number) => {
+    if (expandedWebhook === webhookId) {
+      setExpandedWebhook(null)
+    } else {
+      setExpandedWebhook(webhookId)
+      await loadDeliveries(webhookId)
+    }
+  }
+
+  const getHealthStatus = (webhook: Webhook) => {
+    // For Epic webhooks, determine health based on recent deliveries
+    if (webhook.integrationType === 'epic') {
+      const total = webhook.successCount + webhook.failureCount
+      if (total === 0) {
+        return { status: 'unknown', label: 'Not tested', color: 'bg-gray-400' }
+      }
+      
+      // Check if last delivery was successful (simplified approach)
+      // In a real scenario, you'd check the most recent delivery timestamp
+      const successRate = getSuccessRate(webhook)
+      if (successRate !== null && successRate >= 80) {
+        return { status: 'healthy', label: 'Connected', color: 'bg-green-500' }
+      } else {
+        return { status: 'unhealthy', label: 'Connection issues', color: 'bg-red-500' }
+      }
+    }
+    return null
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -118,125 +182,214 @@ export function WebhookManagement() {
           ) : (
             <div className="space-y-4">
               {webhooks.map((webhook) => {
-                const successRate = getSuccessRate(webhook)
+                const _successRate = getSuccessRate(webhook)
+                const healthStatus = getHealthStatus(webhook)
+                const isExpanded = expandedWebhook === webhook.id
                 
-                return (
-                  <Card key={webhook.id} className="border-2">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <CardTitle className="text-lg">{webhook.name}</CardTitle>
-                            <Badge variant={webhook.active ? 'default' : 'secondary'}>
-                              {webhook.active ? 'Active' : 'Inactive'}
-                            </Badge>
-                            {webhook.integrationType && webhook.integrationType !== 'generic' && (
-                              <Badge variant="outline" className="capitalize">
-                                {webhook.integrationType === 'epic' && '🏥 Epic FHIR'}
-                                {webhook.integrationType === 'slack' && '💬 Slack'}
-                                {webhook.integrationType === 'teams' && '📋 Teams'}
+                return(
+                  <Collapsible key={webhook.id} open={isExpanded} onOpenChange={() => toggleExpanded(webhook.id)}>
+                    <Card className="border-2">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <CardTitle className="text-lg">{webhook.name}</CardTitle>
+                              <Badge variant={webhook.active ? 'default' : 'secondary'}>
+                                {webhook.active ? 'Active' : 'Inactive'}
+                              </Badge>
+                              {webhook.integrationType && webhook.integrationType !== 'generic' && (
+                                <Badge variant="outline" className="capitalize">
+                                  {webhook.integrationType === 'epic' && '🏥 Epic FHIR'}
+                                  {webhook.integrationType === 'slack' && '💬 Slack'}
+                                  {webhook.integrationType === 'teams' && '📋 Teams'}
+                                </Badge>
+                              )}
+                              {healthStatus && (
+                                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-muted">
+                                  <div className={cn("w-2 h-2 rounded-full", healthStatus.color)} />
+                                  <span className="text-xs font-medium">{healthStatus.label}</span>
+                                </div>
+                              )}
+                            </div>
+                            <CardDescription className="mt-1.5">
+                              {webhook.description || 'No description provided'}
+                            </CardDescription>
+                          </div>
+                          <div className="flex gap-2">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            </CollapsibleTrigger>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTest(webhook.id)}
+                              disabled={testingId === webhook.id}
+                            >
+                              <TestTube className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/webhooks/${webhook.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleteId(webhook.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <div className="text-sm font-medium mb-1">Endpoint URL</div>
+                          <div className="text-sm text-muted-foreground font-mono bg-muted px-3 py-2 rounded-md truncate">
+                            {webhook.url}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium mb-2">Events ({webhook.events.length})</div>
+                          <div className="flex flex-wrap gap-2">
+                            {webhook.events.slice(0, 5).map((event) => (
+                              <Badge key={event} variant="outline" className="text-xs">
+                                {getEventLabel(event)}
+                              </Badge>
+                            ))}
+                            {webhook.events.length > 5 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{webhook.events.length - 5} more
                               </Badge>
                             )}
                           </div>
-                          <CardDescription className="mt-1.5">
-                            {webhook.description || 'No description provided'}
-                          </CardDescription>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTest(webhook.id)}
-                            disabled={testingId === webhook.id}
-                          >
-                            <TestTube className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/webhooks/${webhook.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDeleteId(webhook.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <div className="text-sm font-medium mb-1">Endpoint URL</div>
-                        <div className="text-sm text-muted-foreground font-mono bg-muted px-3 py-2 rounded-md truncate">
-                          {webhook.url}
-                        </div>
-                      </div>
 
-                      <div>
-                        <div className="text-sm font-medium mb-2">Events ({webhook.events.length})</div>
-                        <div className="flex flex-wrap gap-2">
-                          {webhook.events.slice(0, 5).map((event) => (
-                            <Badge key={event} variant="outline" className="text-xs">
-                              {getEventLabel(event)}
-                            </Badge>
-                          ))}
-                          {webhook.events.length > 5 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{webhook.events.length - 5} more
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
+                            <div className="flex items-center gap-2">
+                              {_successRate !== null ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm font-medium">{_successRate}%</span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No deliveries</span>
+                              )}
+                            </div>
+                          </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
-                          <div className="flex items-center gap-2">
-                            {successRate !== null ? (
-                              <>
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                <span className="text-sm font-medium">{successRate}%</span>
-                              </>
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-1">Successful</div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="text-sm font-medium">{webhook.successCount}</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-1">Failed</div>
+                            <div className="flex items-center gap-2">
+                              <XCircle className="h-4 w-4 text-red-600" />
+                              <span className="text-sm font-medium">{webhook.failureCount}</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-1">Last Triggered</div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {webhook.lastTriggeredAt 
+                                  ? format(new Date(webhook.lastTriggeredAt), 'MMM d, HH:mm')
+                                  : 'Never'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <CollapsibleContent>
+                          <div className="pt-4 border-t">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Activity className="h-4 w-4" />
+                              <h4 className="text-sm font-semibold">Recent Deliveries</h4>
+                            </div>
+                            
+                            {loadingDeliveries[webhook.id] ? (
+                              <div className="text-center py-8 text-muted-foreground">
+                                Loading delivery logs...
+                              </div>
+                            ) : deliveries[webhook.id]?.length > 0 ? (
+                              <div className="border rounded-lg overflow-hidden">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Status</TableHead>
+                                      <TableHead>Event</TableHead>
+                                      <TableHead>Time</TableHead>
+                                      <TableHead>Duration</TableHead>
+                                      <TableHead>Response</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {deliveries[webhook.id].map((delivery) => (
+                                      <TableRow key={delivery.id}>
+                                        <TableCell>
+                                          {delivery.success ? (
+                                            <div className="flex items-center gap-2 text-green-600">
+                                              <CheckCircle className="h-4 w-4" />
+                                              <span className="text-xs font-medium">{delivery.statusCode}</span>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-2 text-red-600">
+                                              <XCircle className="h-4 w-4" />
+                                              <span className="text-xs font-medium">{delivery.statusCode || 'Error'}</span>
+                                            </div>
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge variant="outline" className="text-xs">
+                                            {getEventLabel(delivery.event)}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-xs">
+                                          {format(new Date(delivery.createdAt), 'MMM d, HH:mm:ss')}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">
+                                          {delivery.duration}ms
+                                        </TableCell>
+                                        <TableCell className="max-w-xs">
+                                          {delivery.errorMessage ? (
+                                            <span className="text-xs text-red-600 truncate block">
+                                              {delivery.errorMessage}
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs text-muted-foreground truncate block">
+                                              {delivery.response || 'Success'}
+                                            </span>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
                             ) : (
-                              <span className="text-sm text-muted-foreground">No deliveries</span>
+                              <div className="text-center py-8 text-muted-foreground">
+                                No delivery logs yet
+                              </div>
                             )}
                           </div>
-                        </div>
-
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Successful</div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium">{webhook.successCount}</span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Failed</div>
-                          <div className="flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-red-600" />
-                            <span className="text-sm font-medium">{webhook.failureCount}</span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Last Triggered</div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {webhook.lastTriggeredAt 
-                                ? format(new Date(webhook.lastTriggeredAt), 'MMM d, HH:mm')
-                                : 'Never'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </CollapsibleContent>
+                      </CardContent>
+                    </Card>
+                  </Collapsible>
                 )
               })}
             </div>

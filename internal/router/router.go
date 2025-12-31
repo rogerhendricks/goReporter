@@ -190,6 +190,9 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Post("/api/webhooks/:id/test", middleware.RequireAdmin, handlers.TestWebhook)
 	app.Get("/api/webhooks/:id/deliveries", middleware.RequireAdmin, handlers.GetWebhookDeliveries)
 
+	// Debug endpoint to preview Epic FHIR payload
+	app.Get("/api/reports/:reportId/epic-preview", middleware.RequireAdminOrUser, handlers.PreviewEpicFHIR)
+
 	// Productivity report routes
 	app.Get("/api/productivity/my-report", middleware.RequireAdminOrUser, handlers.GetMyProductivityReport)
 	app.Get("/api/productivity/team-report", middleware.RequireAdminOrUser, handlers.GetTeamProductivityReport)
