@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/services"
 )
 
 type CreateTaskRequest struct {
@@ -372,6 +373,8 @@ func UpdateTask(c *fiber.Ctx) error {
 		})
 	}
 
+	wasCompleted := task.Status == models.TaskStatusCompleted
+
 	// Check permissions - Allow admins, doctors, task creator, or assigned user
 	canUpdate := userRole == "admin" ||
 		userRole == "doctor" ||
@@ -431,6 +434,19 @@ func UpdateTask(c *fiber.Ctx) error {
 
 	// Reload with associations
 	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").First(&task, task.ID)
+
+	// Notify admins if task transitioned to completed.
+	if !wasCompleted && task.Status == models.TaskStatusCompleted {
+		username, _ := c.Locals("username").(string)
+		taskID := task.ID
+		services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+			Type:        "task.completed",
+			Title:       "Task completed",
+			Message:     fmt.Sprintf("%s marked task '%s' complete", username, task.Title),
+			TaskID:      &taskID,
+			CompletedBy: username,
+		})
+	}
 
 	return c.JSON(task)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -397,6 +398,17 @@ func CreateReport(c *fiber.Ctx) error {
 				"biventricularPacing": getFloatPointer(createdReport.MdcIdcStatTachyBivPercentPaced),
 				"device":              deviceInfo,
 			})
+
+			// Notify admins (in-app) when report is created as completed.
+			username, _ := c.Locals("username").(string)
+			reportID := createdReport.ID
+			services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+				Type:        "report.completed",
+				Title:       "Report completed",
+				Message:     fmt.Sprintf("%s marked report #%d complete", username, createdReport.ID),
+				ReportID:    &reportID,
+				CompletedBy: username,
+			})
 		}
 	}
 
@@ -418,6 +430,8 @@ func UpdateReport(c *fiber.Ctx) error {
 		}
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve report"})
 	}
+
+	wasCompleted := existingReport.IsCompleted != nil && *existingReport.IsCompleted
 
 	// Parse the incoming form data
 	updatedData, err := parseReportForm(c)
@@ -512,44 +526,51 @@ func UpdateReport(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated report data"})
 	}
 
-	// Trigger report.completed webhook if report is being marked as completed
-	if updatedData.IsCompleted != nil && *updatedData.IsCompleted {
-		// Check if it wasn't completed before
-		wasCompleted := existingReport.IsCompleted != nil && *existingReport.IsCompleted
-		if !wasCompleted {
-			// Load patient data for MRN
-			var patient models.Patient
-			if err := config.DB.First(&patient, finalReport.PatientID).Error; err == nil {
-				// Load device information if available
-				var implantedDevice models.ImplantedDevice
-				deviceInfo := map[string]interface{}{}
-				if err := config.DB.Preload("Device").Where("patient_id = ? AND status = ?", patient.ID, "Active").Order("implanted_at DESC").First(&implantedDevice).Error; err == nil {
-					deviceInfo["deviceType"] = implantedDevice.Device.Type
-					deviceInfo["deviceSerial"] = implantedDevice.Serial
-					deviceInfo["deviceManufacturer"] = implantedDevice.Device.Manufacturer
-					deviceInfo["deviceModel"] = implantedDevice.Device.Model
-				}
-
-				TriggerWebhook(models.EventReportCompleted, map[string]interface{}{
-					"reportId":           finalReport.ID,
-					"patientId":          finalReport.PatientID,
-					"patientMRN":         patient.MRN,
-					"patientName":        fmt.Sprintf("%s %s", patient.FirstName, patient.LastName),
-					"reportDate":         finalReport.ReportDate.Format(time.RFC3339),
-					"reportType":         finalReport.ReportType,
-					"reportStatus":       finalReport.ReportStatus,
-					"reportUrl":          getReportURL(finalReport.ID),
-					"batteryStatus":      getStringPointer(finalReport.MdcIdcBattStatus),
-					"batteryPercentage":  getFloatPointer(finalReport.MdcIdcBattPercentage),
-					"batteryVoltage":     getFloatPointer(finalReport.MdcIdcBattVolt),
-					"atrialPacing":       getFloatPointer(finalReport.MdcIdcStatBradyRaPercentPaced),
-					"ventricularPacing":  getFloatPointer(finalReport.MdcIdcStatBradyRvPercentPaced),
-					"deviceType":         deviceInfo["deviceType"],
-					"deviceSerial":       deviceInfo["deviceSerial"],
-					"deviceManufacturer": deviceInfo["deviceManufacturer"],
-					"deviceModel":        deviceInfo["deviceModel"],
-				})
+	// Trigger report.completed webhook if report transitioned to completed
+	if updatedData.IsCompleted != nil && *updatedData.IsCompleted && !wasCompleted {
+		// Load patient data for MRN
+		var patient models.Patient
+		if err := config.DB.First(&patient, finalReport.PatientID).Error; err == nil {
+			// Load device information if available
+			var implantedDevice models.ImplantedDevice
+			deviceInfo := map[string]interface{}{}
+			if err := config.DB.Preload("Device").Where("patient_id = ? AND status = ?", patient.ID, "Active").Order("implanted_at DESC").First(&implantedDevice).Error; err == nil {
+				deviceInfo["deviceType"] = implantedDevice.Device.Type
+				deviceInfo["deviceSerial"] = implantedDevice.Serial
+				deviceInfo["deviceManufacturer"] = implantedDevice.Device.Manufacturer
+				deviceInfo["deviceModel"] = implantedDevice.Device.Model
 			}
+
+			TriggerWebhook(models.EventReportCompleted, map[string]interface{}{
+				"reportId":           finalReport.ID,
+				"patientId":          finalReport.PatientID,
+				"patientMRN":         patient.MRN,
+				"patientName":        fmt.Sprintf("%s %s", patient.FirstName, patient.LastName),
+				"reportDate":         finalReport.ReportDate.Format(time.RFC3339),
+				"reportType":         finalReport.ReportType,
+				"reportStatus":       finalReport.ReportStatus,
+				"reportUrl":          getReportURL(finalReport.ID),
+				"batteryStatus":      getStringPointer(finalReport.MdcIdcBattStatus),
+				"batteryPercentage":  getFloatPointer(finalReport.MdcIdcBattPercentage),
+				"batteryVoltage":     getFloatPointer(finalReport.MdcIdcBattVolt),
+				"atrialPacing":       getFloatPointer(finalReport.MdcIdcStatBradyRaPercentPaced),
+				"ventricularPacing":  getFloatPointer(finalReport.MdcIdcStatBradyRvPercentPaced),
+				"deviceType":         deviceInfo["deviceType"],
+				"deviceSerial":       deviceInfo["deviceSerial"],
+				"deviceManufacturer": deviceInfo["deviceManufacturer"],
+				"deviceModel":        deviceInfo["deviceModel"],
+			})
+
+			// Notify admins (in-app) when report becomes completed.
+			username, _ := c.Locals("username").(string)
+			reportID := finalReport.ID
+			services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+				Type:        "report.completed",
+				Title:       "Report completed",
+				Message:     fmt.Sprintf("%s marked report #%d complete", username, finalReport.ID),
+				ReportID:    &reportID,
+				CompletedBy: username,
+			})
 		}
 	}
 

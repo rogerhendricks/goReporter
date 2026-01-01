@@ -13,7 +13,6 @@ import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { ProductivityReport, TeamProductivityReport } from '@/services/productivityService'
 import { productivityService } from '@/services/productivityService'
-import { teamService, type Team } from '@/services/teamService'
 import { DonutChartSkeleton } from '@/components/ui/loading-skeletons'
 import { toast } from 'sonner'
 
@@ -27,7 +26,6 @@ export default function ProductivityReportPage() {
   const [loading, setLoading] = useState(true)
   const [myReport, setMyReport] = useState<ProductivityReport | null>(null)
   const [teamReport, setTeamReport] = useState<TeamProductivityReport | null>(null)
-  const [teams, setTeams] = useState<Team[]>([])
   const [allTeamsReports, setAllTeamsReports] = useState<TeamProductivityReport[]>([])
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfWeek(new Date()),
@@ -40,12 +38,6 @@ export default function ProductivityReportPage() {
   useEffect(() => {
     loadReports()
   }, [dateRange, viewMode])
-
-  useEffect(() => {
-    if (isManager) {
-      teamService.getAllTeams().then(setTeams).catch(console.error)
-    }
-  }, [isManager])
 
   const loadReports = async () => {
     setLoading(true)

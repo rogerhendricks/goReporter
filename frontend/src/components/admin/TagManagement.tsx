@@ -75,7 +75,7 @@ export const TagManagement = () => {
       }
       setIsOpen(false);
       setEditingTag(null);
-      setFormData({ name: '', color: '#808080', description: '' });
+      setFormData({ name: '', type: 'patient' as TagType, color: '#808080', description: '' });
       loadTags();
     } catch (error) {
       console.error('Failed to save tag:', error);
