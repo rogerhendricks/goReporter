@@ -18,6 +18,10 @@ type ProductivityReport struct {
 	OnTimeCompletions     int                  `json:"onTimeCompletions"`
 	LateCompletions       int                  `json:"lateCompletions"`
 	TopPatients           []PatientTaskSummary `json:"topPatients"`
+	// Report metrics
+	ReportsCompleted int `json:"reportsCompleted"`
+	ReportsCreated   int `json:"reportsCreated"`
+	ReportsPending   int `json:"reportsPending"`
 }
 
 // TeamProductivityReport represents aggregate stats for a team
@@ -31,6 +35,10 @@ type TeamProductivityReport struct {
 	TotalTasksCreated         int                      `json:"totalTasksCreated"`
 	TeamAverageCompletionTime float64                  `json:"teamAverageCompletionTime"`
 	TopPerformers             []UserPerformanceSummary `json:"topPerformers"`
+	// Report metrics
+	TotalReportsCompleted int `json:"totalReportsCompleted"`
+	TotalReportsCreated   int `json:"totalReportsCreated"`
+	TotalReportsPending   int `json:"totalReportsPending"`
 }
 
 // TasksByPriority breaks down completed tasks by priority

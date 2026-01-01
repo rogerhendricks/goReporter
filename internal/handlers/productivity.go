@@ -228,6 +228,25 @@ func generateProductivityReportByID(userID uint, startDate, endDate time.Time) (
 	`, userID, startDate, endDate).Scan(&topPatients)
 	report.TopPatients = topPatients
 
+	// Get report metrics
+	var reportsCompleted int64
+	config.DB.Model(&models.Report{}).
+		Where("user_id = ? AND is_completed = ? AND updated_at BETWEEN ? AND ?", userID, true, startDate, endDate).
+		Count(&reportsCompleted)
+	report.ReportsCompleted = int(reportsCompleted)
+
+	var reportsCreated int64
+	config.DB.Model(&models.Report{}).
+		Where("user_id = ? AND created_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Count(&reportsCreated)
+	report.ReportsCreated = int(reportsCreated)
+
+	var reportsPending int64
+	config.DB.Model(&models.Report{}).
+		Where("user_id = ? AND (is_completed IS NULL OR is_completed = ?) AND created_at BETWEEN ? AND ?", userID, false, startDate, endDate).
+		Count(&reportsPending)
+	report.ReportsPending = int(reportsPending)
+
 	return report, nil
 }
 
@@ -275,6 +294,9 @@ func generateTeamProductivityReport(managerID uint, startDate, endDate time.Time
 		teamReport.TeamMembers = append(teamReport.TeamMembers, *report)
 		teamReport.TotalTasksCompleted += report.TotalTasksCompleted
 		teamReport.TotalTasksCreated += report.TasksCreated
+		teamReport.TotalReportsCompleted += report.ReportsCompleted
+		teamReport.TotalReportsCreated += report.ReportsCreated
+		teamReport.TotalReportsPending += report.ReportsPending
 
 		if report.AverageCompletionTime > 0 {
 			totalCompletionTime += report.AverageCompletionTime

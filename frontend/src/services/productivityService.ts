@@ -35,6 +35,10 @@ export interface ProductivityReport {
   onTimeCompletions: number
   lateCompletions: number
   topPatients: PatientTaskSummary[]
+  // Report metrics
+  reportsCompleted: number
+  reportsCreated: number
+  reportsPending: number
 }
 
 export interface UserPerformanceSummary {
@@ -55,6 +59,10 @@ export interface TeamProductivityReport {
   totalTasksCreated: number
   teamAverageCompletionTime: number
   topPerformers: UserPerformanceSummary[]
+  // Report metrics
+  totalReportsCompleted: number
+  totalReportsCreated: number
+  totalReportsPending: number
 }
 
 export interface ProductivityReportParams {
@@ -84,6 +92,22 @@ export const productivityService = {
    */
   async getUserReport(userId: number, params?: ProductivityReportParams): Promise<ProductivityReport> {
     const response = await axios.get(`/productivity/users/${userId}/report`, { params })
+    return response.data
+  },
+
+  /**
+   * Get productivity report for a specific team
+   */
+  async getTeamProductivity(teamId: number, params?: ProductivityReportParams): Promise<TeamProductivityReport> {
+    const response = await axios.get(`/productivity/teams/${teamId}`, { params })
+    return response.data
+  },
+
+  /**
+   * Get productivity reports for all teams
+   */
+  async getAllTeamsProductivity(params?: ProductivityReportParams): Promise<TeamProductivityReport[]> {
+    const response = await axios.get('/productivity/teams', { params })
     return response.data
   }
 }

@@ -198,4 +198,17 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/productivity/team-report", middleware.RequireAdminOrUser, handlers.GetTeamProductivityReport)
 	app.Get("/api/productivity/users/:userId/report", middleware.RequireAdmin, handlers.GetUserProductivityReport)
 
+	// Team management routes
+	app.Get("/api/teams", middleware.RequireAdmin, handlers.GetAllTeams)
+	app.Get("/api/teams/:id", middleware.RequireAdmin, handlers.GetTeam)
+	app.Post("/api/teams", middleware.RequireAdmin, handlers.CreateTeam)
+	app.Put("/api/teams/:id", middleware.RequireAdmin, handlers.UpdateTeam)
+	app.Delete("/api/teams/:id", middleware.RequireAdmin, handlers.DeleteTeam)
+	app.Post("/api/teams/:id/members", middleware.RequireAdmin, handlers.AddTeamMembers)
+	app.Delete("/api/teams/:id/members", middleware.RequireAdmin, handlers.RemoveTeamMembers)
+
+	// Team productivity routes
+	app.Get("/api/productivity/teams/:id", middleware.RequireAdmin, handlers.GetSpecificTeamProductivityReport)
+	app.Get("/api/productivity/teams", middleware.RequireAdmin, handlers.GetAllTeamsProductivityReports)
+
 }

@@ -76,6 +76,7 @@ func migrate(db *gorm.DB) error {
 		&models.SearchHistory{},
 		&models.Webhook{},
 		&models.WebhookDelivery{},
+		&models.Team{},
 	)
 }
 

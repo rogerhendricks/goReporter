@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skeletons'
 import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 import { WebhookManagement } from '@/components/admin/WebhookManagement'
+import { TeamManagement } from '@/components/admin/TeamManagement'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -460,6 +461,7 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="management" className="space-y-6">
+            <TeamManagement />
             <UserManagementTable />
         </TabsContent>
         <TabsContent value="reports" className="space-y-6">
