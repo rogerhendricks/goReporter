@@ -51,20 +51,20 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/admin/notifications/ws", websocket.New(handlers.AdminNotificationsWS, websocket.Config{
 		Filter: func(c *fiber.Ctx) bool {
 			fmt.Println("[WebSocket] Checking auth for admin notifications WS")
-			
+
 			// Check if user_role was set by the AuthenticateJWT middleware
 			userRole := c.Locals("user_role")
 			if userRole == nil {
 				fmt.Println("[WebSocket] No user_role in locals, denying upgrade")
 				return false
 			}
-			
+
 			role, ok := userRole.(string)
 			if !ok || role != "admin" {
 				fmt.Printf("[WebSocket] User role is %v (not admin), denying upgrade\n", userRole)
 				return false
 			}
-			
+
 			fmt.Println("[WebSocket] User is admin, allowing upgrade")
 			return true
 		},
