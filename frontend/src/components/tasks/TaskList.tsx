@@ -314,7 +314,11 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const groupedTasks = {
     overdue: filteredTasks.filter(t => t.dueDate && isPast(new Date(t.dueDate)) && t.status !== 'completed'),
     today: filteredTasks.filter(t => t.dueDate && isToday(new Date(t.dueDate)) && t.status !== 'completed'),
-    upcoming: filteredTasks.filter(t => !t.dueDate || (!isPast(new Date(t.dueDate)) && !isToday(new Date(t.dueDate)))),
+    upcoming: filteredTasks.filter(
+      t =>
+        t.status !== 'completed' &&
+        (!t.dueDate || (!isPast(new Date(t.dueDate)) && !isToday(new Date(t.dueDate))))
+    ),
     completed: filteredTasks.filter(t => t.status === 'completed')
   }
 
