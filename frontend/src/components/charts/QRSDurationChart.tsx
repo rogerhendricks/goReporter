@@ -44,11 +44,16 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
   const textColor = style.getPropertyValue('--color-foreground').trim() || 'hsl(var(--foreground))'
   const gridColor = style.getPropertyValue('--color-border').trim() || 'hsl(var(--border))'
   
-  // Filter reports that have QRS duration data
+  // Normalize and filter reports that have usable QRS duration data.
+  // In practice these values can arrive as strings/undefined depending on source.
   const qrsReports = reports
-    // .filter((report) => report.qrs_duration !== null)
-    .filter((r): r is QrsReportLike & { qrs_duration: number } => r.qrs_duration !== null)
-    .sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
+    .map((r) => {
+      const date = new Date(r.reportDate)
+      const qrs = r.qrs_duration === null ? NaN : Number(r.qrs_duration)
+      return { date, qrs }
+    })
+    .filter((r) => Number.isFinite(r.qrs) && !Number.isNaN(r.date.getTime()))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
 
   if (qrsReports.length === 0) {
     return (
@@ -64,13 +69,13 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
   }
 
   const data = {
-    labels: qrsReports.map((report) => new Date(report.reportDate).toLocaleDateString()),
+    labels: qrsReports.map((r) => r.date.toLocaleDateString()),
     datasets: [
       {
         label: 'QRS Duration (ms)',
-        data: qrsReports.map((report) => report.qrs_duration),
+        data: qrsReports.map((r) => r.qrs),
         borderColor: primaryColor,
-        backgroundColor: primaryColor.replace(')', ' / 0.2)'),
+        backgroundColor: primaryColor,
         tension: 0.1,
       },
     ],
@@ -78,6 +83,7 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top' as const,
@@ -135,8 +141,8 @@ export function QRSDurationChart({ reports }: QRSDurationChartProps) {
         <CardTitle>QRS Duration Over Time</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64">
-          <Line data={data} options={options} />
+        <div className="h-64 w-full">
+          <Line data={data} options={options} style={{ width: '100%', height: '100%' }} />
         </div>
       </CardContent>
     </Card>

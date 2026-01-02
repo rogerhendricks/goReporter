@@ -589,7 +589,7 @@ export default function PatientDetail() {
         {/* QRS Duration Chart */}
         <div className="md:col-span-2">
           <QRSDurationChart
-            reports={(currentPatient.report || []).map(r => ({
+            reports={(currentPatient.reports || []).map(r => ({
               reportDate: r.reportDate,
               qrs_duration: r.qrs_duration ?? null,
             }))}

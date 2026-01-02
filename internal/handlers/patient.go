@@ -184,6 +184,16 @@ func toPatientResponse(patient models.Patient) PatientResponse {
 		resp.Tags = []models.Tag{}
 	}
 
+	// Map reports (needed for patient detail views like QRS chart)
+	if len(patient.Reports) > 0 {
+		resp.Reports = make([]ReportResponse, 0, len(patient.Reports))
+		for _, r := range patient.Reports {
+			resp.Reports = append(resp.Reports, toReportResponse(r))
+		}
+	} else {
+		resp.Reports = []ReportResponse{}
+	}
+
 	return resp
 }
 
