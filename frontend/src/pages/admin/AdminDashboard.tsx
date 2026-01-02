@@ -159,37 +159,6 @@ export default function AdminDashboard() {
     return () => { mounted = false }
   }, [selectedTagId])
 
-  // const adminActions = [
-  //   {
-  //     title: 'Manage Devices',
-  //     description: 'Add, edit, and manage medical devices',
-  //     icon: CircuitBoard,
-  //     href: '/devices',
-  //     createHref: '/devices/new'
-  //   },
-  //   {
-  //     title: 'Manage Leads',
-  //     description: 'Add, edit, and manage medical leads',
-  //     icon: CircuitBoard,
-  //     href: '/leads',
-  //     createHref: '/leads/new'
-  //   },
-  //   {
-  //     title: 'Manage Doctors',
-  //     description: 'Add, edit, and manage doctor records',
-  //     icon: Stethoscope,
-  //     href: '/doctors',
-  //     createHref: '/doctors/new'
-  //   },
-  //   {
-  //     title: 'Manage Patients',
-  //     description: 'Add, edit, and manage patient records',
-  //     icon: Users,
-  //     href: '/patients',
-  //     createHref: '/patients/new'
-  //   }
-  // ]
-
   return (
     <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
