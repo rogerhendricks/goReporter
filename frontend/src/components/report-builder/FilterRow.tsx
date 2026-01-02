@@ -15,6 +15,7 @@ import { type FilterCondition, type ReportField } from './types';
 interface FilterRowProps {
   filter: FilterCondition;
   availableFields: ReportField[];
+  patientTags?: Array<{ ID: number; name: string }>;
   showLogicalOperator: boolean;
   onUpdate: (updates: Partial<FilterCondition>) => void;
   onRemove: () => void;
@@ -36,6 +37,7 @@ const OPERATORS = [
 export const FilterRow: React.FC<FilterRowProps> = ({
   filter,
   availableFields,
+  patientTags,
   showLogicalOperator,
   onUpdate,
   onRemove,
@@ -67,6 +69,32 @@ export const FilterRow: React.FC<FilterRowProps> = ({
     if (['is_null', 'is_not_null'].includes(filter.operator)) {
       return null;
     }
+
+  // Special-case: Tag Name filter should be a dropdown of patient tags.
+  if (
+    filter.field.table === 'tags' &&
+    filter.field.name === 'name' &&
+    (patientTags?.length ?? 0) > 0 &&
+    ['equals', 'not_equals'].includes(filter.operator)
+  ) {
+    return (
+      <Select
+        value={(filter.value ?? '').toString()}
+        onValueChange={(value) => onUpdate({ value })}
+      >
+        <SelectTrigger className="w-[220px]">
+          <SelectValue placeholder="Select tag" />
+        </SelectTrigger>
+        <SelectContent>
+          {patientTags!.map((t) => (
+            <SelectItem key={t.ID} value={t.name}>
+              {t.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
 
     switch (filter.field.type) {
       case 'boolean':

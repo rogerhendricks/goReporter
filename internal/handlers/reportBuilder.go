@@ -35,7 +35,12 @@ func (h *ReportBuilderHandler) GetAvailableFields(c *fiber.Ctx) error {
 		{ID: "patients.last_name", Name: "last_name", Label: "Last Name", Type: "string", Table: "patients"},
 		{ID: "patients.date_of_birth", Name: "date_of_birth", Label: "Date of Birth", Type: "date", Table: "patients"},
 		{ID: "patients.mrn", Name: "mrn", Label: "MRN", Type: "string", Table: "patients"},
+		{ID: "patients.tags", Name: "tags", Label: "Patient Tags", Type: "string", Table: "patients"},
 		{ID: "patients.created_at", Name: "created_at", Label: "Created At", Type: "date", Table: "patients"},
+
+		// Tag fields (patient_tags join)
+		{ID: "tags.name", Name: "name", Label: "Tag Name", Type: "string", Table: "tags"},
+		{ID: "tags.type", Name: "type", Label: "Tag Type", Type: "string", Table: "tags"},
 
 		// Device fields (from devices table)
 		{ID: "devices.id", Name: "id", Label: "Device ID", Type: "number", Table: "devices"},

@@ -8,12 +8,14 @@ import { FilterRow } from './FilterRow';
 interface FilterBuilderProps {
   filters: FilterCondition[];
   availableFields: ReportField[];
+  patientTags?: Array<{ ID: number; name: string }>;
   onFiltersChange: (filters: FilterCondition[]) => void;
 }
 
 export const FilterBuilder: React.FC<FilterBuilderProps> = ({
   filters,
   availableFields,
+  patientTags,
   onFiltersChange,
 }) => {
   const addFilter = () => {
@@ -58,6 +60,7 @@ export const FilterBuilder: React.FC<FilterBuilderProps> = ({
                 key={filter.id}
                 filter={filter}
                 availableFields={availableFields}
+                patientTags={patientTags}
                 showLogicalOperator={index > 0}
                 onUpdate={(updates) => updateFilter(filter.id, updates)}
                 onRemove={() => removeFilter(filter.id)}

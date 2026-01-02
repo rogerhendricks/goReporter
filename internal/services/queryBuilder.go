@@ -14,10 +14,11 @@ type QueryBuilder struct {
 func NewQueryBuilder() *QueryBuilder {
 	return &QueryBuilder{
 		allowedTables: map[string][]string{
-			"patients": {"id", "first_name", "last_name", "date_of_birth", "mrn", "created_at", "updated_at"},
+			"patients": {"id", "first_name", "last_name", "date_of_birth", "mrn", "tags", "created_at", "updated_at"},
 			"devices":  {"id", "name", "manufacturer", "dev_model", "is_mri", "type", "created_at", "updated_at"},
 			"reports":  {"id", "patient_id", "report_date", "report_type", "report_status", "current_heart_rate", "current_rhythm", "created_at", "updated_at"},
 			"tasks":    {"id", "patient_id", "title", "description", "due_date", "status", "priority", "created_at", "updated_at"},
+			"tags":     {"id", "name", "type", "color", "description", "created_at", "updated_at"},
 		},
 	}
 }
@@ -43,6 +44,10 @@ func (qb *QueryBuilder) BuildQuery(definition models.ReportDef) (string, []inter
 	query.WriteString("SELECT ")
 	selectClauses := make([]string, 0, len(definition.SelectedFields))
 	for _, field := range definition.SelectedFields {
+		if field.Table == "patients" && field.Name == "tags" {
+			selectClauses = append(selectClauses, qb.patientTagsSelectExpr())
+			continue
+		}
 		selectClauses = append(selectClauses, fmt.Sprintf("%s.%s", field.Table, field.Name))
 	}
 	query.WriteString(strings.Join(selectClauses, ", "))
@@ -122,6 +127,10 @@ func (qb *QueryBuilder) buildWhereClause(filters []models.FilterCondition, argIn
 }
 
 func (qb *QueryBuilder) buildFilterClause(filter models.FilterCondition, argIndex *int) (string, []interface{}, error) {
+	if filter.Field.Table == "patients" && filter.Field.Name == "tags" {
+		return qb.buildPatientTagsFilterClause(filter, argIndex)
+	}
+
 	field := fmt.Sprintf("%s.%s", filter.Field.Table, filter.Field.Name)
 	var clause string
 	var args []interface{}
@@ -160,6 +169,47 @@ func (qb *QueryBuilder) buildFilterClause(filter models.FilterCondition, argInde
 	}
 
 	return fmt.Sprintf("(%s)", clause), args, nil
+}
+
+func (qb *QueryBuilder) patientTagsSelectExpr() string {
+	// Returns a comma-separated list of tag names for a patient.
+	// Uses a correlated subquery to avoid row-multiplication in the main query.
+	return "COALESCE((SELECT STRING_AGG(t.name, ', ' ORDER BY t.name) FROM patient_tags pt JOIN tags t ON t.id = pt.tag_id AND t.deleted_at IS NULL AND t.type = 'patient' WHERE pt.patient_id = patients.id), '') AS patient_tags"
+}
+
+func (qb *QueryBuilder) buildPatientTagsFilterClause(filter models.FilterCondition, argIndex *int) (string, []interface{}, error) {
+	// Filter patients by tag name using EXISTS against patient_tags/tags.
+	// This keeps the main query shape stable and works regardless of other joins.
+	base := "SELECT 1 FROM patient_tags pt JOIN tags t ON t.id = pt.tag_id AND t.deleted_at IS NULL AND t.type = 'patient' WHERE pt.patient_id = patients.id"
+
+	switch filter.Operator {
+	case "equals":
+		clause := fmt.Sprintf("EXISTS (%s AND t.name = $%d)", base, *argIndex)
+		args := []interface{}{filter.Value}
+		*argIndex++
+		return fmt.Sprintf("(%s)", clause), args, nil
+	case "not_equals":
+		clause := fmt.Sprintf("NOT EXISTS (%s AND t.name = $%d)", base, *argIndex)
+		args := []interface{}{filter.Value}
+		*argIndex++
+		return fmt.Sprintf("(%s)", clause), args, nil
+	case "contains":
+		clause := fmt.Sprintf("EXISTS (%s AND t.name ILIKE $%d)", base, *argIndex)
+		args := []interface{}{"%" + fmt.Sprint(filter.Value) + "%"}
+		*argIndex++
+		return fmt.Sprintf("(%s)", clause), args, nil
+	case "starts_with":
+		clause := fmt.Sprintf("EXISTS (%s AND t.name ILIKE $%d)", base, *argIndex)
+		args := []interface{}{fmt.Sprint(filter.Value) + "%"}
+		*argIndex++
+		return fmt.Sprintf("(%s)", clause), args, nil
+	case "is_null":
+		return fmt.Sprintf("(NOT EXISTS (%s))", base), nil, nil
+	case "is_not_null":
+		return fmt.Sprintf("(EXISTS (%s))", base), nil, nil
+	default:
+		return "", nil, fmt.Errorf("unsupported operator for patient tags: %s", filter.Operator)
+	}
 }
 
 func (qb *QueryBuilder) validateFields(fields []models.ReportField) error {
@@ -214,6 +264,19 @@ func (qb *QueryBuilder) determineJoins(fields []models.ReportField, primaryTable
 	// Tasks have direct patient_id foreign key
 	if primaryTable != "tasks" && tables["tasks"] {
 		joins = append(joins, "LEFT JOIN tasks ON patients.id = tasks.patient_id")
+	}
+
+	// Tags (many-to-many) via patient_tags
+	// Primary use-case: patient-based reports where each (patient, tag) can be a row.
+	if tables["tags"] {
+		switch primaryTable {
+		case "patients":
+			joins = append(joins, "LEFT JOIN patient_tags ON patients.id = patient_tags.patient_id")
+			joins = append(joins, "LEFT JOIN tags ON patient_tags.tag_id = tags.id AND tags.deleted_at IS NULL AND tags.type = 'patient'")
+		case "tags":
+			joins = append(joins, "LEFT JOIN patient_tags ON tags.id = patient_tags.tag_id")
+			joins = append(joins, "LEFT JOIN patients ON patient_tags.patient_id = patients.id")
+		}
 	}
 
 	return joins

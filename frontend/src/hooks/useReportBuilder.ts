@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { type ReportDefinition, type ReportResult, type ReportField } from '@/components/report-builder/types';
 import { reportBuilderService } from '@/services/reportBuilderService';
+import { tagService, type Tag } from '@/services/tagService';
 
 export const useReportBuilder = () => {
   const [reportDefinition, setReportDefinition] = useState<ReportDefinition>({
@@ -10,10 +11,12 @@ export const useReportBuilder = () => {
   });
 
   const [availableFields, setAvailableFields] = useState<ReportField[]>([]);
+  const [patientTags, setPatientTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadAvailableFields();
+    loadPatientTags();
   }, []);
 
   const loadAvailableFields = async () => {
@@ -22,6 +25,15 @@ export const useReportBuilder = () => {
       setAvailableFields(fields);
     } catch (error) {
       console.error('Failed to load fields:', error);
+    }
+  };
+
+  const loadPatientTags = async () => {
+    try {
+      const tags = await tagService.getAll('patient');
+      setPatientTags(tags);
+    } catch (error) {
+      console.error('Failed to load patient tags:', error);
     }
   };
 
@@ -50,6 +62,7 @@ export const useReportBuilder = () => {
     reportDefinition,
     setReportDefinition,
     availableFields,
+    patientTags,
     executeReport,
     saveReport,
     loading,

@@ -24,6 +24,7 @@ export const ReportBuilder: React.FC = () => {
     reportDefinition,
     setReportDefinition,
     availableFields,
+    patientTags,
     executeReport,
     saveReport,
     loading,
@@ -237,6 +238,7 @@ export const ReportBuilder: React.FC = () => {
               <FilterBuilder
                 filters={reportDefinition.filters}
                 availableFields={availableFields}
+                patientTags={patientTags}
                 onFiltersChange={(filters) =>
                   setReportDefinition({ ...reportDefinition, filters })
                 }
