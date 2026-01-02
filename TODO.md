@@ -1,5 +1,11 @@
 ## TODO
-
+## Fix arrhythmias
+- The backend and frontend is different.
+  - Name, Type, Duration, Count in backend
+  - Name, Symptoms, Rate, Termination, therapies in frontend
+- Decide how to store AF episodes
+  - AF episode seperate / AF burden %
+  - AF episode in arrhythmias without burden or only burden.
 ### Database encryption
  - Encrypted on server
  - No need as of yet for per column postgres encryption
