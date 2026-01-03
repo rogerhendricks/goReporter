@@ -29,6 +29,7 @@ import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 import WebhooksPage from '@/pages/WebhooksPage'
 import WebhookFormPage from '@/pages/WebhookFormPage'
 import ProductivityReportPage from '@/pages/ProductivityReportPage'
+import KnowledgeBase from '@/pages/KnowledgeBase'
 
 
 export interface RouteConfig {
@@ -81,6 +82,15 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['doctor']
+  },
+
+  // Knowledge base (markdown-backed)
+  {
+    path: '/knowledge-base/:sectionId?/:articleId?',
+    element: <KnowledgeBase />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
   },
   // Patient routes - admin can create/edit, doctors can view their patients
   {

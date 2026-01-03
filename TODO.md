@@ -196,7 +196,7 @@ Building on ReportForm.tsx:
 - Interactive product tour for new users
 - Contextual help tooltips
 - Video tutorials library
-- In-app knowledge base
+-  **Woking on this** In-app knowledge base
 - Guided workflows for common tasks
 
 ### Compliance & HIPAA Features

@@ -1,0 +1,41 @@
+{
+  "sections": [
+    {
+      "id": "app",
+      "title": "App Usage",
+      "articles": [
+        {
+          "id": "roles",
+          "title": "Roles (Admin / Doctor / User)",
+          "path": "/knowledge-base/app/roles.md"
+        }
+      ]
+    },
+    {
+      "id": "devices",
+      "title": "Implanted Devices",
+      "articles": [
+        {
+          "id": "overview",
+          "title": "Overview",
+          "path": "/knowledge-base/devices/overview.md"
+        },
+        {
+          "id": "pacemaker",
+          "title": "Pacemaker",
+          "path": "/knowledge-base/devices/pacemaker.md"
+        },
+        {
+          "id": "icd",
+          "title": "ICD (Implantable Cardioverter-Defibrillator)",
+          "path": "/knowledge-base/devices/icd.md"
+        },
+        {
+          "id": "loop-recorder",
+          "title": "Loop Recorder (ILR)",
+          "path": "/knowledge-base/devices/loop-recorder.md"
+        }
+      ]
+    }
+  ]
+}

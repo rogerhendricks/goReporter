@@ -84,6 +84,13 @@ export function Navbar() {
         { href: '/productivity', label: 'Productivity', icon: BarChart3, roles: ['admin', 'doctor', 'user'] },
       ]
     },
+    {
+      label: 'Resources',
+      icon: Eye,
+      items: [
+        { href: '/knowledge-base', label: 'Knowledge Base', icon: Eye, roles: ['admin', 'doctor', 'user'] },
+      ]
+    },
   ]
 
   // Get the primary dashboard link for the current user
