@@ -41,6 +41,13 @@ type Report struct {
 	MdcIdcStatAtafBurdenPercent *float64 `json:"mdc_idc_stat_ataf_burden_percent"`
 	QrsDuration                 *float64 `json:"qrs_duration"`
 
+	// Episode Counts (since last check)
+	EpisodeAfCountSinceLastCheck                   *int `json:"episode_af_count_since_last_check"`
+	EpisodeTachyCountSinceLastCheck                *int `json:"episode_tachy_count_since_last_check"`
+	EpisodePauseCountSinceLastCheck                *int `json:"episode_pause_count_since_last_check"`
+	EpisodeSymptomAllCountSinceLastCheck           *int `json:"episode_symptom_all_count_since_last_check"`
+	EpisodeSymptomWithDetectionCountSinceLastCheck *int `json:"episode_symptom_with_detection_count_since_last_check"`
+
 	// Device Settings
 	MdcIdcSetBradyMode            *string `json:"mdc_idc_set_brady_mode" gorm:"type:varchar(50)"`
 	MdcIdcSetBradyLowrate         *int    `json:"mdc_idc_set_brady_lowrate"`

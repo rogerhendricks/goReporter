@@ -28,54 +28,59 @@ type ArrhythmiaResponse struct {
 }
 
 type ReportResponse struct {
-	ID                             uint                 `json:"id"`
-	PatientID                      uint                 `json:"patientId"`
-	UserID                         uint                 `json:"userId"`
-	DoctorID                       *uint                `json:"doctorId"`
-	ReportDate                     time.Time            `json:"reportDate"`
-	ReportType                     string               `json:"reportType"`
-	ReportStatus                   string               `json:"reportStatus"`
-	CurrentHeartRate               *int                 `json:"currentHeartRate"`
-	CurrentRhythm                  *string              `json:"currentRhythm"`
-	CurrentDependency              *string              `json:"currentDependency"`
-	MdcIdcStatAtafBurdenPercent    *float64             `json:"mdc_idc_stat_ataf_burden_percent"`
-	QrsDuration                    *float64             `json:"qrs_duration"`
-	MdcIdcSetBradyMode             *string              `json:"mdc_idc_set_brady_mode"`
-	MdcIdcSetBradyLowrate          *int                 `json:"mdc_idc_set_brady_lowrate"`
-	MdcIdcSetBradyMaxTrackingRate  *int                 `json:"mdc_idc_set_brady_max_tracking_rate"`
-	MdcIdcSetBradyMaxSensorRate    *int                 `json:"mdc_idc_set_brady_max_sensor_rate"`
-	MdcIdcDevSav                   *string              `json:"mdc_idc_dev_sav"`
-	MdcIdcDevPav                   *string              `json:"mdc_idc_dev_pav"`
-	MdcIdcStatBradyRaPercentPaced  *float64             `json:"mdc_idc_stat_brady_ra_percent_paced"`
-	MdcIdcStatBradyRvPercentPaced  *float64             `json:"mdc_idc_stat_brady_rv_percent_paced"`
-	MdcIdcStatBradyLvPercentPaced  *float64             `json:"mdc_idc_stat_brady_lv_percent_paced"`
-	MdcIdcStatTachyBivPercentPaced *float64             `json:"mdc_idc_stat_tachy_biv_percent_paced"`
-	MdcIdcBattVolt                 *float64             `json:"mdc_idc_batt_volt"`
-	MdcIdcBattRemaining            *float64             `json:"mdc_idc_batt_remaining"`
-	MdcIdcBattPercentage           *float64             `json:"mdc_idc_batt_percentage"`
-	MdcIdcBattStatus               *string              `json:"mdc_idc_batt_status"`
-	MdcIdcCapChargeTime            *float64             `json:"mdc_idc_cap_charge_time"`
-	MdcIdcMsmtRaImpedanceMean      *float64             `json:"mdc_idc_msmt_ra_impedance_mean"`
-	MdcIdcMsmtRaSensing            *float64             `json:"mdc_idc_msmt_ra_sensing"`
-	MdcIdcMsmtRaPacingThreshold    *float64             `json:"mdc_idc_msmt_ra_pacing_threshold"`
-	MdcIdcMsmtRaPw                 *float64             `json:"mdc_idc_msmt_ra_pw"`
-	MdcIdcMsmtRvImpedanceMean      *float64             `json:"mdc_idc_msmt_rv_impedance_mean"`
-	MdcIdcMsmtRvSensing            *float64             `json:"mdc_idc_msmt_rv_sensing"`
-	MdcIdcMsmtRvPacingThreshold    *float64             `json:"mdc_idc_msmt_rv_pacing_threshold"`
-	MdcIdcMsmtRvPw                 *float64             `json:"mdc_idc_msmt_rv_pw"`
-	MdcIdcMsmtShockImpedance       *float64             `json:"mdc_idc_msmt_shock_impedance"`
-	MdcIdcMsmtLvImpedanceMean      *float64             `json:"mdc_idc_msmt_lv_impedance_mean"`
-	MdcIdcMsmtLvSensing            *float64             `json:"mdc_idc_msmt_lv_sensing"`
-	MdcIdcMsmtLvPacingThreshold    *float64             `json:"mdc_idc_msmt_lv_pacing_threshold"`
-	MdcIdcMsmtLvPw                 *float64             `json:"mdc_idc_msmt_lv_pw"`
-	Comments                       *string              `json:"comments"`
-	IsCompleted                    *bool                `json:"isCompleted"`
-	FilePath                       *string              `json:"file_path"`
-	FileUrl                        *string              `json:"file_url"`
-	Arrhythmias                    []ArrhythmiaResponse `json:"arrhythmias"`
-	Tags                           []models.Tag         `json:"tags"`
-	CreatedAt                      time.Time            `json:"createdAt"`
-	UpdatedAt                      time.Time            `json:"updatedAt"`
+	ID                                             uint                 `json:"id"`
+	PatientID                                      uint                 `json:"patientId"`
+	UserID                                         uint                 `json:"userId"`
+	DoctorID                                       *uint                `json:"doctorId"`
+	ReportDate                                     time.Time            `json:"reportDate"`
+	ReportType                                     string               `json:"reportType"`
+	ReportStatus                                   string               `json:"reportStatus"`
+	CurrentHeartRate                               *int                 `json:"currentHeartRate"`
+	CurrentRhythm                                  *string              `json:"currentRhythm"`
+	CurrentDependency                              *string              `json:"currentDependency"`
+	MdcIdcStatAtafBurdenPercent                    *float64             `json:"mdc_idc_stat_ataf_burden_percent"`
+	QrsDuration                                    *float64             `json:"qrs_duration"`
+	EpisodeAfCountSinceLastCheck                   *int                 `json:"episode_af_count_since_last_check"`
+	EpisodeTachyCountSinceLastCheck                *int                 `json:"episode_tachy_count_since_last_check"`
+	EpisodePauseCountSinceLastCheck                *int                 `json:"episode_pause_count_since_last_check"`
+	EpisodeSymptomAllCountSinceLastCheck           *int                 `json:"episode_symptom_all_count_since_last_check"`
+	EpisodeSymptomWithDetectionCountSinceLastCheck *int                 `json:"episode_symptom_with_detection_count_since_last_check"`
+	MdcIdcSetBradyMode                             *string              `json:"mdc_idc_set_brady_mode"`
+	MdcIdcSetBradyLowrate                          *int                 `json:"mdc_idc_set_brady_lowrate"`
+	MdcIdcSetBradyMaxTrackingRate                  *int                 `json:"mdc_idc_set_brady_max_tracking_rate"`
+	MdcIdcSetBradyMaxSensorRate                    *int                 `json:"mdc_idc_set_brady_max_sensor_rate"`
+	MdcIdcDevSav                                   *string              `json:"mdc_idc_dev_sav"`
+	MdcIdcDevPav                                   *string              `json:"mdc_idc_dev_pav"`
+	MdcIdcStatBradyRaPercentPaced                  *float64             `json:"mdc_idc_stat_brady_ra_percent_paced"`
+	MdcIdcStatBradyRvPercentPaced                  *float64             `json:"mdc_idc_stat_brady_rv_percent_paced"`
+	MdcIdcStatBradyLvPercentPaced                  *float64             `json:"mdc_idc_stat_brady_lv_percent_paced"`
+	MdcIdcStatTachyBivPercentPaced                 *float64             `json:"mdc_idc_stat_tachy_biv_percent_paced"`
+	MdcIdcBattVolt                                 *float64             `json:"mdc_idc_batt_volt"`
+	MdcIdcBattRemaining                            *float64             `json:"mdc_idc_batt_remaining"`
+	MdcIdcBattPercentage                           *float64             `json:"mdc_idc_batt_percentage"`
+	MdcIdcBattStatus                               *string              `json:"mdc_idc_batt_status"`
+	MdcIdcCapChargeTime                            *float64             `json:"mdc_idc_cap_charge_time"`
+	MdcIdcMsmtRaImpedanceMean                      *float64             `json:"mdc_idc_msmt_ra_impedance_mean"`
+	MdcIdcMsmtRaSensing                            *float64             `json:"mdc_idc_msmt_ra_sensing"`
+	MdcIdcMsmtRaPacingThreshold                    *float64             `json:"mdc_idc_msmt_ra_pacing_threshold"`
+	MdcIdcMsmtRaPw                                 *float64             `json:"mdc_idc_msmt_ra_pw"`
+	MdcIdcMsmtRvImpedanceMean                      *float64             `json:"mdc_idc_msmt_rv_impedance_mean"`
+	MdcIdcMsmtRvSensing                            *float64             `json:"mdc_idc_msmt_rv_sensing"`
+	MdcIdcMsmtRvPacingThreshold                    *float64             `json:"mdc_idc_msmt_rv_pacing_threshold"`
+	MdcIdcMsmtRvPw                                 *float64             `json:"mdc_idc_msmt_rv_pw"`
+	MdcIdcMsmtShockImpedance                       *float64             `json:"mdc_idc_msmt_shock_impedance"`
+	MdcIdcMsmtLvImpedanceMean                      *float64             `json:"mdc_idc_msmt_lv_impedance_mean"`
+	MdcIdcMsmtLvSensing                            *float64             `json:"mdc_idc_msmt_lv_sensing"`
+	MdcIdcMsmtLvPacingThreshold                    *float64             `json:"mdc_idc_msmt_lv_pacing_threshold"`
+	MdcIdcMsmtLvPw                                 *float64             `json:"mdc_idc_msmt_lv_pw"`
+	Comments                                       *string              `json:"comments"`
+	IsCompleted                                    *bool                `json:"isCompleted"`
+	FilePath                                       *string              `json:"file_path"`
+	FileUrl                                        *string              `json:"file_url"`
+	Arrhythmias                                    []ArrhythmiaResponse `json:"arrhythmias"`
+	Tags                                           []models.Tag         `json:"tags"`
+	CreatedAt                                      time.Time            `json:"createdAt"`
+	UpdatedAt                                      time.Time            `json:"updatedAt"`
 }
 
 type RecentReportItem struct {
@@ -95,18 +100,23 @@ type RecentReportItem struct {
 // toReportResponse converts a Report model to a ReportResponse DTO
 func toReportResponse(report models.Report) ReportResponse {
 	resp := ReportResponse{
-		ID:                             report.ID,
-		PatientID:                      report.PatientID,
-		UserID:                         report.UserID,
-		DoctorID:                       report.DoctorID,
-		ReportDate:                     report.ReportDate,
-		ReportType:                     report.ReportType,
-		ReportStatus:                   report.ReportStatus,
-		CurrentHeartRate:               report.CurrentHeartRate,
-		CurrentRhythm:                  report.CurrentRhythm,
-		CurrentDependency:              report.CurrentDependency,
-		MdcIdcStatAtafBurdenPercent:    report.MdcIdcStatAtafBurdenPercent,
-		QrsDuration:                    report.QrsDuration,
+		ID:                                   report.ID,
+		PatientID:                            report.PatientID,
+		UserID:                               report.UserID,
+		DoctorID:                             report.DoctorID,
+		ReportDate:                           report.ReportDate,
+		ReportType:                           report.ReportType,
+		ReportStatus:                         report.ReportStatus,
+		CurrentHeartRate:                     report.CurrentHeartRate,
+		CurrentRhythm:                        report.CurrentRhythm,
+		CurrentDependency:                    report.CurrentDependency,
+		MdcIdcStatAtafBurdenPercent:          report.MdcIdcStatAtafBurdenPercent,
+		QrsDuration:                          report.QrsDuration,
+		EpisodeAfCountSinceLastCheck:         report.EpisodeAfCountSinceLastCheck,
+		EpisodeTachyCountSinceLastCheck:      report.EpisodeTachyCountSinceLastCheck,
+		EpisodePauseCountSinceLastCheck:      report.EpisodePauseCountSinceLastCheck,
+		EpisodeSymptomAllCountSinceLastCheck: report.EpisodeSymptomAllCountSinceLastCheck,
+		EpisodeSymptomWithDetectionCountSinceLastCheck: report.EpisodeSymptomWithDetectionCountSinceLastCheck,
 		MdcIdcSetBradyMode:             report.MdcIdcSetBradyMode,
 		MdcIdcSetBradyLowrate:          report.MdcIdcSetBradyLowrate,
 		MdcIdcSetBradyMaxTrackingRate:  report.MdcIdcSetBradyMaxTrackingRate,
@@ -245,6 +255,11 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 	report.CurrentDependency = parseString("currentDependency")
 	report.MdcIdcStatAtafBurdenPercent = parseFloat("mdc_idc_stat_ataf_burden_percent")
 	report.QrsDuration = parseFloat("qrs_duration")
+	report.EpisodeAfCountSinceLastCheck = parseInt("episode_af_count_since_last_check")
+	report.EpisodeTachyCountSinceLastCheck = parseInt("episode_tachy_count_since_last_check")
+	report.EpisodePauseCountSinceLastCheck = parseInt("episode_pause_count_since_last_check")
+	report.EpisodeSymptomAllCountSinceLastCheck = parseInt("episode_symptom_all_count_since_last_check")
+	report.EpisodeSymptomWithDetectionCountSinceLastCheck = parseInt("episode_symptom_with_detection_count_since_last_check")
 	report.MdcIdcSetBradyMode = parseString("mdc_idc_set_brady_mode")
 	report.MdcIdcSetBradyLowrate = parseInt("mdc_idc_set_brady_lowrate")
 	report.MdcIdcSetBradyMaxTrackingRate = parseInt("mdc_idc_set_brady_max_tracking_rate")

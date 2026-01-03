@@ -27,6 +27,13 @@ export interface Report {
   // Patient arrhythmias
   mdc_idc_stat_ataf_burden_percent?: number | null
   qrs_duration?: number | null
+
+  // Episode counts (since last check)
+  episode_af_count_since_last_check?: number | null
+  episode_tachy_count_since_last_check?: number | null
+  episode_pause_count_since_last_check?: number | null
+  episode_symptom_all_count_since_last_check?: number | null
+  episode_symptom_with_detection_count_since_last_check?: number | null
   // Device settings
   mdc_idc_set_brady_mode?: string | null
   mdc_idc_set_brady_lowrate?: number | null

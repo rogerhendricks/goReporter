@@ -181,6 +181,8 @@ func seed(db *gorm.DB) error {
 		{Name: "Cobalt HF CRT-D MRI SureScan", Manufacturer: "Medtronic", DevModel: "DTPB2D4", IsMri: true, Type: "Defibrillator"},
 		{Name: "Cobalt HF CRT-D MRI SureScan", Manufacturer: "Medtronic", DevModel: "DTPB2Q1", IsMri: true, Type: "Defibrillator"},
 		{Name: "Cobalt HF CRT-D MRI SureScan", Manufacturer: "Medtronic", DevModel: "DTPB2QQ", IsMri: true, Type: "Defibrillator"},
+		{Name: "Reveal LINQ", Manufacturer: "Medtronic", DevModel: "LNQ11", IsMri: true, Type: "ICM"},
+		{Name: "Reveal LINQ II", Manufacturer: "Medtronic", DevModel: "LNQ22", IsMri: true, Type: "ICM"},
 		// Biotronik
 		{Name: "Entovis DR-T", Manufacturer: "Biotronik", DevModel: "ENTOVDRT", IsMri: true, Type: "Pacemaker"},
 		{Name: "Entovis SR-T", Manufacturer: "Biotronik", DevModel: "ENTOVSRT", IsMri: true, Type: "Pacemaker"},
@@ -198,6 +200,9 @@ func seed(db *gorm.DB) error {
 		{Name: "Intica Neo 7 VR-T", Manufacturer: "Biotronik", DevModel: "INTNEO7VRT", IsMri: true, Type: "Defibrillator"},
 		{Name: "Intica Neo 7 DR-T", Manufacturer: "Biotronik", DevModel: "INTNEO7DRT", IsMri: true, Type: "Defibrillator"},
 		{Name: "Rivacor 7 HF-T QP", Manufacturer: "Biotronik", DevModel: "RIV7HFTQP", IsMri: true, Type: "Defibrillator"},
+		{Name: "Biomonitor II", Manufacturer: "Biotronik", DevModel: "BIOMONITORII", IsMri: true, Type: "ICM"},
+		{Name: "Biomonitor IIIm", Manufacturer: "Biotronik", DevModel: "BIOMONITORIIIM", IsMri: true, Type: "ICM"},
+		{Name: "Biomonitor IV", Manufacturer: "Biotronik", DevModel: "BIOMONITORIV", IsMri: true, Type: "ICM"},
 		// Boston Scientific
 		{Name: "Resonate", Manufacturer: "Boston Scientific", DevModel: "D432", IsMri: true, Type: "Defibrillator"},
 		{Name: "Resonate", Manufacturer: "Boston Scientific", DevModel: "D433", IsMri: true, Type: "Defibrillator"},
@@ -218,6 +223,9 @@ func seed(db *gorm.DB) error {
 		{Name: "Vitalio", Manufacturer: "Boston Scientific", DevModel: "K275", IsMri: true, Type: "Pacemaker"},
 		{Name: "Vitalio", Manufacturer: "Boston Scientific", DevModel: "K277", IsMri: true, Type: "Pacemaker"},
 		{Name: "Visionist X4", Manufacturer: "Boston Scientific", DevModel: "U228", IsMri: true, Type: "Pacemaker"},
+		{Name: "Lux Dx", Manufacturer: "Boston Scientific", DevModel: "M301", IsMri: true, Type: "ICM"},
+		{Name: "Lux Dx II", Manufacturer: "Boston Scientific", DevModel: "M302", IsMri: true, Type: "ICM"},
+		{Name: "Lux Dx II+", Manufacturer: "Boston Scientific", DevModel: "M312", IsMri: true, Type: "ICM"},
 		// Abbott
 		{Name: "Assurity", Manufacturer: "Abbott", DevModel: "PM1272", IsMri: true, Type: "Pacemaker"},
 		{Name: "Assurity", Manufacturer: "Abbott", DevModel: "PM2272", IsMri: true, Type: "Pacemaker"},
@@ -238,6 +246,8 @@ func seed(db *gorm.DB) error {
 		{Name: "Gallant", Manufacturer: "Abbott", DevModel: "CDDRA500Q", IsMri: true, Type: "Defibrillator"},
 		{Name: "Gallant", Manufacturer: "Abbott", DevModel: "CDHFA500Q", IsMri: true, Type: "Defibrillator"},
 		{Name: "Gallant", Manufacturer: "Abbott", DevModel: "CDVRA500Q", IsMri: true, Type: "Defibrillator"},
+		{Name: "Jot Dx", Manufacturer: "Abbott", DevModel: "4500", IsMri: true, Type: "ICM"},
+		{Name: "Confirm Rx", Manufacturer: "Abbott", DevModel: "DM3500", IsMri: true, Type: "ICM"},
 	}
 	if err := db.Create(&devices).Error; err != nil {
 		return err
@@ -332,19 +342,19 @@ func seed(db *gorm.DB) error {
 	// Implanted device and leads
 	now := time.Now().UTC()
 	devs := []models.ImplantedDevice{
-		{PatientID: p.ID, DeviceID: devices[0].ID, Serial: "MDT-AZR-0001", Status: "Active", ImplantedAt: now},
+		{PatientID: p.ID, DeviceID: devices[94].ID, Serial: "MDT-AZR-0001", Status: "Active", ImplantedAt: now},
 	}
 	if err := db.Create(&devs).Error; err != nil {
 		return err
 	}
 
-	lds := []models.ImplantedLead{
-		{PatientID: p.ID, LeadID: leads[0].ID, Serial: "MDT-5076-RA-01", Chamber: "RA", Status: "Active", ImplantedAt: now},
-		{PatientID: p.ID, LeadID: leads[1].ID, Serial: "ABT-7122Q-RV-01", Chamber: "RV", Status: "Active", ImplantedAt: now},
-	}
-	if err := db.Create(&lds).Error; err != nil {
-		return err
-	}
+	// lds := []models.ImplantedLead{
+	// 	{PatientID: p.ID, LeadID: leads[0].ID, Serial: "MDT-5076-RA-01", Chamber: "RA", Status: "Active", ImplantedAt: now},
+	// 	{PatientID: p.ID, LeadID: leads[1].ID, Serial: "ABT-7122Q-RV-01", Chamber: "RV", Status: "Active", ImplantedAt: now},
+	// }
+	// if err := db.Create(&lds).Error; err != nil {
+	// 	return err
+	// }
 
 	// Patient 2
 	p2 := models.Patient{

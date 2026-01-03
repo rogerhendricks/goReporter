@@ -92,6 +92,13 @@ export const reportSchema = z.object({
   currentDependency: z.string().optional().nullable(),
   mdc_idc_stat_ataf_burden_percent: percentage.optional().nullable(),
   
+  // Episode counts (since last check)
+  episode_af_count_since_last_check: z.number().min(0).optional().nullable(),
+  episode_tachy_count_since_last_check: z.number().min(0).optional().nullable(),
+  episode_pause_count_since_last_check: z.number().min(0).optional().nullable(),
+  episode_symptom_all_count_since_last_check: z.number().min(0).optional().nullable(),
+  episode_symptom_with_detection_count_since_last_check: z.number().min(0).optional().nullable(),
+  
   // Device Settings (Bradycardia)
   mdc_idc_set_brady_mode: z.string().optional().nullable(),
   mdc_idc_set_brady_lowrate: heartRate.optional().nullable(),
