@@ -311,6 +311,25 @@ func seed(db *gorm.DB) error {
 		return err
 	}
 
+	// Tags
+	seedTags := []models.Tag{
+		{Name: "Follow-up", Type: "patient", Description: "Patient requires follow-up"},
+		{Name: "High Risk", Type: "patient", Description: "Higher clinical risk / needs closer monitoring"},
+		{Name: "Needs Scheduling", Type: "patient", Description: "Appointment or procedure needs scheduling"},
+		{Name: "RHM", Type: "patient", Description: "Remote Home Monitoring enabled"},
+		{Name: "AF", Type: "report", Description: "Atrial Fibrillation detected"},
+		{Name: "VT", Type: "report", Description: "Ventricular Tachycardia detected"},
+		{Name: "NSVT", Type: "report", Description: "Non Sustained Ventricular Tachycardia detected"},
+		{Name: "Bradycardia", Type: "report", Description: "Bradycardia detected"},
+		{Name: "Tachycardia", Type: "report", Description: "Tachycardia detected"},
+		{Name: "Pause", Type: "report", Description: "Pause detected"},
+		{Name: "Inappropriate", Type: "report", Description: "Inappropriate therapy delivered"},
+	}
+
+	if err := db.Create(&seedTags).Error; err != nil {
+		return err
+	}
+
 	// Patient
 	p := models.Patient{
 		MRN:       10001,
@@ -398,6 +417,11 @@ func seed(db *gorm.DB) error {
 		{PatientID: p2.ID, LeadID: leads[4].ID, Serial: "MDT-6946-LV-02", Chamber: "LV", Status: "Active", ImplantedAt: now.AddDate(0, -6, 0)},
 	}
 	if err := db.Create(&lds2).Error; err != nil {
+		return err
+	}
+
+	// Attach tags to patient 2
+	if err := db.Model(&p2).Association("Tags").Append(&seedTags[0], &seedTags[3]); err != nil {
 		return err
 	}
 
