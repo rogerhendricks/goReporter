@@ -313,10 +313,10 @@ func seed(db *gorm.DB) error {
 
 	// Tags
 	seedTags := []models.Tag{
-		{Name: "Follow-up", Type: "patient", Description: "Patient requires follow-up"},
-		{Name: "High Risk", Type: "patient", Description: "Higher clinical risk / needs closer monitoring"},
+		{Name: "Follow-up", Type: "patient", Description: "Patient requires follow-up", Color: "#0072a3"},
+		{Name: "High Risk", Type: "patient", Description: "Higher clinical risk / needs closer monitoring", Color: "#eb00b8"},
 		{Name: "Needs Scheduling", Type: "patient", Description: "Appointment or procedure needs scheduling"},
-		{Name: "RHM", Type: "patient", Description: "Remote Home Monitoring enabled"},
+		{Name: "RHM", Type: "patient", Description: "Remote Home Monitoring enabled", Color: "#ff6600"},
 		{Name: "AF", Type: "report", Description: "Atrial Fibrillation detected"},
 		{Name: "VT", Type: "report", Description: "Ventricular Tachycardia detected"},
 		{Name: "NSVT", Type: "report", Description: "Non Sustained Ventricular Tachycardia detected"},
