@@ -38,8 +38,8 @@ import { fieldValidators } from '@/validation/reportSchema'
 const initialFormData: Partial<Report> = {
   // Report info
   reportDate: new Date(),
-  reportType: 'In Clinic',
-  reportStatus: 'pending',
+  reportType: '',
+  reportStatus: '',
   isCompleted: false,
   comments: '',
   arrhythmias: [],
@@ -143,7 +143,36 @@ export function ReportForm({ patient }: ReportFormProps) {
   const isEdit = !!reportId
   const pdfManager = usePdfManager() 
   const { currentReport, fetchReport, fetchMostRecentReport, setCurrentReport } = useReportStore()
-  const [formData, setFormData] = useState<Partial<Report>>(initialFormData)
+  
+  // Define draftKey before using it in useState initializer
+  const draftKey = `report-draft-${patient.id}-${reportId || 'new'}`
+  
+  const [formData, setFormData] = useState<Partial<Report>>(() => {
+    // For edit mode, use initial form data
+    if (isEdit) {
+      return initialFormData
+    }
+    
+    // For new reports, try to load from localStorage during initialization
+    try {
+      const savedDraft = localStorage.getItem(draftKey)
+      if (savedDraft) {
+        const parsedDraft = JSON.parse(savedDraft)
+        console.log('🎯 INITIALIZING formData from draft:', parsedDraft)
+        // Convert date strings back to Date objects
+        if (parsedDraft.reportDate) {
+          parsedDraft.reportDate = new Date(parsedDraft.reportDate)
+        }
+        return parsedDraft
+      }
+    } catch (error) {
+      console.error('Failed to load draft during initialization:', error)
+    }
+    
+    // Default to initialFormData if no draft
+    return initialFormData
+  })
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller()
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
@@ -152,7 +181,10 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [draftStatus, setDraftStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const draftKey = `report-draft-${patient.id}-${reportId || 'new'}`
+  // draftKey moved above useState
+  const draftToastShownRef = useRef(false)
+  const isInitialMount = useRef(true)
+  const isDraftLoaded = useRef(false)
   
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
@@ -162,21 +194,47 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [isLoadingPrevious, setIsLoadingPrevious] = useState(false)
   const [prePopulatedFrom, setPrePopulatedFrom] = useState<number | null>(null)
 
+  // Debug: track all formData changes
+  useEffect(() => {
+    console.log('📊 FORMDATA CHANGED:', {
+      reportType: formData.reportType,
+      reportStatus: formData.reportStatus,
+      currentRhythm: formData.currentRhythm,
+      currentDependency: formData.currentDependency,
+      mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
+      mdc_idc_batt_status: formData.mdc_idc_batt_status,
+    })
+    console.trace('📊 Stack trace for formData change')
+  }, [formData])
+
   // Load draft from localStorage on mount
   useEffect(() => {
-    if (!isEdit) {
+    console.log('🔍 DRAFT LOAD EFFECT RUNNING - isEdit:', isEdit, 'draftToastShownRef:', draftToastShownRef.current, 'draftKey:', draftKey)
+    if (!isEdit && !draftToastShownRef.current) {
       const savedDraft = localStorage.getItem(draftKey)
+      console.log('🔍 DRAFT LOAD - Raw saved draft:', savedDraft?.substring(0, 200))
       if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft)
-          // Convert date strings back to Date objects
-          if (parsedDraft.reportDate) {
-            parsedDraft.reportDate = new Date(parsedDraft.reportDate)
-          }
+          console.log('🔍 DRAFT LOAD - Parsed draft:', {
+            reportType: parsedDraft.reportType,
+            reportStatus: parsedDraft.reportStatus,
+            currentRhythm: parsedDraft.currentRhythm,
+            currentDependency: parsedDraft.currentDependency,
+            mdc_idc_set_brady_mode: parsedDraft.mdc_idc_set_brady_mode,
+            mdc_idc_batt_status: parsedDraft.mdc_idc_batt_status,
+          })
+          
+          // Set lastSaved if it exists
           if (parsedDraft.lastSaved) {
             setLastSaved(new Date(parsedDraft.lastSaved))
           }
-          setFormData(parsedDraft)
+          
+          // Mark draft as loaded and toast as shown
+          isDraftLoaded.current = true
+          draftToastShownRef.current = true
+          
+          // Show toast notification
           toast.info('Draft restored', {
             description: 'Your unsaved changes have been restored',
             action: {
@@ -185,6 +243,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                 localStorage.removeItem(draftKey)
                 setFormData(initialFormData)
                 setLastSaved(null)
+                isDraftLoaded.current = false
                 toast.success('Draft discarded')
               }
             }
@@ -197,27 +256,24 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
   }, [draftKey, isEdit])
 
-  // Auto-save to localStorage
-  const saveDraft = useCallback(() => {
-    if (!isEdit && formData !== initialFormData) {
-      try {
-        const draftData = {
-          ...formData,
-          lastSaved: new Date().toISOString()
-        }
-        localStorage.setItem(draftKey, JSON.stringify(draftData))
-        setDraftStatus('saved')
-        setLastSaved(new Date())
-      } catch (error) {
-        console.error('Failed to save draft:', error)
-        toast.error('Failed to auto-save draft')
-      }
-    }
-  }, [formData, draftKey, isEdit])
-
   // Auto-save with debounce
   useEffect(() => {
-    if (!isEdit && formData !== initialFormData) {
+    // Skip auto-save on initial mount or when in edit mode
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      console.log('🔍 AUTO-SAVE - Skipping initial mount')
+      return
+    }
+    
+    if (!isEdit) {
+      console.log('🔍 AUTO-SAVE - formData changed, will save in 3s:', {
+        reportType: formData.reportType,
+        reportStatus: formData.reportStatus,
+        currentRhythm: formData.currentRhythm,
+        currentDependency: formData.currentDependency,
+        mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
+        mdc_idc_batt_status: formData.mdc_idc_batt_status,
+      })
       setDraftStatus('unsaved')
       
       // Clear existing timer
@@ -228,7 +284,27 @@ export function ReportForm({ patient }: ReportFormProps) {
       // Set new timer for auto-save (3 seconds after last change)
       autoSaveTimerRef.current = setTimeout(() => {
         setDraftStatus('saving')
-        saveDraft()
+        try {
+          const draftData = {
+            ...formData,
+            lastSaved: new Date().toISOString()
+          }
+          console.log('💾 AUTO-SAVE - Saving draft to localStorage:', {
+            reportType: draftData.reportType,
+            reportStatus: draftData.reportStatus,
+            currentRhythm: draftData.currentRhythm,
+            currentDependency: draftData.currentDependency,
+            mdc_idc_set_brady_mode: draftData.mdc_idc_set_brady_mode,
+            mdc_idc_batt_status: draftData.mdc_idc_batt_status,
+          })
+          localStorage.setItem(draftKey, JSON.stringify(draftData))
+          console.log('✅ AUTO-SAVE - Draft saved successfully')
+          setDraftStatus('saved')
+          setLastSaved(new Date())
+        } catch (error) {
+          console.error('Failed to save draft:', error)
+          toast.error('Failed to auto-save draft')
+        }
       }, 3000)
     }
 
@@ -238,13 +314,14 @@ export function ReportForm({ patient }: ReportFormProps) {
         clearTimeout(autoSaveTimerRef.current)
       }
     }
-  }, [formData, isEdit, saveDraft])
+  }, [formData, isEdit, draftKey])
 
   // Clear draft after successful submission
   const clearDraft = useCallback(() => {
     localStorage.removeItem(draftKey)
     setLastSaved(null)
     setDraftStatus('saved')
+    isDraftLoaded.current = false
   }, [draftKey])
 
   useEffect(() => {
@@ -827,6 +904,17 @@ export function ReportForm({ patient }: ReportFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!formData.reportType) {
+      toast.error('Report Type is required')
+      return
+    }
+    if (!formData.reportStatus) {
+      toast.error('Report Status is required')
+      return
+    }
+    
     setIsSubmitting(true)
   
     let mergedPdfBlob: Blob | null = null;
@@ -1194,11 +1282,12 @@ export function ReportForm({ patient }: ReportFormProps) {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium leading-tight">Report Type</Label>
+              <Label className="text-xs font-medium leading-tight">Report Type <span className="text-red-500">*</span></Label>
               <Select
                 name="reportType"
                 value={formData.reportType || ''}
                 onValueChange={(value) => handleSelectChange('reportType', value)}
+                required
               >
                 <SelectTrigger className="h-8 text-sm w-full min-w-0">
                   <SelectValue placeholder="Select type..." />
@@ -1212,11 +1301,12 @@ export function ReportForm({ patient }: ReportFormProps) {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium leading-tight">Report Status</Label>
+              <Label className="text-xs font-medium leading-tight">Report Status <span className="text-red-500">*</span></Label>
               <Select
                 name="reportStatus"
                 value={formData.reportStatus || ''}
                 onValueChange={(value) => handleSelectChange('reportStatus', value)}
+                required
               >
                 <SelectTrigger className="h-8 text-sm w-full min-w-0">
                   <SelectValue placeholder="Select status..." />
@@ -2096,7 +2186,7 @@ export function ReportForm({ patient }: ReportFormProps) {
         </div>
         <Button type="submit" disabled={isSubmitting || pdfManager.isMerging} size="lg">
           {(isSubmitting || pdfManager.isMerging) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {pdfManager.isMerging ? 'Merging PDFs...' : (isSubmitting ? 'Submitting...' : (isEdit ? 'Update Report' : 'Create Report'))}
+          {pdfManager.isMerging ? 'Merging PDFs...' : (isSubmitting ? 'Submitting...' : (isEdit ? 'Update Report' : 'Save Report'))}
         </Button>
       </div>
     </form>
