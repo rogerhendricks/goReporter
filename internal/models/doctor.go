@@ -1,9 +1,10 @@
 package models
 
 import (
+	"strings"
+
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type Doctor struct {
@@ -17,10 +18,11 @@ type Doctor struct {
 	Reports   []Report  `json:"reports"`
 }
 
-// GetAllDoctors retrieves all doctors with their addresses
+// GetAllDoctors retrieves all doctors with their addresses (excluding soft-deleted)
 func GetAllDoctors() ([]Doctor, error) {
 	var doctors []Doctor
-	err := config.DB.Preload("Addresses").Find(&doctors).Error
+	// Explicitly exclude soft-deleted doctors and addresses
+	err := config.DB.Preload("Addresses", "deleted_at IS NULL").Where("deleted_at IS NULL").Find(&doctors).Error
 	if err != nil {
 		return []Doctor{}, err // Return empty slice instead of nil
 	}
@@ -90,6 +92,13 @@ func DoctorHasReports(doctorID uint) (bool, error) {
 	return count > 0, err
 }
 
+// DoctorHasPatients checks if doctor has any associated patients
+func DoctorHasPatients(doctorID uint) (bool, error) {
+	var count int64
+	err := config.DB.Model(&PatientDoctor{}).Where("doctor_id = ?", doctorID).Count(&count).Error
+	return count > 0, err
+}
+
 // UpdateDoctorAddresses updates doctor's addresses
 func UpdateDoctorAddresses(doctorID uint, addresses []Address) error {
 	// Start transaction
@@ -131,29 +140,30 @@ func UpdateDoctorAddresses(doctorID uint, addresses []Address) error {
 
 // GetDoctorsPaginated retrieves doctors with pagination and search
 func GetDoctorsPaginated(search string, page, limit int) ([]Doctor, int64, error) {
-    var doctors []Doctor
-    var total int64
-    
-    tx := config.DB.Model(&Doctor{}).Preload("Addresses")
-    
-    // Apply search filter if provided
-    if search != "" {
-        searchQuery := "%" + strings.ToLower(search) + "%"
-        tx = tx.Where("LOWER(full_name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(specialty) LIKE ?", 
-            searchQuery, searchQuery, searchQuery)
-    }
-    
-    // Get total count
-    if err := tx.Count(&total).Error; err != nil {
-        return nil, 0, err
-    }
-    
-    // Get paginated results
-    offset := (page - 1) * limit
-    err := tx.Offset(offset).Limit(limit).Order("full_name ASC").Find(&doctors).Error
-    if err != nil {
-        return nil, 0, err
-    }
-    
-    return doctors, total, nil
+	var doctors []Doctor
+	var total int64
+
+	// Explicitly exclude soft-deleted doctors and addresses
+	tx := config.DB.Model(&Doctor{}).Preload("Addresses", "deleted_at IS NULL").Where("doctors.deleted_at IS NULL")
+
+	// Apply search filter if provided
+	if search != "" {
+		searchQuery := "%" + strings.ToLower(search) + "%"
+		tx = tx.Where("LOWER(full_name) LIKE ? OR LOWER(email) LIKE ? OR LOWER(specialty) LIKE ?",
+			searchQuery, searchQuery, searchQuery)
+	}
+
+	// Get total count
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Get paginated results
+	offset := (page - 1) * limit
+	err := tx.Offset(offset).Limit(limit).Order("full_name ASC").Find(&doctors).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return doctors, total, nil
 }

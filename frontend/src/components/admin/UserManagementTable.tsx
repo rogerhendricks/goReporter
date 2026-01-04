@@ -92,6 +92,12 @@ export function UserManagementTable() {
 
     const handleInputChange = (field: keyof User, value: string) => {
         if (editedUser) {
+            // Check if role is being changed to 'doctor'
+            if (field === 'role' && value === 'doctor' && editedUser.role !== 'doctor') {
+                if (!confirm('Changing role to "Doctor" will create a doctor record for patient access. Continue?')) {
+                    return; // User cancelled, don't update
+                }
+            }
             setEditedUser({ ...editedUser, [field]: value });
         }
     };

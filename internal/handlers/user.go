@@ -49,9 +49,15 @@ func CreateUser(c *fiber.Ctx) error {
 
 	// If the user is a doctor, create a corresponding doctor record
 	if newUser.Role == "doctor" {
+		// Use Username if FullName is empty
+		doctorFullName := newUser.FullName
+		if doctorFullName == "" {
+			doctorFullName = newUser.Username
+		}
+
 		newDoctor := models.Doctor{
 			UserID:   &newUser.ID,
-			FullName: newUser.FullName,
+			FullName: doctorFullName,
 			Email:    newUser.Email,
 		}
 		if err := models.CreateDoctor(&newDoctor); err != nil {
@@ -206,6 +212,7 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	// Only admin can change roles
+	oldRole := existingUser.Role
 	if isAdmin && updateData.Role != "" {
 		existingUser.Role = html.EscapeString(strings.TrimSpace(updateData.Role))
 	}
@@ -228,6 +235,30 @@ func UpdateUser(c *fiber.Ctx) error {
 	if err := models.UpdateUser(existingUser); err != nil {
 		log.Printf("Error updating user %s: %v", userIDParam, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
+	}
+
+	// If role changed to 'doctor' and user doesn't have a doctor record, create one
+	if isAdmin && existingUser.Role == "doctor" && oldRole != "doctor" && existingUser.DoctorID == nil {
+		doctorFullName := existingUser.FullName
+		if doctorFullName == "" {
+			doctorFullName = existingUser.Username
+		}
+
+		newDoctor := models.Doctor{
+			UserID:   &existingUser.ID,
+			FullName: doctorFullName,
+			Email:    existingUser.Email,
+		}
+		if err := models.CreateDoctor(&newDoctor); err != nil {
+			log.Printf("Failed to create doctor record for user %d: %v", existingUser.ID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor record"})
+		}
+		// Link the user to the doctor record
+		existingUser.DoctorID = &newDoctor.ID
+		if err := models.UpdateUser(existingUser); err != nil {
+			log.Printf("Failed to link user %d to doctor record %d: %v", existingUser.ID, newDoctor.ID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to link user to doctor record"})
+		}
 	}
 
 	// Remove sensitive data before returning
