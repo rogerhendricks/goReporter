@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge'
-import { Plus, Trash2, CalendarIcon, Loader2, Link as LinkIcon, FileText, Save, Clock} from 'lucide-react'
+import { Plus, Trash2, CalendarIcon, Loader2, Link as LinkIcon, FileText, Save, Clock, Check, User} from 'lucide-react'
 import api from '@/utils/axios'
 import { usePdfManager } from '@/hooks/usePdfManager'
 import { PdfUploader } from '@/components/PdfUploader'
@@ -34,6 +34,7 @@ import { tagService } from '@/services/tagService'
 import type { Tag } from '@/services/tagService'
 import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 import { fieldValidators } from '@/validation/reportSchema'
+import { cn } from '@/lib/utils'
 
 const initialFormData: Partial<Report> = {
   // Report info
@@ -143,7 +144,9 @@ export function ReportForm({ patient }: ReportFormProps) {
   const isEdit = !!reportId
   const pdfManager = usePdfManager() 
   const { currentReport, fetchReport, fetchMostRecentReport, setCurrentReport } = useReportStore()
-  
+  const [selectedDoctorForPdf, setSelectedDoctorForPdf] = useState<any>(null)
+  const [doctorSelectorOpen, setDoctorSelectorOpen] = useState(false)
+
   // Define draftKey before using it in useState initializer
   const draftKey = `report-draft-${patient.id}-${reportId || 'new'}`
   
@@ -806,7 +809,7 @@ export function ReportForm({ patient }: ReportFormProps) {
         (l: any) => String(l?.status || '').toLowerCase() === 'active' && !l?.explantedAt
       )
     try {
-      const pdfBlob = await fillReportForm(formData, patient, activeDevices, activeLeads)
+      const pdfBlob = await fillReportForm(formData, patient, activeDevices, activeLeads, selectedDoctorForPdf)
       if (pdfBlob) {
         const url = window.URL.createObjectURL(pdfBlob)
         const link = document.createElement('a')
@@ -826,6 +829,8 @@ export function ReportForm({ patient }: ReportFormProps) {
       toast.error('Failed to generate PDF report')
     }
   }
+  // Available doctors for selection
+  const availableDoctors = (patient as any)?.patientDoctors || []
 
   // Debug function to see available form fields
   const handleDebugFields = async () => {
@@ -1012,8 +1017,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     const activeDevices = (patient?.devices ?? []).filter(
     (d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt
     )
-    console.log('activedevices', activeDevices)
-    
+
     // Device capability detection
     const hasDefibrillator = activeDevices.some((d: any) => {
       const typeStr = (
@@ -2163,6 +2167,77 @@ export function ReportForm({ patient }: ReportFormProps) {
           <PdfUploader pdfManager={pdfManager} />
         </CardContent>
       </Card>
+
+
+
+
+      {availableDoctors.length > 0 && (
+        <Popover open={doctorSelectorOpen} onOpenChange={setDoctorSelectorOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              {selectedDoctorForPdf 
+                ? `${selectedDoctorForPdf.doctor?.fullName || selectedDoctorForPdf.fullName}` 
+                : availableDoctors[0]?.doctor?.fullName
+                  ? `${availableDoctors[0].doctor.fullName}`
+                  : 'Select Doctor'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-2" align="end">
+            <div className="space-y-1">
+              <p className="text-sm font-medium px-2 py-1.5">Select Doctor for PDF</p>
+              <div className="space-y-0.5">
+                {availableDoctors.map((patientDoctor: any) => (
+                  <button
+                    key={patientDoctor.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDoctorForPdf(patientDoctor)
+                      setDoctorSelectorOpen(false)
+                      toast.success(`Selected ${patientDoctor.doctor?.fullName} for PDF`)
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-accent transition-colors",
+                      (selectedDoctorForPdf?.id === patientDoctor.id || (!selectedDoctorForPdf && patientDoctor.id === availableDoctors[0]?.id)) && "bg-accent"
+                    )}
+                  >
+                    <Check 
+                      className={cn(
+                        "h-4 w-4",
+                        (selectedDoctorForPdf?.id === patientDoctor.id || (!selectedDoctorForPdf && patientDoctor.id === availableDoctors[0]?.id))
+                          ? "opacity-100" 
+                          : "opacity-0"
+                      )} 
+                    />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{patientDoctor.doctor?.fullName}</div>
+                      {patientDoctor.isPrimary && (
+                        <Badge variant="secondary" className="text-xs mr-2">Primary</Badge>
+                      )}
+                      {patientDoctor.doctor?.email && (
+                        <div className="text-xs text-muted-foreground">{patientDoctor.doctor.email}</div>
+                      )}
+                      {patientDoctor.address && (
+                        <div className="text-xs text-muted-foreground">
+                          {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+
+
+
 
       <div className="flex justify-end items-center  pt-4">
         <div className="flex gap-2">

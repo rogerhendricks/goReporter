@@ -4,6 +4,26 @@ import type { Report } from '@/stores/reportStore'
 import type { Patient } from '@/stores/patientStore'
 import type { ImplantedDevice, ImplantedLead } from '@/stores/patientStore'
 
+interface PatientDoctor {
+  id: number
+  doctorId: number
+  addressId: number
+  isPrimary: boolean
+  doctor: {
+    id: number
+    fullName: string
+    email?: string
+    phone?: string
+    specialty?: string
+  }
+  address: {
+    street: string
+    city: string
+    state: string
+    country: string
+    zip: string
+  }
+}
 
 export function usePdfFormFiller() {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -13,12 +33,13 @@ export function usePdfFormFiller() {
     formData: Partial<Report>,
     patient: Patient,
     activeDevices?: ImplantedDevice[],
-    activeLeads?: ImplantedLead[]
+    activeLeads?: ImplantedLead[],
+    selectedDoctor?: PatientDoctor,
   ): Promise<Blob | null> => {
     setIsGenerating(true)
     setError(null)
 
-    console.log('Filling PDF form with data:', { formData, patient, activeDevices, activeLeads })
+    console.log('Filling PDF form with data:', { formData, patient, activeDevices, activeLeads, selectedDoctor })
 
     try {
       // Load the PDF form template
@@ -76,13 +97,23 @@ export function usePdfFormFiller() {
       fillTextField('patient_country', patient.country)
       fillTextField('patient_postal', patient.postal)
       
-      // Fill Doctor Information (assuming first doctor is primary)
-      if ((patient as any).doctors && (patient as any).doctors.length > 0) {
-        const primaryDoctor = (patient as any).doctors[0]
-        fillTextField('doctor_name', `Dr. ${primaryDoctor.name}`)
-        fillTextField('doctor_email', primaryDoctor.email)
-        fillTextField('doctor_phone', primaryDoctor.phone)
-        fillTextField('doctor_address', primaryDoctor.address)
+      // Fill Doctor Information with selected doctor or first available
+      const doctorToUse = selectedDoctor?.doctor || ((patient as any).patientDoctors?.[0]?.doctor)
+      const addressToUse = selectedDoctor?.address || ((patient as any).patientDoctors?.[0]?.address)
+      
+      if (doctorToUse) {
+        fillTextField('doctor_name', doctorToUse.fullName)
+        fillTextField('doctor_email', doctorToUse.email)
+        fillTextField('doctor_phone', doctorToUse.phone)
+        fillTextField('doctor_specialty', doctorToUse.specialty)
+        
+        if (addressToUse) {
+          fillTextField('doctor_address', `${addressToUse.street}, ${addressToUse.city}, ${addressToUse.state} ${addressToUse.zip}`)
+          fillTextField('doctor_street', addressToUse.street)
+          fillTextField('doctor_city', addressToUse.city)
+          fillTextField('doctor_state', addressToUse.state)
+          fillTextField('doctor_zip', addressToUse.zip)
+        }
       }
 
       // Fill Implanted Device Information
