@@ -19,6 +19,7 @@ import { DonutChartSkeleton, TableSkeleton } from '@/components/ui/loading-skele
 import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
 import { WebhookManagement } from '@/components/admin/WebhookManagement'
 import { TeamManagement } from '@/components/admin/TeamManagement'
+import { OverduePatientsCard } from '@/components/dashboard/OverduePatientsCard'
 
 type Slice = { label: string; count: number }
 type ReportSummary = {
@@ -350,6 +351,8 @@ export default function AdminDashboard() {
                   )}
                 </CardContent>
               </Card>
+
+              <OverduePatientsCard />
 
               <Card>
                 <CardHeader>                  <CardTitle>Recent Reports</CardTitle>

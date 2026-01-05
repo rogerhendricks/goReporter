@@ -1108,3 +1108,58 @@ func sanitizePatient(patient *models.Patient) {
 // 	// Similar logic for devices and leads if needed
 // 	return nil
 // }
+
+// GetOverduePatients retrieves patients who are overdue for reports
+func GetOverduePatients(c *fiber.Ctx) error {
+	// Get pagination parameters
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+
+	// Check if user is a doctor and filter by their patients
+	var doctorID *uint
+	userRole, _ := c.Locals("user_role").(string)
+	if userRole == "doctor" {
+		userIDStr, _ := c.Locals("user_id").(string)
+		if userIDStr != "" {
+			// Get doctor record by user ID
+			var doctor models.Doctor
+			if err := config.DB.Where("user_id = ?", userIDStr).First(&doctor).Error; err == nil {
+				doctorID = &doctor.ID
+			}
+		}
+	}
+
+	// Get overdue patients
+	results, total, err := models.GetOverduePatients(page, limit, doctorID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve overdue patients",
+		})
+	}
+
+	// Ensure results is never nil for JSON serialization
+	if results == nil {
+		results = []models.OverduePatient{}
+	}
+
+	// Calculate total pages
+	totalPages := (int(total) + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	return c.JSON(fiber.Map{
+		"patients":   results,
+		"total":      total,
+		"page":       page,
+		"limit":      limit,
+		"totalPages": totalPages,
+	})
+}

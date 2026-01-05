@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Users, FileText, Search } from 'lucide-react'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { OverduePatientsCard } from '@/components/dashboard/OverduePatientsCard'
 
 export default function DoctorDashboard() {
   const breadcrumbItems = [
@@ -63,6 +64,8 @@ export default function DoctorDashboard() {
           )
         })}
       </div>
+
+      <OverduePatientsCard />
 
       <Card>
         <CardHeader>
