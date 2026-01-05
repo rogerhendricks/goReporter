@@ -36,6 +36,8 @@ export interface Device {
   name: string;
   manufacturer: string;
   model: string;
+  type: string;
+  isMri: boolean;
 }
 
 export interface Lead {
@@ -43,6 +45,7 @@ export interface Lead {
   name: string;
   manufacturer: string;
   model: string;
+  isMri: boolean;
 }
 
 export interface ImplantedDevice {

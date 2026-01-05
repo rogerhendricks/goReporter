@@ -798,8 +798,15 @@ export function ReportForm({ patient }: ReportFormProps) {
   }, [isEdit, currentReport])
 
   const handleGeneratePdf = async () => {
+      // Filter active devices and leads
+      const activeDevices = (patient?.devices ?? []).filter(
+        (d: any) => String(d?.status || '').toLowerCase() === 'active' && !d?.explantedAt
+      )
+      const activeLeads = (patient?.leads ?? []).filter(
+        (l: any) => String(l?.status || '').toLowerCase() === 'active' && !l?.explantedAt
+      )
     try {
-      const pdfBlob = await fillReportForm(formData, patient)
+      const pdfBlob = await fillReportForm(formData, patient, activeDevices, activeLeads)
       if (pdfBlob) {
         const url = window.URL.createObjectURL(pdfBlob)
         const link = document.createElement('a')

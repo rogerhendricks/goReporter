@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import type { Report } from '@/stores/reportStore'
 import type { Patient } from '@/stores/patientStore'
+import type { ImplantedDevice, ImplantedLead } from '@/stores/patientStore'
+
 
 export function usePdfFormFiller() {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -10,9 +12,13 @@ export function usePdfFormFiller() {
   const fillReportForm = async (
     formData: Partial<Report>,
     patient: Patient,
+    activeDevices?: ImplantedDevice[],
+    activeLeads?: ImplantedLead[]
   ): Promise<Blob | null> => {
     setIsGenerating(true)
     setError(null)
+
+    console.log('Filling PDF form with data:', { formData, patient, activeDevices, activeLeads })
 
     try {
       // Load the PDF form template
@@ -69,6 +75,7 @@ export function usePdfFormFiller() {
       fillTextField('patient_state', patient.state)
       fillTextField('patient_country', patient.country)
       fillTextField('patient_postal', patient.postal)
+      
       // Fill Doctor Information (assuming first doctor is primary)
       if ((patient as any).doctors && (patient as any).doctors.length > 0) {
         const primaryDoctor = (patient as any).doctors[0]
@@ -76,6 +83,46 @@ export function usePdfFormFiller() {
         fillTextField('doctor_email', primaryDoctor.email)
         fillTextField('doctor_phone', primaryDoctor.phone)
         fillTextField('doctor_address', primaryDoctor.address)
+      }
+
+      // Fill Implanted Device Information
+      if (activeDevices && activeDevices.length > 0) {
+        // Primary device (first active device)
+        const primaryDevice = activeDevices[0]
+        fillTextField('device_manufacturer', primaryDevice.device?.manufacturer)
+        fillTextField('device_name', primaryDevice.device?.name)
+        fillTextField('device_model', primaryDevice.device?.model)
+        fillTextField('device_type', primaryDevice.device?.type)
+        fillTextField('device_is_mri', primaryDevice.device?.isMri ? "Yes" : "No")
+        fillTextField('device_serial', primaryDevice.serial)
+        fillTextField('device_implant_date', primaryDevice.implantedAt ? new Date(primaryDevice.implantedAt).toLocaleDateString() : '')
+        
+        // Additional devices (if multiple devices are active)
+        activeDevices.slice(1, 3).forEach((device, index) => {
+          const suffix = `_${index + 2}` // _2, _3
+          fillTextField(`device_manufacturer${suffix}`, device.device?.manufacturer)
+          fillTextField(`device_name${suffix}`, device.device?.name)
+          fillTextField(`device_model${suffix}`, device.device?.model)
+          fillTextField(`device_type${suffix}`, device.device?.type)
+          fillTextField(`device_is_mri${suffix}`, device.device?.isMri ? "Yes" : "No")
+          fillTextField(`device_serial${suffix}`, device.serial)
+          fillTextField(`device_implant_date${suffix}`, device.implantedAt ? new Date(device.implantedAt).toLocaleDateString() : '')
+        })
+      }
+
+      // Fill Implanted Lead Information
+      if (activeLeads && activeLeads.length > 0) {
+        activeLeads.slice(0, 4).forEach((lead, index) => {
+          const suffix = index === 0 ? '' : `_${index + 1}`
+          fillTextField(`lead_manufacturer${suffix}`, lead.lead?.manufacturer)
+          fillTextField(`lead_name${suffix}`, lead.lead?.name)
+          fillTextField(`lead_model${suffix}`, lead.lead?.model)
+          fillTextField(`lead_serial${suffix}`, lead.serial)
+          fillTextField(`lead_chamber${suffix}`, lead.chamber)
+          fillTextField(`lead_status${suffix}`, lead.status)
+          fillTextField(`lead_is_mri${suffix}`, lead.lead?.isMri ? "Yes" : "No")
+          fillTextField(`lead_implant_date${suffix}`, lead.implantedAt ? new Date(lead.implantedAt).toLocaleDateString() : '')
+        })
       }
 
       // Fill Report Details
