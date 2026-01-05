@@ -61,7 +61,7 @@ export default function LeadDetail() {
       <Card>
         <CardHeader><CardTitle>Lead Details</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><strong>Model:</strong> {currentLead.model}</div>
+          <div><strong>Model:</strong> {currentLead.leadModel}</div>
           <div><strong>Manufacturer:</strong> {currentLead.manufacturer}</div>
           <div><strong>Connector:</strong> {currentLead.connector}</div>
           <div>

@@ -15,7 +15,7 @@ import { useFormShortcuts } from '@/hooks/useFormShortcuts'
 interface LeadFormData {
   name: string
   manufacturer: string
-  model: string
+  leadModel: string
   connector: string
   polarity: string
   isMri: boolean
@@ -29,10 +29,9 @@ export default function LeadForm() {
   const { currentLead, loading, error, fetchLead, createLead, updateLead, clearError } = useLeadStore()
   
   const [formData, setFormData] = useState<LeadFormData>({
-
     name: '',
     manufacturer: '',
-    model: '',
+    leadModel: '',
     connector: '',
     polarity: '',
     isMri: false
@@ -49,7 +48,7 @@ export default function LeadForm() {
       setFormData({
         name: currentLead.name,
         manufacturer: currentLead.manufacturer,
-        model: currentLead.model,
+        leadModel: currentLead.leadModel,
         connector: currentLead.connector,
         polarity: currentLead.polarity,
         isMri: currentLead.isMri
@@ -111,7 +110,7 @@ export default function LeadForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><Label htmlFor="name">Lead Name</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="model">Model</Label><Input id="model" name="model" value={formData.model} onChange={handleInputChange} required /></div>
+              <div><Label htmlFor="leadModel">Model</Label><Input id="leadModel" name="leadModel" value={formData.leadModel} onChange={handleInputChange} required /></div>
               <div>
                 <Label htmlFor="manufacturer">Manufacturer</Label>
                 <Select name="manufacturer" value={formData.manufacturer || ''} onValueChange={(value) => handleSelectChange('manufacturer', value)} required>

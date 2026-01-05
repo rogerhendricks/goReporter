@@ -597,8 +597,18 @@ func CreatePatient(c *fiber.Ctx) error {
 	// Create patient and all associations in one transaction
 	if err := config.DB.Session(&gorm.Session{FullSaveAssociations: true}).Create(&newPatient).Error; err != nil {
 		log.Printf("Error creating patient with associations: %v", err)
-		if strings.Contains(err.Error(), "duplicate") {
-			return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Patient with this MRN already exists"})
+		errorMsg := strings.ToLower(err.Error())
+
+		// Check for various duplicate/unique constraint violations
+		if strings.Contains(errorMsg, "duplicate") ||
+			strings.Contains(errorMsg, "unique") ||
+			strings.Contains(errorMsg, "mrn") && strings.Contains(errorMsg, "already exists") ||
+			strings.Contains(errorMsg, "constraint") && strings.Contains(errorMsg, "mrn") {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "Patient with this MRN already exists",
+				"field": "mrn",
+				"code":  "DUPLICATE_MRN",
+			})
 		}
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create patient"})
 	}
@@ -726,6 +736,19 @@ func UpdatePatient(c *fiber.Ctx) error {
 
 	if err := tx.Save(&existingPatient).Error; err != nil {
 		tx.Rollback()
+		errorMsg := strings.ToLower(err.Error())
+		
+		// Check for various duplicate/unique constraint violations
+		if strings.Contains(errorMsg, "duplicate") || 
+		   strings.Contains(errorMsg, "unique") || 
+		   strings.Contains(errorMsg, "mrn") && strings.Contains(errorMsg, "already exists") ||
+		   strings.Contains(errorMsg, "constraint") && strings.Contains(errorMsg, "mrn") {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "Patient with this MRN already exists",
+				"field": "mrn",
+				"code": "DUPLICATE_MRN",
+			})
+		}
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
 	}
 

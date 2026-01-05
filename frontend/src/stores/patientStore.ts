@@ -44,7 +44,9 @@ export interface Lead {
   ID: number;
   name: string;
   manufacturer: string;
-  model: string;
+  leadModel: string;
+  connector: string;
+  polarity: string;
   isMri: boolean;
 }
 
@@ -177,7 +179,20 @@ export const usePatientStore = create<PatientState>((set) => ({
       return newPatient
     } catch (error: any) {
       console.error('Error creating patient:', error)
-      set({ error: error.response?.data?.error || 'Failed to create patient', loading: false })
+      
+      // Check for duplicate MRN error
+      if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
+        const errorMessage = error.response.data.error || 'Patient with this MRN already exists'
+        set({ error: errorMessage, loading: false })
+        toast.error(errorMessage, {
+          description: 'Please use a different MRN or check if the patient already exists.',
+          duration: 5000,
+        })
+      } else {
+        const errorMessage = error.response?.data?.error || 'Failed to create patient'
+        set({ error: errorMessage, loading: false })
+        toast.error(errorMessage)
+      }
       throw error
     }
   },
@@ -198,7 +213,20 @@ export const usePatientStore = create<PatientState>((set) => ({
       return updatedPatient
     } catch (error: any) {
       console.error('Error updating patient:', error)
-      set({ error: error.response?.data?.error || 'Failed to update patient', loading: false })
+      
+      // Check for duplicate MRN error
+      if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
+        const errorMessage = error.response.data.error || 'Patient with this MRN already exists'
+        set({ error: errorMessage, loading: false })
+        toast.error(errorMessage, {
+          description: 'Please use a different MRN or check if another patient has this MRN.',
+          duration: 5000,
+        })
+      } else {
+        const errorMessage = error.response?.data?.error || 'Failed to update patient'
+        set({ error: errorMessage, loading: false })
+        toast.error(errorMessage)
+      }
       throw error
     }
   },

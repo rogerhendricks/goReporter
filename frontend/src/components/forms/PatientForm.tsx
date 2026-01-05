@@ -90,6 +90,7 @@ export default function PatientForm() {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [isPrimary, setIsPrimary] = useState(false);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<PatientFormData>({
     mrn: "",
@@ -406,6 +407,7 @@ export default function PatientForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    setFieldErrors({}); // Clear any previous field errors
 
     // Validate devices have valid deviceIds
     const invalidDevices = formData.devices.filter(d => !d.deviceId || d.deviceId === 0);
@@ -473,10 +475,20 @@ export default function PatientForm() {
       // Redirect to the patient details page after saving
       navigate(`/patients/${patientId}`);
       // navigate('/patients')
-    } catch (error) {
-      // Error is handled by the store
+    } catch (error: any) {
+      // Error is handled by the store with toast notifications
       console.error("Error saving patient:", error);
-      toast.error("Failed to save patient. Please try again.");
+      
+      // Set field-specific error for duplicate MRN
+      if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
+        setFieldErrors({ mrn: error.response.data.error });
+        // Scroll to the MRN field
+        document.getElementById('mrn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('mrn')?.focus();
+      } else {
+        // Store already shows toast, but we can log additional context
+        console.error("Failed to save patient details:", error.response?.data);
+      }
     }
   };
 
@@ -528,15 +540,27 @@ export default function PatientForm() {
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="mrn">Medical Record Number</Label>
+                <Label htmlFor="mrn" className={fieldErrors.mrn ? "text-destructive" : ""}>
+                  Medical Record Number
+                </Label>
                 <Input
                   id="mrn"
                   name="mrn"
                   type="number"
                   value={formData.mrn}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    // Clear MRN error when user starts typing
+                    if (fieldErrors.mrn) {
+                      setFieldErrors(prev => ({ ...prev, mrn: '' }));
+                    }
+                  }}
+                  className={fieldErrors.mrn ? "border-destructive" : ""}
                   required
                 />
+                {fieldErrors.mrn && (
+                  <p className="text-sm text-destructive mt-1">{fieldErrors.mrn}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="dob">Date of Birth</Label>
@@ -1255,7 +1279,7 @@ export default function PatientForm() {
                               <div>
                                 <div className="font-medium">{lead.name}</div>
                                 <div className="text-sm text-muted-foreground">
-                                  {lead.manufacturer} {lead.model}
+                                  {lead.manufacturer} {lead.leadModel}
                                 </div>
                               </div>
                             </CommandItem>

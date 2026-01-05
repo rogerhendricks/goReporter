@@ -5,7 +5,7 @@ export interface Lead {
   ID: number
   name: string
   manufacturer: string
-  model: string
+  leadModel: string
   connector: string
   polarity: string
   isMri: boolean
