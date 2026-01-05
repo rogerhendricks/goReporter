@@ -1678,14 +1678,14 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Episode Type</TableHead>
-                    <TableHead className="w-[180px]">Count</TableHead>
+                    <TableHead className="text-left">Episode Type</TableHead>
+                    <TableHead className="w-[180px] text-left">Count</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow>
-                    <TableCell className="font-semibold">AF</TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-left">AF</TableCell>
+                    <TableCell className="text-left">
                       <Input
                         name="episode_af_count_since_last_check"
                         type="number"
@@ -1697,8 +1697,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-semibold">Tachy</TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-left">Tachy</TableCell>
+                    <TableCell className="text-left">
                       <Input
                         name="episode_tachy_count_since_last_check"
                         type="number"
@@ -1710,8 +1710,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-semibold">Pause</TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-left">Pause</TableCell>
+                    <TableCell className="text-left">
                       <Input
                         name="episode_pause_count_since_last_check"
                         type="number"
@@ -1723,8 +1723,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-semibold">Symptom (All)</TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-left">Symptom (All)</TableCell>
+                    <TableCell className="text-left">
                       <Input
                         name="episode_symptom_all_count_since_last_check"
                         type="number"
@@ -1736,8 +1736,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-semibold">Symptom (With Detection)</TableCell>
-                    <TableCell>
+                    <TableCell className="font-semibold text-left">Symptom (With Detection)</TableCell>
+                    <TableCell className="text-left">
                       <Input
                         name="episode_symptom_with_detection_count_since_last_check"
                         type="number"
@@ -2167,14 +2167,6 @@ export function ReportForm({ patient }: ReportFormProps) {
           <PdfUploader pdfManager={pdfManager} />
         </CardContent>
       </Card>
-
-
-
-
-
-
-
-
 
       <div className="flex justify-end items-center  pt-4">
         {availableDoctors.length > 0 && (
