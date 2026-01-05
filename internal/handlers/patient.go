@@ -737,16 +737,16 @@ func UpdatePatient(c *fiber.Ctx) error {
 	if err := tx.Save(&existingPatient).Error; err != nil {
 		tx.Rollback()
 		errorMsg := strings.ToLower(err.Error())
-		
+
 		// Check for various duplicate/unique constraint violations
-		if strings.Contains(errorMsg, "duplicate") || 
-		   strings.Contains(errorMsg, "unique") || 
-		   strings.Contains(errorMsg, "mrn") && strings.Contains(errorMsg, "already exists") ||
-		   strings.Contains(errorMsg, "constraint") && strings.Contains(errorMsg, "mrn") {
+		if strings.Contains(errorMsg, "duplicate") ||
+			strings.Contains(errorMsg, "unique") ||
+			strings.Contains(errorMsg, "mrn") && strings.Contains(errorMsg, "already exists") ||
+			strings.Contains(errorMsg, "constraint") && strings.Contains(errorMsg, "mrn") {
 			return c.Status(http.StatusConflict).JSON(fiber.Map{
 				"error": "Patient with this MRN already exists",
 				"field": "mrn",
-				"code": "DUPLICATE_MRN",
+				"code":  "DUPLICATE_MRN",
 			})
 		}
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update patient details"})
