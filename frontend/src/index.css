@@ -179,6 +179,33 @@
   --sidebar-ring: oklch(0 0 0);
 }
 
+/* Toast notification styles - ensure full opacity */
+[data-sonner-toast] {
+  opacity: 1 !important;
+}
+
+[data-sonner-toast] [data-button],
+[data-sonner-toast] [data-close-button] {
+  opacity: 1 !important;
+}
+
+.medical-blue [data-sonner-toast],
+.high-contrast [data-sonner-toast] {
+  background-color: white !important;
+  border: 1px solid oklch(0.88 0.02 240) !important;
+}
+
+.medical-blue [data-sonner-toast] [data-close-button],
+.high-contrast [data-sonner-toast] [data-close-button] {
+  background-color: oklch(0.90 0.01 240) !important;
+}
+
+.medical-blue [data-sonner-toast] [data-button],
+.high-contrast [data-sonner-toast] [data-button] {
+  background-color: oklch(0.94 0.01 240) !important;
+  color: oklch(0.30 0.05 240) !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
