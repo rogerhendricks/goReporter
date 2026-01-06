@@ -73,7 +73,7 @@ export default function DoctorIndex() {
 
     // Always show first page
     items.push(
-      <PaginationItem key={1}>
+      <PaginationItem key="page-1">
         <PaginationLink
           onClick={() => handlePageChange(1)}
           isActive={current === 1}
@@ -95,7 +95,7 @@ export default function DoctorIndex() {
     // Show pages around current page
     for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) {
       items.push(
-        <PaginationItem key={i}>
+        <PaginationItem key={`page-${i}`}>
           <PaginationLink
             onClick={() => handlePageChange(i)}
             isActive={current === i}
@@ -118,7 +118,7 @@ export default function DoctorIndex() {
     // Always show last page if more than 1 page
     if (totalPages > 1) {
       items.push(
-        <PaginationItem key={totalPages}>
+        <PaginationItem key={`page-${totalPages}`}>
           <PaginationLink
             onClick={() => handlePageChange(totalPages)}
             isActive={current === totalPages}
