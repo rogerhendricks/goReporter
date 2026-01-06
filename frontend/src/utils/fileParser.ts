@@ -1092,7 +1092,6 @@ async function parsePdfFile(file: File) {
       }).join('\n');
 
       // Check if the page title (first non-empty line) matches
-      const trimmedText = pageText.trim();
       let fullText = pageText;
 
       // Check for multi-page report
@@ -1171,10 +1170,12 @@ async function parsePdfFile(file: File) {
         }
       }
 
-      if (trimmedText.startsWith('Quick Look')) {
+      // Look for "Quick Look" or "Session Summary" anywhere in the full text
+      // This will catch them in the table of contents or as section headers
+      if (fullText.includes('Quick Look')) {
         const parsedData = parseMedtronicQuickLook(fullText);
         return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
-      } else if (trimmedText.startsWith('Session Summary')) {
+      } else if (fullText.includes('Session Summary')) {
         const parsedData = parseMedtronicSessionSummary(fullText);
         return { ...result, ...parsedData, fileType: 'pdf', fileName: file.name };
       }
