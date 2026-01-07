@@ -77,6 +77,7 @@ func migrate(db *gorm.DB) error {
 		&models.Webhook{},
 		&models.WebhookDelivery{},
 		&models.Team{},
+		&models.Appointment{},
 	)
 }
 
@@ -465,6 +466,49 @@ func seed(db *gorm.DB) error {
 		{PatientID: p3.ID, LeadID: leads[15].ID, Serial: "ABT-7122Q-RV-03", Chamber: "RV", Status: "Active", ImplantedAt: now.AddDate(-1, 0, 0)},
 	}
 	if err := db.Create(&lds3).Error; err != nil {
+		return err
+	}
+
+	// Appointments
+	johnClinicStart := now.AddDate(0, 0, 7).Truncate(time.Minute)
+	johnClinicEnd := johnClinicStart.Add(45 * time.Minute)
+	janeRemoteStart := now.AddDate(0, 0, 3).Add(10 * time.Hour).Truncate(time.Minute)
+	janeRemoteEnd := janeRemoteStart.Add(30 * time.Minute)
+	robertBatteryStart := now.AddDate(0, 1, 0).Add(9 * time.Hour).Truncate(time.Minute)
+	robertBatteryEnd := robertBatteryStart.Add(time.Hour)
+	appointments := []models.Appointment{
+		{
+			Title:       "Quarterly Device Check",
+			Description: "In-clinic follow-up to review pacemaker diagnostics",
+			Location:    "Metropolis Clinic · Room 2",
+			Status:      models.AppointmentStatusScheduled,
+			StartAt:     johnClinicStart,
+			EndAt:       &johnClinicEnd,
+			PatientID:   p.ID,
+			CreatedByID: admin.ID,
+		},
+		{
+			Title:       "Remote Transmission Review",
+			Description: "Phone visit to discuss remote alert about AF burden",
+			Location:    "Televisit",
+			Status:      models.AppointmentStatusScheduled,
+			StartAt:     janeRemoteStart,
+			EndAt:       &janeRemoteEnd,
+			PatientID:   p2.ID,
+			CreatedByID: admin.ID,
+		},
+		{
+			Title:       "Battery Replacement Planning",
+			Description: "Prep visit to plan CRT-D generator change",
+			Location:    "Pulse Town Hospital",
+			Status:      models.AppointmentStatusScheduled,
+			StartAt:     robertBatteryStart,
+			EndAt:       &robertBatteryEnd,
+			PatientID:   p3.ID,
+			CreatedByID: admin.ID,
+		},
+	}
+	if err := db.Create(&appointments).Error; err != nil {
 		return err
 	}
 

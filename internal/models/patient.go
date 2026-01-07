@@ -33,6 +33,7 @@ type Patient struct {
 	Medications      []Medication      `json:"medications" gorm:"many2many:patient_medications;"`
 	PatientDoctors   []PatientDoctor   `json:"patientDoctors"`
 	Tags             []Tag             `json:"tags" gorm:"many2many:patient_tags;"`
+	Appointments     []Appointment     `json:"appointments,omitempty" gorm:"foreignKey:PatientID"`
 }
 
 type PatientDoctor struct {
@@ -146,6 +147,7 @@ func GetPatientByID(patientID uint) (*Patient, error) {
 		Preload("Reports").
 		Preload("Medications").
 		Preload("Tags").
+		Preload("Appointments").
 		First(&patient, patientID).Error
 	if err != nil {
 		return nil, err

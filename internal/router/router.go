@@ -175,6 +175,14 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Patient-specific tasks
 	app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)
 
+	// Appointment routes
+	app.Get("/api/appointments", handlers.GetAppointments)
+	app.Get("/api/appointments/:id", handlers.GetAppointment)
+	app.Post("/api/appointments", handlers.CreateAppointment)
+	app.Put("/api/appointments/:id", handlers.UpdateAppointment)
+	app.Delete("/api/appointments/:id", handlers.DeleteAppointment)
+	app.Get("/api/patients/:patientId/appointments", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientAppointments)
+
 	// Task template routes (if you want to add them)
 	app.Get("/api/task-templates", middleware.RequireAdminOrUser, handlers.GetTaskTemplates)
 	app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)

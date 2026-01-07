@@ -3,6 +3,7 @@ import api from '../utils/axios'
 import { toast } from 'sonner'
 import type { Report } from './reportStore' 
 import type { Tag } from '../services/tagService'
+import type { Appointment } from '../services/appointmentService'
 
 
 export interface Doctor {
@@ -91,6 +92,7 @@ export interface Patient {
   leads: ImplantedLead[]
   medications: any[]
   reports: Report[]
+  appointments?: Appointment[]
   reportCount: number
   createdAt: string
   updatedAt: string

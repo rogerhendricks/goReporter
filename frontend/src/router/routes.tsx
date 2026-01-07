@@ -30,6 +30,7 @@ import WebhooksPage from '@/pages/WebhooksPage'
 import WebhookFormPage from '@/pages/WebhookFormPage'
 import ProductivityReportPage from '@/pages/ProductivityReportPage'
 import KnowledgeBase from '@/pages/KnowledgeBase'
+import AppointmentCalendarPage from '@/pages/appointments/AppointmentCalendarPage'
 
 
 export interface RouteConfig {
@@ -88,6 +89,13 @@ export const routes: RouteConfig[] = [
   {
     path: '/knowledge-base/:sectionId?/:articleId?',
     element: <KnowledgeBase />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
+  },
+  {
+    path: '/appointments',
+    element: <AppointmentCalendarPage />,
     requiresAuth: true,
     layout: 'default',
     roles: ['admin', 'doctor', 'user']

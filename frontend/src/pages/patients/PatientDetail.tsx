@@ -47,6 +47,7 @@ import { QRSDurationChart } from '@/components/charts/QRSDurationChart'
 import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
 import { ConsentManager } from '@/components/ConsentManager'
+import { PatientAppointments } from '@/components/appointments/PatientAppointments'
 import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
 import { assignTemplateToPatients } from '@/utils/serialNumberMatcher'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -457,6 +458,10 @@ export default function PatientDetail() {
             </div>
           </CardContent>
         </Card>
+        <PatientAppointments
+          patientId={currentPatient.id}
+          patientName={`${currentPatient.fname} ${currentPatient.lname}`}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Assigned Doctors ({currentPatient.patientDoctors?.length || 0})</CardTitle>

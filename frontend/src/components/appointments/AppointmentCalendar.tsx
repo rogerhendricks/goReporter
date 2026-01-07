@@ -1,0 +1,306 @@
+import { useEffect, useMemo, useState } from 'react'
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns'
+import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { type Appointment, type AppointmentPayload, type AppointmentStatus } from '@/services/appointmentService'
+import { AppointmentFormDialog, type PatientOption } from '@/components/appointments/AppointmentFormDialog'
+import { useAppointments } from '@/hooks/useAppointments'
+import { usePatientStore } from '@/stores/patientStore'
+import { cn } from '@/lib/utils'
+
+interface AppointmentCalendarProps {
+  patientId?: number
+}
+
+const statusStyles: Record<AppointmentStatus, string> = {
+  scheduled: 'bg-sky-100 text-sky-700 border border-sky-200',
+  completed: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  cancelled: 'bg-rose-100 text-rose-700 border border-rose-200',
+}
+
+export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [filterPatientId, setFilterPatientId] = useState<number | 'all'>(patientId ?? 'all')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [activeAppointment, setActiveAppointment] = useState<Appointment | undefined>(undefined)
+  const [dialogDate, setDialogDate] = useState<Date | undefined>(undefined)
+
+  const {
+    appointments,
+    loading,
+    fetchAppointments,
+    createAppointment,
+    updateAppointment,
+    deleteAppointment,
+  } = useAppointments({ autoLoad: false })
+
+  const patients = usePatientStore(state => state.patients)
+  const fetchPatients = usePatientStore(state => state.fetchPatients)
+
+  useEffect(() => {
+    if (!patients.length) {
+      fetchPatients().catch(() => null)
+    }
+  }, [fetchPatients, patients.length])
+
+  useEffect(() => {
+    const monthStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 })
+    const monthEnd = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 0 })
+    const scopedPatient = filterPatientId === 'all' ? undefined : filterPatientId
+    fetchAppointments({ start: monthStart, end: monthEnd }, scopedPatient)
+  }, [currentMonth, filterPatientId, fetchAppointments])
+
+  const daysInView = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 })
+    const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 0 })
+    return eachDayOfInterval({ start, end })
+  }, [currentMonth])
+
+  const filteredAppointments = useMemo(() => {
+    if (filterPatientId === 'all') return appointments
+    return appointments.filter(appt => appt.patientId === filterPatientId)
+  }, [appointments, filterPatientId])
+
+  const appointmentsByDay = useMemo(() => {
+    const map: Record<string, Appointment[]> = {}
+    filteredAppointments.forEach(appt => {
+      const key = format(new Date(appt.startAt), 'yyyy-MM-dd')
+      map[key] = map[key] ? [...map[key], appt] : [appt]
+    })
+    return map
+  }, [filteredAppointments])
+
+  const selectedDateKey = format(selectedDate, 'yyyy-MM-dd')
+  const selectedDayAppointments = appointmentsByDay[selectedDateKey] || []
+
+  const patientOptions: PatientOption[] = useMemo(() => {
+    const mapped = patients.map(patient => ({
+      id: patient.id,
+      label: `${patient.fname} ${patient.lname} · MRN ${patient.mrn}`,
+    }))
+
+    const focusId = (filterPatientId === 'all' ? undefined : filterPatientId) ?? patientId
+    if (focusId && !mapped.find(option => option.id === focusId)) {
+      mapped.push({ id: focusId, label: `Patient #${focusId}` })
+    }
+
+    return mapped
+  }, [patients, filterPatientId, patientId])
+
+  const openCreateDialog = (date?: Date) => {
+    setDialogMode('create')
+    setActiveAppointment(undefined)
+    setDialogDate(date)
+    setDialogOpen(true)
+  }
+
+  const openEditDialog = (appointment: Appointment) => {
+    setDialogMode('edit')
+    setActiveAppointment(appointment)
+    setDialogDate(new Date(appointment.startAt))
+    setDialogOpen(true)
+  }
+
+  const handleSubmit = (payload: AppointmentPayload) => {
+    if (dialogMode === 'edit' && activeAppointment) {
+      return updateAppointment(activeAppointment.id, payload)
+    }
+    return createAppointment(payload)
+  }
+
+  const handleDelete = activeAppointment
+    ? () => deleteAppointment(activeAppointment.id)
+    : undefined
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Plan in-person and remote visits</p>
+          <div className="flex items-center gap-3 text-xl font-semibold">
+            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span>{format(currentMonth, 'MMMM yyyy')}</span>
+            <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={filterPatientId === 'all' ? 'all' : String(filterPatientId)}
+            onValueChange={value =>
+              setFilterPatientId(value === 'all' ? 'all' : Number(value))
+            }
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Filter by patient" />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              <SelectItem value="all">All patients</SelectItem>
+              {patientOptions.map(option => (
+                <SelectItem key={option.id} value={String(option.id)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => openCreateDialog(selectedDate)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Appointment
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Calendar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {daysInView.map(day => {
+                const key = format(day, 'yyyy-MM-dd')
+                const dayAppointments = appointmentsByDay[key] || []
+                const isSelected = isSameDay(day, selectedDate)
+                return (
+                  <button
+                    type="button"
+                    key={key}
+                    onClick={() => setSelectedDate(day)}
+                    className={cn(
+                      'min-h-[120px] rounded-xl border p-2 text-left transition hover:border-primary/50 hover:shadow-sm',
+                      !isSameMonth(day, currentMonth) && 'opacity-40',
+                      isSelected && 'border-primary shadow'
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-sm font-medium">
+                      <span>{format(day, 'd')}</span>
+                      {isToday(day) && (
+                        <span className="text-xs font-semibold text-primary">Today</span>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {dayAppointments.slice(0, 3).map(appt => (
+                        <div
+                          key={appt.id}
+                          onClick={event => {
+                            event.stopPropagation()
+                            openEditDialog(appt)
+                          }}
+                          className={cn(
+                            'w-full cursor-pointer rounded-lg px-2 py-1 text-xs font-medium',
+                            statusStyles[appt.status]
+                          )}
+                        >
+                          <p className="truncate">
+                            {format(new Date(appt.startAt), 'p')} · {appt.title}
+                          </p>
+                        </div>
+                      ))}
+                      {dayAppointments.length > 3 && (
+                        <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} more</div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {loading && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Syncing schedule…
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{format(selectedDate, 'EEEE, MMM d')}</CardTitle>
+              <p className="text-sm text-muted-foreground">{selectedDayAppointments.length} appointment(s)</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => openCreateDialog(selectedDate)}>
+              <CalendarDays className="h-5 w-5" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {selectedDayAppointments.length === 0 && (
+              <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
+            )}
+            <div className="space-y-4">
+              {selectedDayAppointments.map(appt => (
+                <div
+                  key={appt.id}
+                  className="cursor-pointer rounded-xl border p-3 hover:border-primary"
+                  onClick={() => openEditDialog(appt)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">{appt.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(appt.startAt), 'p')} –{' '}
+                        {appt.endAt ? format(new Date(appt.endAt), 'p') : 'unspecified'}
+                      </p>
+                    </div>
+                    <Badge className={statusStyles[appt.status]}>{appt.status}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {appt.patient?.fname ? `${appt.patient?.fname} ${appt.patient?.lname}` : `Patient #${appt.patientId}`}
+                  </p>
+                  {appt.location && <p className="text-sm">{appt.location}</p>}
+                  {appt.description && (
+                    <p className="text-xs text-muted-foreground">{appt.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <AppointmentFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mode={dialogMode}
+        appointment={activeAppointment}
+        patientId={patientId ?? (filterPatientId === 'all' ? undefined : filterPatientId)}
+        patients={patientOptions}
+        defaultDate={dialogDate ?? selectedDate}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
+      />
+    </div>
+  )
+}
