@@ -1224,7 +1224,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                   {' • '}
                   {d?.device?.name}
                   {' • '}
-                  SN: {d?.serial}
+                  <span id='deviceSerial'>SN: {d?.serial}</span>
                 </li>
               ))}
             </ul>
@@ -1880,6 +1880,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     <TableCell className="font-semibold">RA</TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_ra_impedance_mean" 
+                        name="mdc_idc_msmt_ra_impedance_mean" 
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_ra_impedance_mean || ''} 
@@ -1889,6 +1891,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_ra_sensing"
+                        name="mdc_idc_msmt_ra_sensing"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_ra_sensing || ''} 
@@ -1898,6 +1902,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_ra_pacing_threshold" 
+                        name="mdc_idc_msmt_ra_pacing_threshold"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_ra_pacing_threshold || ''} 
@@ -1907,6 +1913,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_ra_pw"
+                        name="mdc_idc_msmt_ra_pw"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_ra_pw || ''} 
@@ -1920,6 +1928,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                   <TableCell className="font-semibold">RV</TableCell>
                   <TableCell>
                     <ValidatedInput 
+                      id="mdc_idc_msmt_rv_impedance_mean" 
+                      name="mdc_idc_msmt_rv_impedance_mean"
                       type="number" 
                       step="any" 
                       value={formData.mdc_idc_msmt_rv_impedance_mean || ''} 
@@ -1929,6 +1939,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                   </TableCell>
                   <TableCell>
                     <ValidatedInput 
+                      id="mdc_idc_msmt_rv_sensing" 
+                      name="mdc_idc_msmt_rv_sensing"
                       type="number" 
                       step="any" 
                       value={formData.mdc_idc_msmt_rv_sensing || ''} 
@@ -1938,6 +1950,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                   </TableCell>
                   <TableCell>
                     <ValidatedInput 
+                      id="mdc_idc_msmt_rv_pacing_threshold" 
+                      name="mdc_idc_msmt_rv_pacing_threshold"
                       type="number" 
                       step="any" 
                       value={formData.mdc_idc_msmt_rv_pacing_threshold || ''} 
@@ -1947,6 +1961,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                   </TableCell>
                   <TableCell>
                     <ValidatedInput 
+                      id="mdc_idc_msmt_rv_pw"
+                      name="mdc_idc_msmt_rv_pw"
                       type="number" 
                       step="any" 
                       value={formData.mdc_idc_msmt_rv_pw || ''} 
@@ -1960,6 +1976,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     <TableCell className="font-semibold">LV</TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_lv_impedance_mean" 
+                        name="mdc_idc_msmt_lv_impedance_mean"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_lv_impedance_mean || ''} 
@@ -1969,6 +1987,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_lv_sensing"
+                        name="mdc_idc_msmt_lv_sensing"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_lv_sensing || ''} 
@@ -1978,6 +1998,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_lv_pacing_threshold"
+                        name="mdc_idc_msmt_lv_pacing_threshold"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_lv_pacing_threshold || ''} 
@@ -1987,6 +2009,8 @@ export function ReportForm({ patient }: ReportFormProps) {
                     </TableCell>
                     <TableCell>
                       <ValidatedInput 
+                        id="mdc_idc_msmt_lv_pw"
+                        name="mdc_idc_msmt_lv_pw"
                         type="number" 
                         step="any" 
                         value={formData.mdc_idc_msmt_lv_pw || ''} 
@@ -2002,6 +2026,8 @@ export function ReportForm({ patient }: ReportFormProps) {
               <div className="mt-4 border-t pt-4">
                 <Label className='pb-2'>RV Shock Impedance (Ω)</Label>
                 <ValidatedInput 
+                  id="mdc_idc_msmt_shock_impedance"
+                  name="mdc_idc_msmt_shock_impedance"
                   type="number" 
                   step="any" 
                   value={formData.mdc_idc_msmt_shock_impedance || ''} 
