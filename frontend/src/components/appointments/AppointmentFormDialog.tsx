@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
+import { Check, ChevronsUpDown } from 'lucide-react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -13,7 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 import { type Appointment, type AppointmentPayload, type AppointmentStatus } from '@/services/appointmentService'
+import { usePatientStore } from '@/stores/patientStore'
 
 export interface PatientOption {
   id: number
@@ -76,7 +92,6 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     mode = 'create',
     appointment,
     patientId,
-    patients = [],
     onSubmit,
     onDelete,
     defaultDate,
@@ -85,28 +100,63 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
   const [formState, setFormState] = useState<FormState>(() => buildInitialState(appointment, patientId, defaultDate))
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const { patients: allPatients, searchPatients, searchResults } = usePatientStore()
+
+  // Get patient name when patientId is provided
+  const selectedPatient = useMemo(() => {
+    if (!formState.patientId) return null
+    
+    // First check appointment patient data
+    if (appointment?.patient) {
+      return `${appointment.patient.fname || ''} ${appointment.patient.lname || ''}`.trim() || 
+             `Patient #${appointment.patient.id}`
+    }
+    
+    // Then check all patients
+    const patient = allPatients.find(p => p.id === formState.patientId)
+    if (patient) {
+      return `${patient.fname} ${patient.lname} · MRN ${patient.mrn}`
+    }
+    
+    // Check search results
+    const searchPatient = searchResults.find(p => p.id === formState.patientId)
+    if (searchPatient) {
+      return `${searchPatient.fname} ${searchPatient.lname} · MRN ${searchPatient.mrn}`
+    }
+    
+    return `Patient #${formState.patientId}`
+  }, [formState.patientId, appointment, allPatients, searchResults])
 
   useEffect(() => {
     if (open) {
       setFormState(buildInitialState(appointment, patientId, defaultDate))
       setFormError(null)
       setSubmitting(false)
+      setSearchQuery('')
     }
   }, [open, appointment, patientId, defaultDate])
 
-  const patientOptions = useMemo(() => {
-    if (patientId && !patients.find(p => p.id === patientId)) {
-      return [...patients, { id: patientId, label: 'Selected Patient' }]
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const timer = setTimeout(() => {
+        searchPatients(searchQuery)
+      }, 300)
+      return () => clearTimeout(timer)
     }
-    return patients
-  }, [patientId, patients])
+  }, [searchQuery, searchPatients])
 
   const handleChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setFormState(prev => ({ ...prev, [key]: value }))
   }
 
-  const handlePatientChange = (value: string) => {
-    setFormState(prev => ({ ...prev, patientId: Number(value) }))
+  const handlePatientSelect = (selectedPatientId: number) => {
+    setFormState(prev => ({ ...prev, patientId: selectedPatientId }))
+    setSearchOpen(false)
+    setSearchQuery('')
   }
 
   const handleSubmit = async () => {
@@ -172,24 +222,76 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
         <div className="space-y-4">
           {formError && <p className="text-sm text-destructive">{formError}</p>}
 
-          {!patientId && (
+          {!patientId ? (
             <div className="space-y-2">
               <Label>Patient</Label>
-              <Select
-                value={formState.patientId ? String(formState.patientId) : ''}
-                onValueChange={handlePatientChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a patient" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  {patientOptions.map(option => (
-                    <SelectItem key={option.id} value={String(option.id)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={searchOpen} onOpenChange={setSearchOpen} modal={true}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={searchOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedPatient || "Select patient..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput 
+                      placeholder="Search by name or MRN..." 
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty className="p-2 text-sm text-muted-foreground">
+                        {searchQuery.length < 2 
+                          ? "Type at least 2 characters to search"
+                          : "No patients found"
+                        }
+                      </CommandEmpty>
+                      {searchQuery.length >= 2 && searchResults.length > 0 && (
+                        <CommandGroup heading="Search Results">
+                          {searchResults.slice(0, 50).map((patient) => (
+                            <CommandItem
+                              key={patient.id}
+                              value={String(patient.id)}
+                              onSelect={() => handlePatientSelect(patient.id)}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-start gap-2 w-full" onPointerDown={(e) => {
+                                e.preventDefault()
+                                handlePatientSelect(patient.id)
+                              }}>
+                                <Check
+                                  className={cn(
+                                    "h-4 w-4 mt-0.5 shrink-0",
+                                    formState.patientId === patient.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span>{patient.fname} {patient.lname}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    MRN {patient.mrn} · DOB {patient.dob}
+                                  </span>
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Patient</Label>
+              <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                {selectedPatient}
+              </div>
             </div>
           )}
 

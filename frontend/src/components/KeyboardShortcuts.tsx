@@ -30,6 +30,7 @@ import {
   Loader2,
   Clock,
   X,
+  Calendar,
 } from "lucide-react"
 import { globalSearchService, type GlobalSearchResult, type EntityType } from "@/services/globalSearchService"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -227,6 +228,10 @@ export function KeyboardShortcuts() {
                   <CommandItem onSelect={() => runCommand(() => navigate("/"))}>
                     <Home className="mr-2 h-4 w-4" />
                     <span>Dashboard</span>
+                  </CommandItem>
+                  <CommandItem onSelect={() => runCommand(() => navigate("/appointments"))}>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <span>Appointments</span>
                   </CommandItem>
                   <CommandItem onSelect={() => runCommand(() => navigate("/search/patients"))}>
                     <Search className="mr-2 h-4 w-4" />

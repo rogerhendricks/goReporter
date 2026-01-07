@@ -257,15 +257,15 @@ export const usePatientStore = create<PatientState>((set) => ({
       const response = await api.get('/patients/search', { params: { search: query } })
       console.log('Search patients response:', response.data)
       
-      // Ensure we always set an array
+      // Ensure we always set an array to searchResults
       const patientsData = Array.isArray(response.data) ? response.data : []
-      set({ patients: patientsData, loading: false })
+      set({ searchResults: patientsData, loading: false })
     } catch (error: any) {
       console.error('Error searching patients:', error)
       set({ 
         error: error.response?.data?.error || 'No patients found', 
         loading: false,
-        patients: [] // Ensure patients is still an array on error
+        searchResults: [] // Ensure searchResults is still an array on error
       })
     }
   },

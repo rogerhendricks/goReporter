@@ -11,18 +11,24 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Check, ChevronsUpDown, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { type Appointment, type AppointmentPayload, type AppointmentStatus } from '@/services/appointmentService'
 import { AppointmentFormDialog, type PatientOption } from '@/components/appointments/AppointmentFormDialog'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -47,6 +53,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
   const [activeAppointment, setActiveAppointment] = useState<Appointment | undefined>(undefined)
   const [dialogDate, setDialogDate] = useState<Date | undefined>(undefined)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterSearchQuery, setFilterSearchQuery] = useState('')
 
   const {
     appointments,
@@ -59,6 +67,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
 
   const patients = usePatientStore(state => state.patients)
   const fetchPatients = usePatientStore(state => state.fetchPatients)
+  const searchPatients = usePatientStore(state => state.searchPatients)
+  const searchResults = usePatientStore(state => state.searchResults)
 
   useEffect(() => {
     if (!patients.length) {
@@ -72,6 +82,16 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
     const scopedPatient = filterPatientId === 'all' ? undefined : filterPatientId
     fetchAppointments({ start: monthStart, end: monthEnd }, scopedPatient)
   }, [currentMonth, filterPatientId, fetchAppointments])
+
+  // Debounced filter search
+  useEffect(() => {
+    if (filterSearchQuery.length >= 2) {
+      const timer = setTimeout(() => {
+        searchPatients(filterSearchQuery)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [filterSearchQuery, searchPatients])
 
   const daysInView = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 })
@@ -109,6 +129,21 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
 
     return mapped
   }, [patients, filterPatientId, patientId])
+
+  const selectedFilterLabel = useMemo(() => {
+    if (filterPatientId === 'all') return 'All patients'
+    const patient = patients.find(p => p.id === filterPatientId)
+    if (patient) {
+      return `${patient.fname} ${patient.lname}`
+    }
+    return `Patient #${filterPatientId}`
+  }, [filterPatientId, patients])
+
+  const handleFilterSelect = (selectedId: number | 'all') => {
+    setFilterPatientId(selectedId)
+    setFilterOpen(false)
+    setFilterSearchQuery('')
+  }
 
   const openCreateDialog = (date?: Date) => {
     setDialogMode('create')
@@ -151,24 +186,127 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Select
-            value={filterPatientId === 'all' ? 'all' : String(filterPatientId)}
-            onValueChange={value =>
-              setFilterPatientId(value === 'all' ? 'all' : Number(value))
-            }
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by patient" />
-            </SelectTrigger>
-            <SelectContent className="max-h-64">
-              <SelectItem value="all">All patients</SelectItem>
-              {patientOptions.map(option => (
-                <SelectItem key={option.id} value={String(option.id)}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={filterOpen}
+                className="w-[220px] justify-between"
+              >
+                {selectedFilterLabel}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search patients..." 
+                  value={filterSearchQuery}
+                  onValueChange={setFilterSearchQuery}
+                />
+                <CommandList>
+                  <CommandEmpty>
+                    {filterSearchQuery.length < 2 
+                      ? "Type to search patients"
+                      : "No patients found"
+                    }
+                  </CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all"
+                      onSelect={() => handleFilterSelect('all')}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full" onPointerDown={(e) => {
+                        e.preventDefault()
+                        handleFilterSelect('all')
+                      }}>
+                        <Check
+                          className={cn(
+                            "h-4 w-4",
+                            filterPatientId === 'all' ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span>All patients</span>
+                      </div>
+                    </CommandItem>
+                  </CommandGroup>
+                  {filterSearchQuery.length >= 2 && searchResults.length > 0 && (
+                    <CommandGroup heading="Search Results">
+                      {searchResults.slice(0, 50).map((patient) => (
+                        <CommandItem
+                          key={patient.id}
+                          value={String(patient.id)}
+                          onSelect={() => handleFilterSelect(patient.id)}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex items-start gap-2 w-full" onPointerDown={(e) => {
+                            e.preventDefault()
+                            handleFilterSelect(patient.id)
+                          }}>
+                            <Check
+                              className={cn(
+                                "h-4 w-4 mt-0.5 shrink-0",
+                                filterPatientId === patient.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-sm">{patient.fname} {patient.lname}</span>
+                              <span className="text-xs text-muted-foreground">
+                                MRN {patient.mrn}
+                              </span>
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                  {filterSearchQuery.length === 0 && patients.length > 0 && (
+                    <CommandGroup heading="Recent Patients">
+                      {patients.slice(0, 10).map((patient) => (
+                        <CommandItem
+                          key={patient.id}
+                          value={String(patient.id)}
+                          onSelect={() => handleFilterSelect(patient.id)}
+                          className="cursor-pointer"
+                        >
+                          <div className="flex items-start gap-2 w-full" onPointerDown={(e) => {
+                            e.preventDefault()
+                            handleFilterSelect(patient.id)
+                          }}>
+                            <Check
+                              className={cn(
+                                "h-4 w-4 mt-0.5 shrink-0",
+                                filterPatientId === patient.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-sm">{patient.fname} {patient.lname}</span>
+                              <span className="text-xs text-muted-foreground">
+                                MRN {patient.mrn}
+                              </span>
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          {filterPatientId !== 'all' && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleFilterSelect('all')}
+              className="h-10 w-10"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear filter</span>
+            </Button>
+          )}
           <Button onClick={() => openCreateDialog(selectedDate)}>
             <Plus className="mr-2 h-4 w-4" />
             New Appointment

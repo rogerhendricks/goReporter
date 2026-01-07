@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, Eye, Palette, BarChart3, LayoutDashboard } from 'lucide-react'
+import { HeartPulse, Menu, Stethoscope, Users, CircuitBoard, ChevronDown, ChevronRight, User2, LogOut, Sun, Moon, Monitor, Check, Settings, Search, Eye, Palette, BarChart3, LayoutDashboard, Calendar } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -80,6 +80,7 @@ export function Navbar() {
       label: 'Workflow',
       icon: Check,
       items: [
+        { href: '/appointments', label: 'Appointments', icon: Calendar, roles: ['admin', 'doctor', 'user'] },
         { href: '/tasks', label: 'Tasks', icon: Check, roles: ['admin', 'doctor', 'user'] },
         { href: '/productivity', label: 'Productivity', icon: BarChart3, roles: ['admin', 'doctor', 'user'] },
       ]
