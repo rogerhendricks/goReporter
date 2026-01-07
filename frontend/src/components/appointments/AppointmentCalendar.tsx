@@ -55,6 +55,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
   const [dialogDate, setDialogDate] = useState<Date | undefined>(undefined)
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterSearchQuery, setFilterSearchQuery] = useState('')
+  const [appointmentPage, setAppointmentPage] = useState(1)
+  const appointmentsPerPage = 5
 
   const {
     appointments,
@@ -115,6 +117,18 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
 
   const selectedDateKey = format(selectedDate, 'yyyy-MM-dd')
   const selectedDayAppointments = appointmentsByDay[selectedDateKey] || []
+
+  const totalAppointmentPages = Math.ceil(selectedDayAppointments.length / appointmentsPerPage)
+  const paginatedAppointments = useMemo(() => {
+    const startIndex = (appointmentPage - 1) * appointmentsPerPage
+    const endIndex = startIndex + appointmentsPerPage
+    return selectedDayAppointments.slice(startIndex, endIndex)
+  }, [selectedDayAppointments, appointmentPage, appointmentsPerPage])
+
+  // Reset pagination when date changes
+  useEffect(() => {
+    setAppointmentPage(1)
+  }, [selectedDateKey])
 
   const patientOptions: PatientOption[] = useMemo(() => {
     const mapped = patients.map(patient => ({
@@ -384,10 +398,12 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle>{format(selectedDate, 'EEEE, MMM d')}</CardTitle>
-              <p className="text-sm text-muted-foreground">{selectedDayAppointments.length} appointment(s)</p>
+              <p className="text-sm text-muted-foreground">
+                {selectedDayAppointments.length} appointment{selectedDayAppointments.length !== 1 ? 's' : ''}
+              </p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => openCreateDialog(selectedDate)}>
               <CalendarDays className="h-5 w-5" />
@@ -397,33 +413,64 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
             {selectedDayAppointments.length === 0 && (
               <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
             )}
-            <div className="space-y-4">
-              {selectedDayAppointments.map(appt => (
+            <div className="space-y-2">
+              {paginatedAppointments.map(appt => (
                 <div
                   key={appt.id}
-                  className="cursor-pointer rounded-xl border p-3 hover:border-primary"
+                  className="cursor-pointer rounded-lg border p-2.5 hover:border-primary transition-colors"
                   onClick={() => openEditDialog(appt)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold">{appt.title}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{appt.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(appt.startAt), 'p')} –{' '}
-                        {appt.endAt ? format(new Date(appt.endAt), 'p') : 'unspecified'}
+                        {format(new Date(appt.startAt), 'p')}
+                        {appt.endAt && ` – ${format(new Date(appt.endAt), 'p')}`}
                       </p>
                     </div>
-                    <Badge className={statusStyles[appt.status]}>{appt.status}</Badge>
+                    <Badge className={cn(statusStyles[appt.status], 'shrink-0 text-xs')}>
+                      {appt.status}
+                    </Badge>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {appt.patient?.fname ? `${appt.patient?.fname} ${appt.patient?.lname}` : `Patient #${appt.patientId}`}
-                  </p>
-                  {appt.location && <p className="text-sm">{appt.location}</p>}
-                  {appt.description && (
-                    <p className="text-xs text-muted-foreground">{appt.description}</p>
-                  )}
+                  <div className="mt-1.5 space-y-0.5">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {appt.patient?.fname ? `${appt.patient.fname} ${appt.patient.lname}` : `Patient #${appt.patientId}`}
+                    </p>
+                    {appt.location && (
+                      <p className="text-xs text-muted-foreground truncate">{appt.location}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
+            
+            {totalAppointmentPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Page {appointmentPage} of {totalAppointmentPages}
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAppointmentPage(p => Math.max(1, p - 1))}
+                    disabled={appointmentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAppointmentPage(p => Math.min(totalAppointmentPages, p + 1))}
+                    disabled={appointmentPage === totalAppointmentPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
