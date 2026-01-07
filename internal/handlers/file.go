@@ -1,124 +1,207 @@
 package handlers
 
 import (
-    "net/http"
-    "github.com/gofiber/fiber/v2"
-    "time"
-    "os"
-    "path/filepath"
-    "strings"
-    "fmt"
-    "log"
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+)
+
+const (
+	uploadRootDir            = "uploads"
+	reportUploadSubdir       = "reports"
+	pdfContentType           = "application/pdf"
+	sniffBufferSize          = 512
+	maxUploadSize      int64 = 10 * 1024 * 1024 // 10 MB
+)
+
+var (
+	patientIDPattern = regexp.MustCompile(`^\d+$`)
+	pdfMagicHeader   = []byte("%PDF-")
 )
 
 // UploadFile handles saving an uploaded file.
 // It expects the patient ID to create a structured directory path.
 func UploadFile(c *fiber.Ctx) error {
-    const maxFileSize = 10 * 1024 * 1024 // 10 MB
+	patientID := strings.TrimSpace(c.FormValue("patientId"))
+	if patientID == "" {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Patient ID is required for file upload"})
+	}
+	if !patientIDPattern.MatchString(patientID) {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
+	}
 
-    // Get patientId from form value to create a sub-directory
-    
-    patientID := c.FormValue("patientId")
-    if patientID == "" {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Patient ID is required for file upload"})
-    }
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		if err.Error() == "there is no uploaded file associated with the given key" {
+			return c.Next()
+		}
+		log.Printf("Error retrieving file from form: %v", err)
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to retrieve file"})
+	}
 
-    // Get the file from the form
-    file, err := c.FormFile("file")
-    if err != nil {
-        if err.Error() == "there is no uploaded file associated with the given key" {
-            return c.Next() // Continue to the next handler without setting file paths.
-        }
-        // For any other error, it's a problem.
-        log.Printf("Error retrieving file from form: %v", err)
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to retrieve file"})
-    }
+	if fileHeader.Size > maxUploadSize {
+		return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{"error": "File too large"})
+	}
 
-    if file.Size > maxFileSize {
-        return c.Status(413).JSON(fiber.Map{"error": "File too large"})
-    }
+	uploadFile, err := fileHeader.Open()
+	if err != nil {
+		log.Printf("Error opening uploaded file: %v", err)
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to process uploaded file"})
+	}
+	defer uploadFile.Close()
 
-    // Validate file type
-    allowedTypes := map[string]bool{
-        "application/pdf": true,
-    }
-    
-    if !allowedTypes[file.Header.Get("Content-Type")] {
-        return c.Status(400).JSON(fiber.Map{"error": "Invalid file type"})
-    }
+	sniffBuffer := make([]byte, sniffBufferSize)
+	n, readErr := uploadFile.Read(sniffBuffer)
+	if readErr != nil && readErr != io.EOF {
+		log.Printf("Error sniffing file content: %v", readErr)
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Failed to inspect uploaded file"})
+	}
+	if n == 0 {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Uploaded file is empty"})
+	}
 
-    // Create a safe and unique filename
-    // e.g., 1701388800-report.pdf
-    uniqueFilename := fmt.Sprintf("%d-%s", time.Now().Unix(), filepath.Base(file.Filename))
+	detectedType := http.DetectContentType(sniffBuffer[:n])
+	if detectedType != pdfContentType || !bytes.HasPrefix(sniffBuffer[:n], pdfMagicHeader) {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Only valid PDF files are allowed"})
+	}
 
-    // Define the directory path: uploads/reports/{patientId}
-    uploadDir := filepath.Join("uploads", "reports", patientID)
-    if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-        log.Printf("Error creating upload directory: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create upload directory"})
-    }
+	if _, err = uploadFile.Seek(0, io.SeekStart); err != nil {
+		log.Printf("Error resetting uploaded file reader: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to process uploaded file"})
+	}
 
-    // Define the full save path for the file
-    savePath := filepath.Join(uploadDir, uniqueFilename)
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	switch ext {
+	case ".pdf":
+		// ok
+	case "":
+		ext = ".pdf"
+	default:
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Only PDF files are allowed"})
+	}
 
-    // Save the file to the server
-    if err := c.SaveFile(file, savePath); err != nil {
-        log.Printf("Error saving file: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save file"})
-    }
+	uniqueFilename := uuid.NewString() + ext
 
-    // The file path to be stored in the database (relative path)
-    // On Windows, paths use '\', replace with '/' for URL consistency
-    dbPath := strings.ReplaceAll(savePath, "\\", "/")
+	uploadDir := filepath.Join(uploadRootDir, reportUploadSubdir, patientID)
+	if err := os.MkdirAll(uploadDir, 0o750); err != nil {
+		log.Printf("Error creating upload directory: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create upload directory"})
+	}
 
-    // The URL the frontend will use to access the file
-    fileURL := fmt.Sprintf("/files/%s", strings.TrimPrefix(dbPath, "uploads/"))
+	tempFile, err := os.CreateTemp(uploadDir, "upload-*.pdf")
+	if err != nil {
+		log.Printf("Error creating temp file: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to initialize file storage"})
+	}
+	removeTemp := true
+	defer func() {
+		tempFile.Close()
+		if removeTemp {
+			_ = os.Remove(tempFile.Name())
+		}
+	}()
 
-    // Store the paths in locals to be used by the next handler (CreateReport/UpdateReport)
-    c.Locals("filePath", dbPath)
-    c.Locals("fileUrl", fileURL)
+	limitedReader := &io.LimitedReader{R: uploadFile, N: maxUploadSize + 1}
+	if _, err := io.Copy(tempFile, limitedReader); err != nil {
+		log.Printf("Error saving uploaded file: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save file"})
+	}
+	if limitedReader.N == 0 {
+		return c.Status(http.StatusRequestEntityTooLarge).JSON(fiber.Map{"error": "File too large"})
+	}
 
-    return c.Next()
+	if err := tempFile.Sync(); err != nil {
+		log.Printf("Error syncing uploaded file: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to finalize file"})
+	}
+
+	if err := tempFile.Close(); err != nil {
+		log.Printf("Error closing temp file: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to finalize file"})
+	}
+
+	savePath := filepath.Join(uploadDir, uniqueFilename)
+	if err := os.Rename(tempFile.Name(), savePath); err != nil {
+		log.Printf("Error moving temp file into place: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to finalize file"})
+	}
+	removeTemp = false
+
+	dbPath := strings.ReplaceAll(savePath, "\\", "/")
+	fileURL := fmt.Sprintf("/files/%s", strings.TrimPrefix(dbPath, uploadRootDir+"/"))
+
+	c.Locals("filePath", dbPath)
+	c.Locals("fileUrl", fileURL)
+
+	return c.Next()
 }
-
 
 // ServeFile serves a file securely from the uploads directory
 func ServeFile(c *fiber.Ctx) error {
-    filePath := c.Params("*")
-    fullPath := filepath.Join("uploads", filePath)
+	if c.Locals("userID") == nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Authentication required"})
+	}
 
-    // Security check: ensure the path is within the uploads directory
-    if !isPathSafe(fullPath) {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
+	filePath := c.Params("*")
+	fullPath := filepath.Join(uploadRootDir, filePath)
 
-    // Check if file exists
-    if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-        return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
-    }
+	// Security check: ensure the path is within the uploads directory
+	if !isPathSafe(fullPath) {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
 
-    // Set proper headers for PDF files
-    c.Set("Content-Type", "application/pdf")
-    c.Set("Content-Disposition", "inline")
+	// Check if file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "File not found"})
+	}
 
-    return c.SendFile(fullPath)
+	// Set proper headers for PDF files
+	c.Set("Content-Type", pdfContentType)
+	c.Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", safeContentDispositionName(fullPath)))
+	c.Set("X-Content-Type-Options", "nosniff")
+	c.Set("Cache-Control", "private, no-store")
+	c.Set("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; style-src 'self'; frame-ancestors 'none'")
+
+	return c.SendFile(fullPath)
 }
 
 // isPathSafe checks if the requested file path is safe
 func isPathSafe(filePath string) bool {
-    // Improved path safety check
-    cleanPath := filepath.Clean(filePath)
-    uploadsDir := filepath.Clean("uploads")
-    
-    // Ensure the path is within uploads directory
-    if !strings.HasPrefix(cleanPath, uploadsDir+string(filepath.Separator)) {
-        return false
-    }
-    
-    // Check for path traversal attempts
-    if strings.Contains(cleanPath, "..") {
-        return false
-    }
-    
-    return true
+	cleanPath, err := filepath.Abs(filepath.Clean(filePath))
+	if err != nil {
+		return false
+	}
+
+	uploadsDir, err := filepath.Abs(uploadRootDir)
+	if err != nil {
+		return false
+	}
+
+	if cleanPath == uploadsDir {
+		return false
+	}
+
+	safePrefix := uploadsDir + string(os.PathSeparator)
+	return strings.HasPrefix(cleanPath+string(os.PathSeparator), safePrefix)
+}
+
+func safeContentDispositionName(path string) string {
+	base := filepath.Base(path)
+	base = strings.ReplaceAll(base, "\"", "")
+	base = strings.ReplaceAll(base, "\n", "")
+	base = strings.ReplaceAll(base, "\r", "")
+	if base == "" {
+		return fmt.Sprintf("report-%d.pdf", time.Now().Unix())
+	}
+	return base
 }

@@ -31,8 +31,7 @@ func AuthenticateJWT(c *fiber.Ctx) error {
 	}
 
 	// Skip auth for static files
-	if strings.HasPrefix(path, "/api/files/") ||
-		strings.HasPrefix(path, "/assets/") ||
+	if strings.HasPrefix(path, "/assets/") ||
 		path == "/" || path == "/index.html" {
 		return c.Next()
 	}
