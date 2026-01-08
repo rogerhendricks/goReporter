@@ -431,14 +431,16 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                     <Badge className={cn(statusStyles[appt.status], 'shrink-0 text-xs')}>
                       {appt.status}
                     </Badge>
+                    {appt.location && (
+                      <Badge className={cn(statusStyles[appt.status], 'shrink-0 text-xs')}>
+                        {appt.location}
+                      </Badge>
+                    )}
                   </div>
                   <div className="mt-1.5 space-y-0.5">
                     <p className="text-xs text-muted-foreground truncate">
                       {appt.patient?.fname ? `${appt.patient.fname} ${appt.patient.lname}` : `Patient #${appt.patientId}`}
                     </p>
-                    {appt.location && (
-                      <p className="text-xs text-muted-foreground truncate">{appt.location}</p>
-                    )}
                   </div>
                 </div>
               ))}
