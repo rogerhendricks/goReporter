@@ -29,6 +29,12 @@ var allowedAppointmentStatuses = map[models.AppointmentStatus]struct{}{
 	models.AppointmentStatusCancelled: {},
 }
 
+var allowedAppointmentLocations = map[models.AppointmentLocation]struct{}{
+	models.AppointmentLocationRemote:    {},
+	models.AppointmentLocationTelevisit: {},
+	models.AppointmentLocationClinic:    {},
+}
+
 // GetAppointments returns appointments across patients with optional filters.
 func GetAppointments(c *fiber.Ctx) error {
 	userID, userRole, err := resolveUserContext(c)
@@ -189,14 +195,57 @@ func CreateAppointment(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 	}
 
+	location := normalizeAppointmentLocation(payload.Location)
+
+	// Check slot availability for clinic appointments
+	var slotID *uint
+	if location == models.AppointmentLocationClinic {
+		available, remaining, err := models.CheckSlotAvailability(startAt, location)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to check slot availability"})
+		}
+		if !available {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "No available slots for this time",
+				"code":  "SLOT_FULL",
+			})
+		}
+
+		// Get or create the slot
+		slot, err := models.GetOrCreateSlot(startAt, location)
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to reserve slot"})
+		}
+
+		// Increment the booking count
+		if err := models.IncrementSlotBooking(slot.ID); err != nil {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "Failed to reserve slot - may be full",
+				"code":  "SLOT_BOOKING_FAILED",
+			})
+		}
+
+		slotID = &slot.ID
+
+		// Set end time to 15 minutes after start for clinic appointments if not specified
+		if endAt == nil {
+			endTime := startAt.Add(15 * time.Minute)
+			endAt = &endTime
+		}
+
+		// Return slot availability info
+		c.Append("X-Slot-Remaining", strconv.Itoa(remaining-1))
+	}
+
 	appointment := models.Appointment{
 		Title:       strings.TrimSpace(payload.Title),
 		Description: strings.TrimSpace(payload.Description),
-		Location:    strings.TrimSpace(payload.Location),
+		Location:    location,
 		Status:      normalizeAppointmentStatus(payload.Status),
 		StartAt:     startAt,
 		EndAt:       endAt,
 		PatientID:   payload.PatientID,
+		SlotID:      slotID,
 		CreatedByID: userID,
 	}
 
@@ -241,6 +290,12 @@ func UpdateAppointment(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
+	// Track if we need to update slots
+	oldSlotID := appointment.SlotID
+	oldLocation := appointment.Location
+	locationChanged := false
+	timeChanged := false
+
 	if strings.TrimSpace(payload.Title) != "" {
 		appointment.Title = strings.TrimSpace(payload.Title)
 	}
@@ -248,7 +303,11 @@ func UpdateAppointment(c *fiber.Ctx) error {
 		appointment.Description = strings.TrimSpace(payload.Description)
 	}
 	if payload.Location != "" {
-		appointment.Location = strings.TrimSpace(payload.Location)
+		newLocation := normalizeAppointmentLocation(payload.Location)
+		if newLocation != appointment.Location {
+			locationChanged = true
+		}
+		appointment.Location = newLocation
 	}
 	if payload.Status != "" {
 		appointment.Status = normalizeAppointmentStatus(payload.Status)
@@ -257,6 +316,9 @@ func UpdateAppointment(c *fiber.Ctx) error {
 		parsedStart, parseErr := parseFlexibleTime(payload.StartAt)
 		if parseErr != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "startAt must be a valid ISO date"})
+		}
+		if !parsedStart.Equal(appointment.StartAt) {
+			timeChanged = true
 		}
 		appointment.StartAt = parsedStart
 	}
@@ -272,6 +334,64 @@ func UpdateAppointment(c *fiber.Ctx) error {
 				return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "endAt must be after startAt"})
 			}
 			appointment.EndAt = &parsedEnd
+		}
+	}
+
+	// Handle slot changes for clinic appointments
+	if locationChanged || timeChanged {
+		// Release old slot if it was a clinic appointment
+		if oldLocation == models.AppointmentLocationClinic && oldSlotID != nil {
+			_ = models.DecrementSlotBooking(*oldSlotID)
+		}
+
+		// Book new slot if new location is clinic
+		if appointment.Location == models.AppointmentLocationClinic {
+			available, remaining, err := models.CheckSlotAvailability(appointment.StartAt, appointment.Location)
+			if err != nil {
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to check slot availability"})
+			}
+			if !available {
+				// Restore old slot booking if we released it
+				if oldLocation == models.AppointmentLocationClinic && oldSlotID != nil {
+					_ = models.IncrementSlotBooking(*oldSlotID)
+				}
+				return c.Status(http.StatusConflict).JSON(fiber.Map{
+					"error": "No available slots for this time",
+					"code":  "SLOT_FULL",
+				})
+			}
+
+			slot, err := models.GetOrCreateSlot(appointment.StartAt, appointment.Location)
+			if err != nil {
+				// Restore old slot booking if we released it
+				if oldLocation == models.AppointmentLocationClinic && oldSlotID != nil {
+					_ = models.IncrementSlotBooking(*oldSlotID)
+				}
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to reserve slot"})
+			}
+
+			if err := models.IncrementSlotBooking(slot.ID); err != nil {
+				// Restore old slot booking if we released it
+				if oldLocation == models.AppointmentLocationClinic && oldSlotID != nil {
+					_ = models.IncrementSlotBooking(*oldSlotID)
+				}
+				return c.Status(http.StatusConflict).JSON(fiber.Map{
+					"error": "Failed to reserve slot - may be full",
+					"code":  "SLOT_BOOKING_FAILED",
+				})
+			}
+
+			appointment.SlotID = &slot.ID
+			c.Append("X-Slot-Remaining", strconv.Itoa(remaining-1))
+
+			// Set end time to 15 minutes for clinic appointments if not already set
+			if appointment.EndAt == nil {
+				endTime := appointment.StartAt.Add(15 * time.Minute)
+				appointment.EndAt = &endTime
+			}
+		} else {
+			// Not a clinic appointment, clear slot
+			appointment.SlotID = nil
 		}
 	}
 
@@ -293,6 +413,86 @@ func UpdateAppointment(c *fiber.Ctx) error {
 
 	updated, _ := models.GetAppointmentByID(appointment.ID)
 	return c.JSON(updated)
+}
+
+// GetAvailableSlots returns available appointment slots for a date range.
+func GetAvailableSlots(c *fiber.Ctx) error {
+	startParam := c.Query("start")
+	endParam := c.Query("end")
+	locationParam := c.Query("location", "clinic")
+
+	if startParam == "" || endParam == "" {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "start and end query parameters are required"})
+	}
+
+	start, err := time.Parse(time.RFC3339, startParam)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "start must be a valid ISO date"})
+	}
+
+	end, err := time.Parse(time.RFC3339, endParam)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "end must be a valid ISO date"})
+	}
+
+	location := normalizeAppointmentLocation(locationParam)
+
+	// Only clinic appointments use slots
+	if location != models.AppointmentLocationClinic {
+		return c.JSON(fiber.Map{
+			"message": "Non-clinic appointments don't use slot system",
+			"slots":   []interface{}{},
+		})
+	}
+
+	slots, err := models.GetAvailableSlots(start, end, location)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch available slots"})
+	}
+
+	// Create a map of existing slots by time for quick lookup
+	slotMap := make(map[string]models.AppointmentSlot)
+	for _, slot := range slots {
+		key := slot.SlotTime.Format(time.RFC3339)
+		slotMap[key] = slot
+	}
+
+	// Generate all possible 15-minute slots for the date range
+	type SlotResponse struct {
+		SlotTime  time.Time `json:"slotTime"`
+		Remaining int       `json:"remaining"`
+		Total     int       `json:"total"`
+	}
+
+	var response []SlotResponse
+	current := models.RoundToNearestSlot(start)
+
+	for current.Before(end) {
+		key := current.Format(time.RFC3339)
+
+		if slot, exists := slotMap[key]; exists {
+			// Slot exists in database - use actual data
+			remaining := slot.MaxCapacity - slot.BookedCount
+			if remaining > 0 {
+				response = append(response, SlotResponse{
+					SlotTime:  slot.SlotTime,
+					Remaining: remaining,
+					Total:     slot.MaxCapacity,
+				})
+			}
+		} else {
+			// Slot doesn't exist yet - all 4 available
+			response = append(response, SlotResponse{
+				SlotTime:  current,
+				Remaining: 4,
+				Total:     4,
+			})
+		}
+
+		current = current.Add(15 * time.Minute)
+	}
+
+	return c.JSON(response)
 }
 
 // DeleteAppointment removes an appointment permanently.
@@ -321,6 +521,11 @@ func DeleteAppointment(c *fiber.Ctx) error {
 	}
 	if !allowed {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
+
+	// Release slot if this was a clinic appointment
+	if appointment.Location == models.AppointmentLocationClinic && appointment.SlotID != nil {
+		_ = models.DecrementSlotBooking(*appointment.SlotID)
 	}
 
 	if err := models.DeleteAppointment(appointment.ID); err != nil {
@@ -364,6 +569,14 @@ func normalizeAppointmentStatus(status string) models.AppointmentStatus {
 		return normalized
 	}
 	return models.AppointmentStatusScheduled
+}
+
+func normalizeAppointmentLocation(location string) models.AppointmentLocation {
+	normalized := models.AppointmentLocation(strings.ToLower(strings.TrimSpace(location)))
+	if _, ok := allowedAppointmentLocations[normalized]; ok {
+		return normalized
+	}
+	return models.AppointmentLocationClinic // Default to clinic
 }
 
 func parseFlexibleTime(value string) (time.Time, error) {

@@ -1,6 +1,7 @@
 import api from '@/utils/axios'
 
 export type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled'
+export type AppointmentLocation = 'remote' | 'televisit' | 'clinic'
 
 export interface AppointmentPatientSummary {
   id: number
@@ -13,7 +14,7 @@ export interface Appointment {
   id: number
   title: string
   description?: string
-  location?: string
+  location?: AppointmentLocation
   status: AppointmentStatus
   startAt: string
   endAt?: string | null
@@ -27,7 +28,7 @@ export interface Appointment {
 export interface AppointmentPayload {
   title: string
   description?: string
-  location?: string
+  location?: AppointmentLocation
   status?: AppointmentStatus
   startAt: string
   endAt?: string | null
@@ -38,6 +39,18 @@ export interface AppointmentQueryParams {
   patientId?: number
   start?: string
   end?: string
+}
+
+export interface AppointmentSlot {
+  slotTime: string
+  remaining: number
+  total: number
+}
+
+export interface AvailableSlotsParams {
+  start: string
+  end: string
+  location?: AppointmentLocation
 }
 
 async function getAppointments(params?: AppointmentQueryParams): Promise<Appointment[]> {
@@ -64,10 +77,22 @@ async function deleteAppointment(id: number): Promise<void> {
   await api.delete(`/appointments/${id}`)
 }
 
+async function getAvailableSlots(params: AvailableSlotsParams): Promise<AppointmentSlot[]> {
+  const { data } = await api.get('/appointments/slots/available', { 
+    params: {
+      start: params.start,
+      end: params.end,
+      location: params.location || 'clinic'
+    }
+  })
+  return data
+}
+
 export const appointmentService = {
   getAppointments,
   getPatientAppointments,
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getAvailableSlots,
 }

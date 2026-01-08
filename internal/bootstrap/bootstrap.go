@@ -77,6 +77,7 @@ func migrate(db *gorm.DB) error {
 		&models.Webhook{},
 		&models.WebhookDelivery{},
 		&models.Team{},
+		&models.AppointmentSlot{},
 		&models.Appointment{},
 	)
 }
@@ -480,7 +481,7 @@ func seed(db *gorm.DB) error {
 		{
 			Title:       "Quarterly Device Check",
 			Description: "In-clinic follow-up to review pacemaker diagnostics",
-			Location:    "Metropolis Clinic · Room 2",
+			Location:    "Clinic",
 			Status:      models.AppointmentStatusScheduled,
 			StartAt:     johnClinicStart,
 			EndAt:       &johnClinicEnd,
@@ -500,7 +501,7 @@ func seed(db *gorm.DB) error {
 		{
 			Title:       "Battery Replacement Planning",
 			Description: "Prep visit to plan CRT-D generator change",
-			Location:    "Pulse Town Hospital",
+			Location:    "Clinic",
 			Status:      models.AppointmentStatusScheduled,
 			StartAt:     robertBatteryStart,
 			EndAt:       &robertBatteryEnd,

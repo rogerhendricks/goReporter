@@ -28,7 +28,14 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
-import { type Appointment, type AppointmentPayload, type AppointmentStatus } from '@/services/appointmentService'
+import {
+  type Appointment,
+  type AppointmentPayload,
+  type AppointmentStatus,
+  type AppointmentLocation,
+  type AppointmentSlot,
+  appointmentService,
+} from '@/services/appointmentService'
 import { usePatientStore } from '@/stores/patientStore'
 
 export interface PatientOption {
@@ -51,7 +58,7 @@ interface AppointmentFormDialogProps {
 interface FormState {
   title: string
   description: string
-  location: string
+  location: AppointmentLocation
   status: AppointmentStatus
   startAt: string
   endAt: string
@@ -62,6 +69,12 @@ const statusOptions: { label: string; value: AppointmentStatus }[] = [
   { label: 'Scheduled', value: 'scheduled' },
   { label: 'Completed', value: 'completed' },
   { label: 'Cancelled', value: 'cancelled' },
+]
+
+const locationOptions: { label: string; value: AppointmentLocation }[] = [
+  { label: 'Remote', value: 'remote' },
+  { label: 'Televisit', value: 'televisit' },
+  { label: 'Clinic', value: 'clinic' },
 ]
 
 const formatDateTimeLocal = (value?: string | Date): string => {
@@ -78,7 +91,7 @@ const buildInitialState = (
 ): FormState => ({
   title: appointment?.title ?? '',
   description: appointment?.description ?? '',
-  location: appointment?.location ?? '',
+  location: appointment?.location ?? 'clinic',
   status: appointment?.status ?? 'scheduled',
   startAt: formatDateTimeLocal(appointment?.startAt ?? defaultDate ?? new Date()),
   endAt: formatDateTimeLocal(appointment?.endAt ?? undefined),
@@ -102,6 +115,9 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [availableSlots, setAvailableSlots] = useState<AppointmentSlot[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>('')
 
   const { patients: allPatients, searchPatients, searchResults } = usePatientStore()
 
@@ -136,6 +152,8 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
       setFormError(null)
       setSubmitting(false)
       setSearchQuery('')
+      setAvailableSlots([])
+      setSelectedDate('')
     }
   }, [open, appointment, patientId, defaultDate])
 
@@ -149,8 +167,84 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     }
   }, [searchQuery, searchPatients])
 
+  // Fetch available slots when clinic location and date are selected
+  useEffect(() => {
+    const fetchSlots = async () => {
+      if (formState.location !== 'clinic' || !formState.startAt) {
+        setAvailableSlots([])
+        setSelectedDate('')
+        return
+      }
+
+      const startDate = new Date(formState.startAt)
+      if (isNaN(startDate.getTime())) {
+        setAvailableSlots([])
+        return
+      }
+
+      const dateStr = startDate.toISOString().split('T')[0]
+      if (dateStr === selectedDate && availableSlots.length > 0) return // Already loaded for this date
+
+      setSelectedDate(dateStr)
+      setLoadingSlots(true)
+
+      try {
+        const startOfDay = new Date(dateStr + 'T00:00:00')
+        const endOfDay = new Date(dateStr + 'T23:59:59')
+
+        console.log('Fetching slots for:', dateStr)
+        const slots = await appointmentService.getAvailableSlots({
+          start: startOfDay.toISOString(),
+          end: endOfDay.toISOString(),
+          location: 'clinic',
+        })
+        console.log('Received slots:', slots)
+        setAvailableSlots(slots)
+      } catch (error) {
+        console.error('Failed to load slots:', error)
+        setAvailableSlots([])
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+
+    fetchSlots()
+  }, [formState.location, formState.startAt])
+
   const handleChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setFormState(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleStartTimeChange = (value: string) => {
+    if (formState.location === 'clinic' && value) {
+      // Round to nearest 15-minute slot for clinic appointments
+      const date = new Date(value)
+      if (!isNaN(date.getTime())) {
+        const minutes = date.getMinutes()
+        const roundedMinutes = Math.floor(minutes / 15) * 15
+        date.setMinutes(roundedMinutes, 0, 0)
+        const rounded = format(date, "yyyy-MM-dd'T'HH:mm")
+        setFormState(prev => ({ ...prev, startAt: rounded }))
+        return
+      }
+    }
+    setFormState(prev => ({ ...prev, startAt: value }))
+  }
+
+  const handleLocationChange = (value: AppointmentLocation) => {
+    setFormState(prev => {
+      const newState = { ...prev, location: value }
+      if (value === 'clinic' && prev.startAt) {
+        // Round to nearest 15-minute slot
+        const date = new Date(prev.startAt)
+        const minutes = date.getMinutes()
+        const roundedMinutes = Math.floor(minutes / 15) * 15
+        date.setMinutes(roundedMinutes, 0, 0)
+        const rounded = format(date, "yyyy-MM-dd'T'HH:mm")
+        newState.startAt = rounded
+      }
+      return newState
+    })
   }
 
   const handlePatientSelect = (selectedPatientId: number) => {
@@ -180,7 +274,7 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     const payload: AppointmentPayload = {
       title: formState.title.trim(),
       description: formState.description.trim() || undefined,
-      location: formState.location.trim() || undefined,
+      location: formState.location,
       status: formState.status,
       startAt: new Date(formState.startAt).toISOString(),
       endAt: formState.endAt ? new Date(formState.endAt).toISOString() : undefined,
@@ -190,8 +284,14 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     try {
       await onSubmit(payload)
       onOpenChange(false)
-    } catch (err) {
-      setFormError('Unable to save appointment')
+    } catch (err: any) {
+      if (err?.response?.data?.code === 'SLOT_FULL') {
+        setFormError('This time slot is full. Please select a different time.')
+      } else if (err?.response?.data?.code === 'SLOT_BOOKING_FAILED') {
+        setFormError('Failed to reserve slot. It may have just been filled by another user.')
+      } else {
+        setFormError('Unable to save appointment')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -318,12 +418,23 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
 
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              value={formState.location}
-              onChange={event => handleChange('location', event.target.value)}
-              placeholder="Clinic A — Room 5"
-            />
+            <Select value={formState.location} onValueChange={handleLocationChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {locationOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formState.location === 'clinic' && (
+              <p className="text-xs text-muted-foreground">
+                Clinic appointments use 15-minute time slots with max 4 patients per slot
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -332,8 +443,47 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
               <Input
                 type="datetime-local"
                 value={formState.startAt}
-                onChange={event => handleChange('startAt', event.target.value)}
+                onChange={event => handleStartTimeChange(event.target.value)}
+                step={formState.location === 'clinic' ? 900 : 60}
               />
+              {formState.location === 'clinic' && loadingSlots && (
+                <p className="text-xs text-muted-foreground">Loading available slots...</p>
+              )}
+              {formState.location === 'clinic' && !loadingSlots && formState.startAt && (() => {
+                // Round the selected time to nearest 15 minutes for comparison
+                const selectedDate = new Date(formState.startAt)
+                const minutes = selectedDate.getMinutes()
+                const roundedMinutes = Math.floor(minutes / 15) * 15
+                selectedDate.setMinutes(roundedMinutes, 0, 0)
+                
+                console.log('Looking for slot at:', selectedDate.toISOString())
+                console.log('Available slots:', availableSlots.map(s => ({ time: s.slotTime, remaining: s.remaining })))
+                
+                const slot = availableSlots.find(s => {
+                  const slotDate = new Date(s.slotTime)
+                  return slotDate.getTime() === selectedDate.getTime()
+                })
+                
+                if (slot) {
+                  return (
+                    <p className={cn(
+                      "text-xs font-medium",
+                      slot.remaining > 0 ? "text-emerald-600" : "text-rose-600"
+                    )}>
+                      {slot.remaining > 0 
+                        ? `${slot.remaining} of ${slot.total} slots available`
+                        : 'This time slot is full'
+                      }
+                    </p>
+                  )
+                }
+                // If no slot found in the list, it means it's a new slot (all 4 available)
+                return (
+                  <p className="text-xs font-medium text-emerald-600">
+                    4 of 4 slots available (new time slot)
+                  </p>
+                )
+              })()}
             </div>
             <div className="space-y-2">
               <Label>End</Label>

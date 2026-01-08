@@ -177,6 +177,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Appointment routes
 	app.Get("/api/appointments", handlers.GetAppointments)
+	app.Get("/api/appointments/slots/available", handlers.GetAvailableSlots)
 	app.Get("/api/appointments/:id", handlers.GetAppointment)
 	app.Post("/api/appointments", handlers.CreateAppointment)
 	app.Put("/api/appointments/:id", handlers.UpdateAppointment)

@@ -45,6 +45,12 @@ const statusStyles: Record<AppointmentStatus, string> = {
   cancelled: 'bg-rose-100 text-rose-700 border border-rose-200',
 }
 
+const statusDotColors: Record<AppointmentStatus, string> = {
+  scheduled: 'bg-sky-500',
+  completed: 'bg-emerald-500',
+  cancelled: 'bg-rose-500',
+}
+
 export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -352,39 +358,31 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                     key={key}
                     onClick={() => setSelectedDate(day)}
                     className={cn(
-                      'min-h-[120px] rounded-xl border p-2 text-left transition hover:border-primary/50 hover:shadow-sm',
+                      'min-h-[100px] rounded-xl border p-2 text-left transition hover:border-primary/50 hover:shadow-sm',
                       !isSameMonth(day, currentMonth) && 'opacity-40',
                       isSelected && 'border-primary shadow'
                     )}
                   >
-                    <div className="flex items-center justify-between text-sm font-medium">
+                    <div className="flex items-center justify-between text-sm font-medium mb-2">
                       <span>{format(day, 'd')}</span>
                       {isToday(day) && (
                         <span className="text-xs font-semibold text-primary">Today</span>
                       )}
                     </div>
-                    <div className="mt-2 space-y-1">
-                      {dayAppointments.slice(0, 3).map(appt => (
-                        <div
-                          key={appt.id}
-                          onClick={event => {
-                            event.stopPropagation()
-                            openEditDialog(appt)
-                          }}
-                          className={cn(
-                            'w-full cursor-pointer rounded-lg px-2 py-1 text-xs font-medium',
-                            statusStyles[appt.status]
-                          )}
-                        >
-                          <p className="truncate">
-                            {format(new Date(appt.startAt), 'p')} · {appt.title}
-                          </p>
-                        </div>
-                      ))}
-                      {dayAppointments.length > 3 && (
-                        <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} more</div>
-                      )}
-                    </div>
+                    {dayAppointments.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {dayAppointments.map((appt) => (
+                          <div
+                            key={appt.id}
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              statusDotColors[appt.status]
+                            )}
+                            title={`${format(new Date(appt.startAt), 'p')} - ${appt.title} (${appt.status})`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </button>
                 )
               })}
