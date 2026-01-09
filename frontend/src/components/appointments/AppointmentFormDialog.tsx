@@ -62,7 +62,6 @@ interface FormState {
   location: AppointmentLocation
   status: AppointmentStatus
   startAt: string
-  endAt: string
   patientId: number
 }
 
@@ -95,7 +94,6 @@ const buildInitialState = (
   location: appointment?.location ?? 'clinic',
   status: appointment?.status ?? 'scheduled',
   startAt: formatDateTimeLocal(appointment?.startAt ?? defaultDate ?? new Date()),
-  endAt: formatDateTimeLocal(appointment?.endAt ?? undefined),
   patientId: appointment?.patientId ?? patientId ?? 0,
 })
 
@@ -281,13 +279,17 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     setFormError(null)
     setSubmitting(true)
 
+    // Calculate end time as 15 minutes after start time
+    const startDate = new Date(formState.startAt)
+    const endDate = new Date(startDate.getTime() + 15 * 60 * 1000) // Add 15 minutes
+
     const payload: AppointmentPayload = {
       title: formState.title.trim(),
       description: formState.description.trim() || undefined,
       location: formState.location,
       status: formState.status,
-      startAt: new Date(formState.startAt).toISOString(),
-      endAt: formState.endAt ? new Date(formState.endAt).toISOString() : undefined,
+      startAt: startDate.toISOString(),
+      endAt: endDate.toISOString(),
       patientId: targetPatientId,
     }
 
@@ -468,19 +470,21 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Start</Label>
-              <Input
-                type="datetime-local"
-                value={formState.startAt}
-                onChange={event => handleStartTimeChange(event.target.value)}
-                step={formState.location === 'clinic' ? 900 : 60}
-              />
-              {formState.location === 'clinic' && loadingSlots && (
-                <p className="text-xs text-muted-foreground">Loading available slots...</p>
-              )}
-              {formState.location === 'clinic' && !loadingSlots && formState.startAt && Array.isArray(availableSlots) && (() => {
+          <div className="space-y-2">
+            <Label>Start Date & Time</Label>
+            <Input
+              type="datetime-local"
+              value={formState.startAt}
+              onChange={event => handleStartTimeChange(event.target.value)}
+              step={formState.location === 'clinic' ? 900 : 60}
+            />
+            <p className="text-xs text-muted-foreground">
+              Appointment duration: 15 minutes
+            </p>
+            {formState.location === 'clinic' && loadingSlots && (
+              <p className="text-xs text-muted-foreground">Loading available slots...</p>
+            )}
+            {formState.location === 'clinic' && !loadingSlots && formState.startAt && Array.isArray(availableSlots) && (() => {
                 // Round the selected time to nearest 15 minutes for comparison
                 const selectedDate = new Date(formState.startAt)
                 const minutes = selectedDate.getMinutes()
@@ -514,15 +518,6 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
                   </p>
                 )
               })()}
-            </div>
-            <div className="space-y-2">
-              <Label>End</Label>
-              <Input
-                type="datetime-local"
-                value={formState.endAt}
-                onChange={event => handleChange('endAt', event.target.value)}
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
