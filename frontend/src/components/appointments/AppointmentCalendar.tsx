@@ -370,17 +370,63 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                       )}
                     </div>
                     {dayAppointments.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {dayAppointments.map((appt) => (
-                          <div
-                            key={appt.id}
-                            className={cn(
-                              'h-2 w-2 rounded-full',
-                              statusDotColors[appt.status]
-                            )}
-                            title={`${format(new Date(appt.startAt), 'p')} - ${appt.title} (${appt.status})`}
-                          />
-                        ))}
+                      <div className="space-y-1">
+                        {/* Group clinic appointments by time slot */}
+                        {(() => {
+                          const clinicAppts = dayAppointments.filter(a => a.location === 'clinic')
+                          const otherAppts = dayAppointments.filter(a => a.location !== 'clinic')
+                          
+                          // Group clinic appointments by rounded time (15-min slots)
+                          const slotGroups: Record<string, Appointment[]> = {}
+                          clinicAppts.forEach(appt => {
+                            const date = new Date(appt.startAt)
+                            const minutes = date.getMinutes()
+                            const roundedMinutes = Math.floor(minutes / 15) * 15
+                            date.setMinutes(roundedMinutes, 0, 0)
+                            const slotKey = format(date, 'HH:mm')
+                            slotGroups[slotKey] = slotGroups[slotKey] || []
+                            slotGroups[slotKey].push(appt)
+                          })
+
+                          return (
+                            <>
+                              {/* Show clinic slot indicators */}
+                              {Object.entries(slotGroups).map(([time, appts]) => (
+                                <div key={time} className="flex items-center gap-1 text-[10px]">
+                                  <span className="text-muted-foreground min-w-[32px]">{time}</span>
+                                  <div className="flex gap-0.5">
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                      <div
+                                        key={i}
+                                        className={cn(
+                                          'w-1.5 h-1.5 rounded-full',
+                                          i < appts.length ? 'bg-sky-500' : 'bg-gray-200'
+                                        )}
+                                        title={i < appts.length ? appts[i].title : 'Available'}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {/* Show other appointment dots as before */}
+                              {otherAppts.length > 0 && (
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                  {otherAppts.map((appt) => (
+                                    <div
+                                      key={appt.id}
+                                      className={cn(
+                                        'h-2 w-2 rounded-full',
+                                        statusDotColors[appt.status]
+                                      )}
+                                      title={`${format(new Date(appt.startAt), 'p')} - ${appt.title} (${appt.status})`}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                       </div>
                     )}
                   </button>

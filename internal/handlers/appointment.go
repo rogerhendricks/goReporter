@@ -200,6 +200,23 @@ func CreateAppointment(c *fiber.Ctx) error {
 	// Check slot availability for clinic appointments
 	var slotID *uint
 	if location == models.AppointmentLocationClinic {
+		// Validate time is within allowed hours (8:00 AM - 11:30 AM)
+		// Convert to Sydney timezone for validation
+		sydneyLoc, err := time.LoadLocation("Australia/Sydney")
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load timezone"})
+		}
+		localTime := startAt.In(sydneyLoc)
+		hour := localTime.Hour()
+		minute := localTime.Minute()
+
+		if hour < 8 || hour > 11 || (hour == 11 && minute > 30) {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error": "Clinic appointments are only available between 8:00 AM and 11:30 AM (Sydney time)",
+				"code":  "INVALID_TIME",
+			})
+		}
+
 		available, remaining, err := models.CheckSlotAvailability(startAt, location)
 		if err != nil {
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to check slot availability"})
@@ -346,6 +363,27 @@ func UpdateAppointment(c *fiber.Ctx) error {
 
 		// Book new slot if new location is clinic
 		if appointment.Location == models.AppointmentLocationClinic {
+			// Validate time is within allowed hours (8:00 AM - 11:30 AM)
+			// Convert to Sydney timezone for validation
+			sydneyLoc, err := time.LoadLocation("Australia/Sydney")
+			if err != nil {
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load timezone"})
+			}
+			localTime := appointment.StartAt.In(sydneyLoc)
+			hour := localTime.Hour()
+			minute := localTime.Minute()
+
+			if hour < 8 || hour > 11 || (hour == 11 && minute > 30) {
+				// Restore old slot booking if we released it
+				if oldLocation == models.AppointmentLocationClinic && oldSlotID != nil {
+					_ = models.IncrementSlotBooking(*oldSlotID)
+				}
+				return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+					"error": "Clinic appointments are only available between 8:00 AM and 11:30 AM (Sydney time)",
+					"code":  "INVALID_TIME",
+				})
+			}
+
 			available, remaining, err := models.CheckSlotAvailability(appointment.StartAt, appointment.Location)
 			if err != nil {
 				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to check slot availability"})
@@ -467,19 +505,35 @@ func GetAvailableSlots(c *fiber.Ctx) error {
 	var response []SlotResponse
 	current := models.RoundToNearestSlot(start)
 
+	// Load Sydney timezone for validation
+	sydneyLoc, err := time.LoadLocation("Australia/Sydney")
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load timezone"})
+	}
+
 	for current.Before(end) {
+		// Restrict clinic slots to 8:00 AM - 11:30 AM (Sydney time)
+		localTime := current.In(sydneyLoc)
+		hour := localTime.Hour()
+		minute := localTime.Minute()
+
+		// Skip slots outside 8:00-11:30 time window
+		if hour < 8 || hour > 11 || (hour == 11 && minute > 30) {
+			current = current.Add(15 * time.Minute)
+			continue
+		}
+
 		key := current.Format(time.RFC3339)
 
 		if slot, exists := slotMap[key]; exists {
 			// Slot exists in database - use actual data
 			remaining := slot.MaxCapacity - slot.BookedCount
-			if remaining > 0 {
-				response = append(response, SlotResponse{
-					SlotTime:  slot.SlotTime,
-					Remaining: remaining,
-					Total:     slot.MaxCapacity,
-				})
-			}
+			// Return all slots, even if full, so frontend can show appropriate message
+			response = append(response, SlotResponse{
+				SlotTime:  slot.SlotTime,
+				Remaining: remaining,
+				Total:     slot.MaxCapacity,
+			})
 		} else {
 			// Slot doesn't exist yet - all 4 available
 			response = append(response, SlotResponse{

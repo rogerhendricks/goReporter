@@ -28,6 +28,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
+import { SlotPicker } from './SlotPicker'
 import {
   type Appointment,
   type AppointmentPayload,
@@ -189,16 +190,18 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
       setLoadingSlots(true)
 
       try {
-        const startOfDay = new Date(dateStr + 'T00:00:00')
-        const endOfDay = new Date(dateStr + 'T23:59:59')
-
-        console.log('Fetching slots for:', dateStr)
+        // Fetch slots for 8:00 AM - 11:30 AM window in user's local timezone
+        const startOfWindow = new Date(startDate)
+        startOfWindow.setHours(8, 0, 0, 0)
+        
+        const endOfWindow = new Date(startDate)
+        endOfWindow.setHours(11, 30, 59, 999)
+        
         const slots = await appointmentService.getAvailableSlots({
-          start: startOfDay.toISOString(),
-          end: endOfDay.toISOString(),
+          start: startOfWindow.toISOString(),
+          end: endOfWindow.toISOString(),
           location: 'clinic',
         })
-        console.log('Received slots:', slots)
         setAvailableSlots(slots)
       } catch (error) {
         console.error('Failed to load slots:', error)
@@ -253,6 +256,13 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
     setSearchQuery('')
   }
 
+  const handleSlotSelect = (slotTime: string) => {
+    // Convert UTC slot time to local datetime-local format
+    const date = new Date(slotTime)
+    const formatted = format(date, "yyyy-MM-dd'T'HH:mm")
+    setFormState(prev => ({ ...prev, startAt: formatted }))
+  }
+
   const handleSubmit = async () => {
     const targetPatientId = patientId ?? formState.patientId
     if (!formState.title.trim()) {
@@ -285,7 +295,9 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
       await onSubmit(payload)
       onOpenChange(false)
     } catch (err: any) {
-      if (err?.response?.data?.code === 'SLOT_FULL') {
+      if (err?.response?.data?.code === 'INVALID_TIME') {
+        setFormError('Clinic appointments are only available between 8:00 AM and 11:30 AM (Sydney time)')
+      } else if (err?.response?.data?.code === 'SLOT_FULL') {
         setFormError('This time slot is full. Please select a different time.')
       } else if (err?.response?.data?.code === 'SLOT_BOOKING_FAILED') {
         setFormError('Failed to reserve slot. It may have just been filled by another user.')
@@ -437,6 +449,25 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
             )}
           </div>
 
+          {/* Slot picker for clinic appointments */}
+          {formState.location === 'clinic' && formState.startAt && (
+            <div className="space-y-2">
+              <Label>Available Time Slots</Label>
+              {loadingSlots ? (
+                <div className="text-sm text-muted-foreground py-4 text-center">
+                  Loading available slots...
+                </div>
+              ) : (
+                <SlotPicker
+                  slots={availableSlots}
+                  selectedTime={formState.startAt}
+                  onSelectSlot={handleSlotSelect}
+                  disabled={submitting}
+                />
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Start</Label>
@@ -449,19 +480,17 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
               {formState.location === 'clinic' && loadingSlots && (
                 <p className="text-xs text-muted-foreground">Loading available slots...</p>
               )}
-              {formState.location === 'clinic' && !loadingSlots && formState.startAt && (() => {
+              {formState.location === 'clinic' && !loadingSlots && formState.startAt && Array.isArray(availableSlots) && (() => {
                 // Round the selected time to nearest 15 minutes for comparison
                 const selectedDate = new Date(formState.startAt)
                 const minutes = selectedDate.getMinutes()
                 const roundedMinutes = Math.floor(minutes / 15) * 15
                 selectedDate.setMinutes(roundedMinutes, 0, 0)
                 
-                console.log('Looking for slot at:', selectedDate.toISOString())
-                console.log('Available slots:', availableSlots.map(s => ({ time: s.slotTime, remaining: s.remaining })))
-                
+                // Find matching slot by comparing timestamps
                 const slot = availableSlots.find(s => {
                   const slotDate = new Date(s.slotTime)
-                  return slotDate.getTime() === selectedDate.getTime()
+                  return Math.abs(slotDate.getTime() - selectedDate.getTime()) < 1000
                 })
                 
                 if (slot) {
@@ -477,7 +506,8 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
                     </p>
                   )
                 }
-                // If no slot found in the list, it means it's a new slot (all 4 available)
+                
+                // No slot found means it's a new time slot (all 4 available)
                 return (
                   <p className="text-xs font-medium text-emerald-600">
                     4 of 4 slots available (new time slot)
