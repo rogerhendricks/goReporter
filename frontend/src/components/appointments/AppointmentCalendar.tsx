@@ -11,7 +11,8 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Check, ChevronsUpDown, X } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Check, ChevronsUpDown, X, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -481,10 +482,18 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                       </Badge>
                     )}
                   </div>
-                  <div className="mt-1.5 space-y-0.5">
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
                     <p className="text-xs text-muted-foreground truncate">
                       {appt.patient?.fname ? `${appt.patient.fname} ${appt.patient.lname}` : `Patient #${appt.patientId}`}
                     </p>
+                    <Link
+                      to={`/patients/${appt.patientId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+                    >
+                      View Patient
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
                   </div>
                 </div>
               ))}
