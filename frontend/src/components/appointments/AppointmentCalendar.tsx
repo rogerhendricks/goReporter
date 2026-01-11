@@ -11,7 +11,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Check, ChevronsUpDown, X, ExternalLink } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus, Check, ChevronsUpDown, X, ExternalLink, Printer } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -191,6 +191,134 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
     ? () => deleteAppointment(activeAppointment.id)
     : undefined
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const appointmentsHtml = selectedDayAppointments
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+      .map(appt => {
+        const patient = appt.patient?.fname 
+          ? `${appt.patient.fname} ${appt.patient.lname}` 
+          : `Patient #${appt.patientId}`
+        const time = `${format(new Date(appt.startAt), 'p')}${appt.endAt ? ` – ${format(new Date(appt.endAt), 'p')}` : ''}`
+        return `
+          <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${time}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${appt.title}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${patient}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+              <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${
+                appt.status === 'scheduled' ? '#e0f2fe' : 
+                appt.status === 'completed' ? '#d1fae5' : '#fee2e2'
+              }; color: ${
+                appt.status === 'scheduled' ? '#0369a1' : 
+                appt.status === 'completed' ? '#065f46' : '#991b1b'
+              };">
+                ${appt.status}
+              </span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${appt.location || '—'}</td>
+          </tr>
+        `
+      }).join('')
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Appointment List - ${format(selectedDate, 'EEEE, MMMM d, yyyy')}</title>
+          <style>
+            @media print {
+              body { margin: 0; }
+              @page { margin: 1cm; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+              padding: 20px;
+              max-width: 1200px;
+              margin: 0 auto;
+            }
+            h1 {
+              font-size: 24px;
+              margin-bottom: 8px;
+              color: #111827;
+            }
+            .subtitle {
+              color: #6b7280;
+              margin-bottom: 24px;
+              font-size: 14px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 16px;
+            }
+            th {
+              background: #f9fafb;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 14px;
+              color: #374151;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .no-appointments {
+              padding: 40px;
+              text-align: center;
+              color: #9ca3af;
+              font-size: 14px;
+            }
+            .footer {
+              margin-top: 32px;
+              padding-top: 16px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 12px;
+              color: #6b7280;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Appointment List</h1>
+          <div class="subtitle">
+            ${format(selectedDate, 'EEEE, MMMM d, yyyy')} · 
+            ${selectedDayAppointments.length} appointment${selectedDayAppointments.length !== 1 ? 's' : ''}
+            ${filterPatientId !== 'all' ? ` · Filtered: ${selectedFilterLabel}` : ''}
+          </div>
+          ${selectedDayAppointments.length === 0 ? `
+            <div class="no-appointments">No appointments scheduled for this day</div>
+          ` : `
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Title</th>
+                  <th>Patient</th>
+                  <th>Status</th>
+                  <th>Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${appointmentsHtml}
+              </tbody>
+            </table>
+          `}
+          <div class="footer">
+            Printed on ${format(new Date(), 'PPpp')}
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -328,6 +456,14 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
               <span className="sr-only">Clear filter</span>
             </Button>
           )}
+          <Button 
+            variant="outline" 
+            onClick={handlePrint}
+            disabled={selectedDayAppointments.length === 0}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Print List
+          </Button>
           <Button onClick={() => openCreateDialog(selectedDate)}>
             <Plus className="mr-2 h-4 w-4" />
             New Appointment
