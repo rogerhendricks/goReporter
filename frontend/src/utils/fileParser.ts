@@ -1,6 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import * as pdfjsLib from 'pdfjs-dist';
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
+import { formatDateToISO, formatDateTimeToISO } from './dateHelpers';
 // import { PDFDocument, PDFName, PDFArray, PDFDict, PDFStream } from 'pdf-lib'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.394/build/pdf.worker.min.mjs';
@@ -332,24 +333,26 @@ function parseLogFile(data: string): ParsedData {
     }
   });
 
-  // Process dates
+  // Process dates - Parse as local timezone to avoid UTC conversion issues
+  // When files contain dates like "01/09/2026 09:40:24", we want to preserve
+  // the actual date/time, not convert it to UTC (which shifts it back a day)
   if (parsedData.report_date) {
-    parsedData.report_date = new Date(parsedData.report_date).toISOString();
+    parsedData.report_date = formatDateTimeToISO(new Date(parsedData.report_date));
   }
   if (parsedData.mdc_idc_dev_ra_implant_date) {
-    parsedData.mdc_idc_dev_ra_implant_date = new Date(parsedData.mdc_idc_dev_ra_implant_date).toISOString().split('T')[0];
+    parsedData.mdc_idc_dev_ra_implant_date = formatDateToISO(new Date(parsedData.mdc_idc_dev_ra_implant_date));
   }
   if (parsedData.mdc_idc_dev_rv_implant_date) {
-    parsedData.mdc_idc_dev_rv_implant_date = new Date(parsedData.mdc_idc_dev_rv_implant_date).toISOString().split('T')[0];
+    parsedData.mdc_idc_dev_rv_implant_date = formatDateToISO(new Date(parsedData.mdc_idc_dev_rv_implant_date));
   }
   if (parsedData.mdc_idc_dev_lv_implant_date) {
-    parsedData.mdc_idc_dev_lv_implant_date = new Date(parsedData.mdc_idc_dev_lv_implant_date).toISOString().split('T')[0];
+    parsedData.mdc_idc_dev_lv_implant_date = formatDateToISO(new Date(parsedData.mdc_idc_dev_lv_implant_date));
   }
   if (parsedData.mdc_idc_dev_implant_date) {
-    parsedData.mdc_idc_dev_implant_date = new Date(parsedData.mdc_idc_dev_implant_date).toISOString().split('T')[0];
+    parsedData.mdc_idc_dev_implant_date = formatDateToISO(new Date(parsedData.mdc_idc_dev_implant_date));
   }
   if (parsedData.dob) {
-    parsedData.dob = new Date(parsedData.dob).toISOString().split('T')[0];
+    parsedData.dob = formatDateToISO(new Date(parsedData.dob));
   }
 
   parsedData.mdc_idc_dev_manufacturer = "Abbott";
@@ -468,7 +471,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   const dateMatch = headerLine.match(/SAVE DATE:\s*(\d+\s+\w+\s+\d{4})/);
   if (dateMatch) {
     const dateStr = dateMatch[1];
-    result.report_date = new Date(dateStr).toISOString();
+    result.report_date = formatDateTimeToISO(new Date(dateStr));
   }
 
   if (rawData['VTherapyParams.VFATPEnable']) {
@@ -682,8 +685,9 @@ function parseXmlFile(fileContent: string): ParsedData {
       if (value['@_name'] === 'IMPLANT_DT') {
         const implantDate = value['#text'];
         if (implantDate) {
-          const date = new Date(implantDate.replace(/(\d{4})(\d{2})(\d{2})T.*/, '$1-$2-$3'));
-          result.mdc_idc_dev_implant_date = date.toISOString().split('T')[0];
+          // Extract date parts directly to avoid timezone conversion
+          const dateStr = implantDate.replace(/(\d{4})(\d{2})(\d{2})T.*/, '$1-$2-$3');
+          result.mdc_idc_dev_implant_date = dateStr;
         }
       }
     });
@@ -696,8 +700,8 @@ function parseXmlFile(fileContent: string): ParsedData {
     const dtmValue = sessSection.value.find((v: any) => v['@_name'] === 'DTM');
     if (dtmValue) {
       const dateStr = dtmValue['#text'];
-      const date = new Date(dateStr.replace(/(\d{4})(\d{2})(\d{2})T.*/, '$1-$2-$3'));
-      result.report_date = date.toISOString().split('T')[0];
+      // Extract date parts directly to avoid timezone conversion
+      result.report_date = dateStr.replace(/(\d{4})(\d{2})(\d{2})T.*/, '$1-$2-$3');
     }
   }
 
@@ -1515,8 +1519,7 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
 function convertMedtronicDate(dateStr: string, separator = '-') {
   const parts = dateStr.split(separator);
   const formattedDateStr = `${parts[0]}-${parts[1]}-${parts[2]}`;
-  const date = new Date(formattedDateStr);
-  return date.toISOString().split('T')[0];
+  return formatDateToISO(new Date(formattedDateStr));
 }
 
 // Helper to parse Medtronic therapies string

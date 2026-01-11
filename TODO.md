@@ -58,7 +58,7 @@ type Appointment struct {
     Notes       string
 }
 ```
-- Calendar view for device checks and patient appointments
+- **Done** ~~Calendar view for device checks and patient appointments~~
 - Automated appointment reminders
 - Recurring appointment templates
 - Integration with task system
