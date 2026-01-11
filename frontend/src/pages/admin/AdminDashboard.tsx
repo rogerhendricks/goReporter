@@ -245,6 +245,8 @@ export default function AdminDashboard() {
                             { label: `With ${tagStats.tagName}`, count: tagStats.patientsWithTag },
                             { label: `Without ${tagStats.tagName}`, count: tagStats.patientsWithoutTag },
                           ]}
+                          legendPosition="top"
+                          showCounts={true}
                         />
                       ) : (
                         <div className="text-sm text-muted-foreground">Select a tag to view statistics</div>

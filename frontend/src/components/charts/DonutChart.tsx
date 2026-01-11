@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Doughnut } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import type { ChartOptions } from 'chart.js'
-// import { useTheme } from '@/components/theme-provider'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -11,6 +10,8 @@ interface DonutChartProps {
   title: string
   slices: Slice[]
   colors?: string[]
+  legendPosition?: 'top' | 'left' | 'right' | 'bottom'
+  showCounts?: boolean
 }
 
 // Use CSS custom properties for theme-aware colors
@@ -38,13 +39,19 @@ const getTextColor = () => {
   return style.getPropertyValue('--color-foreground').trim() || 'hsl(var(--foreground))'
 }
 
-export function DonutChart({ title, slices, colors }: DonutChartProps) {
-  // const { theme } = useTheme()
+export function DonutChart({ title, slices, colors, legendPosition = 'left', showCounts = false }: DonutChartProps) {
   const themeColors = colors || getChartColors()
   const borderColor = getBorderColor()
   const textColor = getTextColor()
+  
+  // Format labels with counts if showCounts is true
+  const labels = slices.map(s => {
+    const label = s.label || 'Unknown'
+    return showCounts ? `${label} (${s.count})` : label
+  })
+  
   const data = {
-    labels: slices.map(s => s.label || 'Unknown'),
+    labels: labels,
     datasets: [
       {
         data: slices.map(s => s.count),
@@ -61,7 +68,7 @@ export function DonutChart({ title, slices, colors }: DonutChartProps) {
     cutout: '60%',
     plugins: {
       legend: {
-        position: 'left',
+        position: legendPosition,
         align: 'center',
         labels: {
           usePointStyle: true,
@@ -73,9 +80,19 @@ export function DonutChart({ title, slices, colors }: DonutChartProps) {
       },
       tooltip: { 
         enabled: true,
-        backgroundColor: 'hsl(var(--popover))',
-        titleColor: textColor,
-        bodyColor: textColor,
+        // Use callback functions so colors are computed at render time
+        backgroundColor: () => {
+          const isDark = document.documentElement.classList.contains('dark')
+          return isDark ? '#1f2937' : '#ffffff'
+        },
+        titleColor: () => {
+          const isDark = document.documentElement.classList.contains('dark')
+          return isDark ? '#f9fafb' : '#111827'
+        },
+        bodyColor: () => {
+          const isDark = document.documentElement.classList.contains('dark')
+          return isDark ? '#f9fafb' : '#111827'
+        },
         borderColor: borderColor,
         borderWidth: 1,
       },
