@@ -457,8 +457,91 @@ export function ReportForm({ patient }: ReportFormProps) {
       })
     }
     
-    // Map the parsed data to your form fields
-    const updatedFormData = { ...formData };
+    // First, clear all fields that the file parser can populate
+    // This ensures old data is removed if it's not in the new file
+    const clearedFields: Partial<Report> = {
+      reportDate: undefined,
+      reportType: undefined,
+      reportStatus: undefined,
+      currentHeartRate: undefined,
+      currentRhythm: undefined,
+      currentDependency: undefined,
+      qrs_duration: undefined,
+      comments: undefined,
+      mdc_idc_stat_ataf_burden_percent: undefined,
+      // Bradycardia settings
+      mdc_idc_set_brady_mode: undefined,
+      mdc_idc_set_brady_lowrate: undefined,
+      mdc_idc_set_brady_max_tracking_rate: undefined,
+      mdc_idc_set_brady_max_sensor_rate: undefined,
+      // Pacing percentages
+      mdc_idc_stat_brady_ra_percent_paced: undefined,
+      mdc_idc_stat_brady_rv_percent_paced: undefined,
+      mdc_idc_stat_brady_lv_percent_paced: undefined,
+      mdc_idc_stat_brady_biv_percent_paced: undefined,
+      // Battery data
+      mdc_idc_batt_volt: undefined,
+      mdc_idc_batt_remaining: undefined,
+      mdc_idc_batt_status: undefined,
+      mdc_idc_cap_charge_time: undefined,
+      mdc_idc_batt_percentage: undefined,
+      // Device settings
+      mdc_idc_dev_sav: undefined,
+      mdc_idc_dev_pav: undefined,
+      // RA measurements
+      mdc_idc_msmt_ra_impedance_mean: undefined,
+      mdc_idc_msmt_ra_sensing: undefined,
+      mdc_idc_msmt_ra_pacing_threshold: undefined,
+      mdc_idc_msmt_ra_pw: undefined,
+      // RV measurements
+      mdc_idc_msmt_rv_impedance_mean: undefined,
+      mdc_idc_msmt_rv_sensing: undefined,
+      mdc_idc_msmt_rv_pacing_threshold: undefined,
+      mdc_idc_msmt_rv_pw: undefined,
+      mdc_idc_msmt_shock_impedance: undefined,
+      // LV measurements
+      mdc_idc_msmt_lv_impedance_mean: undefined,
+      mdc_idc_msmt_lv_sensing: undefined,
+      mdc_idc_msmt_lv_pacing_threshold: undefined,
+      mdc_idc_msmt_lv_pw: undefined,
+      // VT1 settings
+      VT1_detection_interval: undefined,
+      VT1_therapy_1_atp: undefined,
+      VT1_therapy_1_no_bursts: undefined,
+      VT1_therapy_2_atp: undefined,
+      VT1_therapy_2_no_bursts: undefined,
+      VT1_therapy_3_cvrt: undefined,
+      VT1_therapy_3_energy: undefined,
+      VT1_therapy_4_cvrt: undefined,
+      VT1_therapy_4_energy: undefined,
+      VT1_therapy_5_cvrt: undefined,
+      VT1_therapy_5_energy: undefined,
+      VT1_therapy_5_max_num_shocks: undefined,
+      // VT2 settings
+      VT2_detection_interval: undefined,
+      VT2_therapy_1_atp: undefined,
+      VT2_therapy_1_no_bursts: undefined,
+      VT2_therapy_2_atp: undefined,
+      VT2_therapy_2_no_bursts: undefined,
+      VT2_therapy_3_cvrt: undefined,
+      VT2_therapy_3_energy: undefined,
+      VT2_therapy_4_cvrt: undefined,
+      VT2_therapy_4_energy: undefined,
+      VT2_therapy_5_cvrt: undefined,
+      VT2_therapy_5_energy: undefined,
+      VT2_therapy_5_max_num_shocks: undefined,
+      // VF settings
+      VF_detection_interval: undefined,
+      VF_therapy_1_atp: undefined,
+      VF_therapy_1_no_bursts: undefined,
+      VF_therapy_2_energy: undefined,
+      VF_therapy_3_energy: undefined,
+      VF_therapy_4_energy: undefined,
+      VF_therapy_4_max_num_shocks: undefined,
+    }
+    
+    // Start with current formData, apply cleared fields, then overlay new data
+    const updatedFormData = { ...formData, ...clearedFields };
 
     // Map common fields
     if (data.report_date) {
