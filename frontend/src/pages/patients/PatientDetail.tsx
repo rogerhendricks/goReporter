@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { Edit, Trash2, Phone, Mail, MapPin, Plus, Check, X, ClipboardList } from 'lucide-react'
 import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Command,
   CommandEmpty,
@@ -48,6 +49,7 @@ import { TaskForm } from '@/components/forms/TaskForm'
 import { TaskList } from '@/components/tasks/TaskList'
 import { ConsentManager } from '@/components/ConsentManager'
 import { PatientAppointments } from '@/components/appointments/PatientAppointments'
+import { PatientNotes } from '@/components/notes/PatientNotes'
 import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
 import { assignTemplateToPatients } from '@/utils/serialNumberMatcher'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -309,7 +311,14 @@ export default function PatientDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Patient Information</CardTitle>
@@ -638,7 +647,13 @@ export default function PatientDetail() {
         <div className="md:col-span-2">
           <ConsentManager patientId={currentPatient.id} />  
         </div>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="notes">
+          <PatientNotes patientId={currentPatient.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -108,6 +108,12 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Put("/api/patients/:id", middleware.RequireAdminOrUser, handlers.UpdatePatient)
 	app.Delete("/api/patients/:id", middleware.RequireAdminOrUser, handlers.DeletePatient)
 
+	// Patient Notes routes
+	app.Get("/api/patients/:id/notes", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientNotes)
+	app.Post("/api/patients/:id/notes", middleware.RequireAdminOrUser, handlers.CreatePatientNote)
+	app.Put("/api/patients/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.UpdatePatientNote)
+	app.Delete("/api/patients/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeletePatientNote)
+
 	// Lead routes - admin only for CUD operations
 	app.Get("/api/leads/all", handlers.GetLeadsBasic)
 	app.Get("/api/leads/search", handlers.SearchLeads)

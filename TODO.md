@@ -1,4 +1,8 @@
 ## TODO
+
+## Patient notes
+- ~~Create a note page for each patient that the user can make notes. Should have created date, deletable with whome deleted it and when, and should be in chronological order~~ **DONE**
+
 ## Fix arrhythmias
 - The backend and frontend is different.
   - Name, Type, Duration, Count in backend

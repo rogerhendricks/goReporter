@@ -61,6 +61,7 @@ func migrate(db *gorm.DB) error {
 		&models.Lead{},
 		&models.Patient{},
 		&models.PatientConsent{},
+		&models.PatientNote{},
 		&models.Medication{},
 		&models.PatientDoctor{},
 		&models.ImplantedDevice{},
@@ -79,6 +80,7 @@ func migrate(db *gorm.DB) error {
 		&models.Team{},
 		&models.AppointmentSlot{},
 		&models.Appointment{},
+		&models.PatientNote{},
 	)
 }
 
@@ -660,6 +662,69 @@ func seed(db *gorm.DB) error {
 
 	for _, history := range searchHistories {
 		if err := db.Create(&history).Error; err != nil {
+			return err
+		}
+	}
+
+	// Seed Patient Notes
+	patientNotes := []models.PatientNote{
+		// Notes for Patient 1 (John Doe)
+		{
+			PatientID: p.ID,
+			UserID:    admin.ID,
+			Content:   "Patient reports feeling well since last visit. Device interrogation shows normal parameters. Battery voltage stable at 2.8V. No arrhythmias detected in the last 3 months.",
+		},
+		{
+			PatientID: p.ID,
+			UserID:    demoUser.ID,
+			Content:   "Follow-up call completed. Patient confirmed compliance with medications. Scheduled next in-office visit for 6 months from now.",
+		},
+		{
+			PatientID: p.ID,
+			UserID:    admin.ID,
+			Content:   "Remote monitoring alert received - 3 episodes of VT detected last week. Patient asymptomatic. Will review in detail at next appointment.",
+		},
+		// Notes for Patient 2 (Jane Smith)
+		{
+			PatientID: p2.ID,
+			UserID:    admin.ID,
+			Content:   "CRT-P device functioning optimally. Patient showing significant improvement in heart failure symptoms since implant 6 months ago. LVEF improved from 25% to 35%.",
+		},
+		{
+			PatientID: p2.ID,
+			UserID:    demoUser.ID,
+			Content:   "Patient called regarding lead impedance alert. Reviewed remote data - lead values within normal range. False alert likely due to body position during transmission. Reassured patient.",
+		},
+		{
+			PatientID: p2.ID,
+			UserID:    admin.ID,
+			Content:   "Adjusted AV delay from 120ms to 150ms to optimize biventricular pacing. Patient to return in 2 weeks for echo to assess hemodynamic changes.",
+		},
+		{
+			PatientID: p2.ID,
+			UserID:    demoUser.ID,
+			Content:   "Medication reconciliation completed. Added spironolactone 25mg daily per cardiology recommendation. Updated medication list in chart.",
+		},
+		// Notes for Patient 3 (Robert Johnson)
+		{
+			PatientID: p3.ID,
+			UserID:    admin.ID,
+			Content:   "New patient evaluation completed. History of ischemic cardiomyopathy with EF 30%. Recommended ICD implantation for primary prevention. Patient agrees to proceed.",
+		},
+		{
+			PatientID: p3.ID,
+			UserID:    demoUser.ID,
+			Content:   "Pre-procedure education session conducted. Reviewed device function, expectations, and post-implant restrictions. Patient questions answered. Consent forms signed.",
+		},
+		{
+			PatientID: p3.ID,
+			UserID:    admin.ID,
+			Content:   "ICD implant completed successfully. Single coil RV lead placed without complications. Device testing normal. Patient discharged home same day with standard post-op instructions.",
+		},
+	}
+
+	for _, note := range patientNotes {
+		if err := db.Create(&note).Error; err != nil {
 			return err
 		}
 	}
