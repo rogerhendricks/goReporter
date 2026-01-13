@@ -50,6 +50,7 @@ import { TaskList } from '@/components/tasks/TaskList'
 import { ConsentManager } from '@/components/ConsentManager'
 import { PatientAppointments } from '@/components/appointments/PatientAppointments'
 import { PatientNotes } from '@/components/notes/PatientNotes'
+import { PatientTimeline } from '@/components/timeline/PatientTimeline'
 import { taskTemplateService, type TaskTemplate } from '@/services/taskTemplateService'
 import { assignTemplateToPatients } from '@/utils/serialNumberMatcher'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -315,6 +316,7 @@ export default function PatientDetail() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -652,6 +654,10 @@ export default function PatientDetail() {
 
         <TabsContent value="notes">
           <PatientNotes patientId={currentPatient.id} />
+        </TabsContent>
+
+        <TabsContent value="timeline">
+          <PatientTimeline patientId={currentPatient.id} />
         </TabsContent>
       </Tabs>
     </div>
