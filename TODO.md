@@ -1,7 +1,5 @@
 ## TODO
 
-## Patient notes
-- ~~Create a note page for each patient that the user can make notes. Should have created date, deletable with whome deleted it and when, and should be in chronological order~~ **DONE**
 
 ## Fix arrhythmias
 - The backend and frontend is different.
@@ -19,6 +17,8 @@
 - Predictive Analytics: Implement ML models to predict device maintenance needs based on historical data
 - Export Options: Add PDF, Excel, and CSV exports for all analytics views
 
+#### Patient notes
+- **DONE** ~~Create a note page for each patient that the user can make notes. Should have created date, deletable with whome deleted it and when, and should be in chronological order~~ 
 #### Notification and Alert System
 ```
 // New service: frontend/src/services/notificationService.ts
