@@ -210,7 +210,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
                   <TableRow>
                     <TableCell
                       colSpan={result.columns.length + 1}
-                      className="text-center py-8 text-muted-foreground"
+                      className="text-left py-8 text-muted-foreground"
                     >
                       No results found
                     </TableCell>
@@ -218,11 +218,11 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
                 ) : (
                   currentRows.map((row, rowIndex) => (
                     <TableRow key={startIndex + rowIndex}>
-                      <TableCell className="font-medium text-muted-foreground">
+                      <TableCell className=" text-left font-medium text-muted-foreground">
                         {startIndex + rowIndex + 1}
                       </TableCell>
                       {row.map((cell, cellIndex) => (
-                        <TableCell key={cellIndex}>
+                        <TableCell className='text-left' key={cellIndex}>
                           {formatCellValue(cell, result.columns[cellIndex])}
                         </TableCell>
                       ))}
