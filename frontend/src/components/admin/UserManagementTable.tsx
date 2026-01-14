@@ -328,23 +328,6 @@ export function UserManagementTable() {
                 )}
             </CardContent>
         </Card>
-        <Card className="hover:shadow-lg transition-shadow mt-4">
-            <CardHeader>
-                <CardTitle>Password Requirements</CardTitle>
-                <CardDescription>
-                    Ensure passwords meet the following criteria for security:
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ul className="list-disc list-inside space-y-2 text-sm text-left">
-                    <li>At least 8 characters in length</li>
-                    <li>Includes both uppercase and lowercase letters</li>
-                    <li>Contains at least one numerical digit (0-9)</li>
-                    <li>Includes at least one special character (e.g., !@#$%^&*)</li>
-                    <li>Does not contain common words or easily guessable information</li>
-                </ul>
-            </CardContent>
-        </Card>
         </>
     );
 }
