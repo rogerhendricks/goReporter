@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: goreporter-postgres
+    environment:
+      POSTGRES_DB: goreporter
+      POSTGRES_USER: goreporter
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - goreporter-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goreporter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: goreporter-app
+    ports:
+      - "5000:5000"
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://goreporter:changeme@postgres:5432/goreporter?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-key-in-production}
+      PORT: 5000
+      DB_RESET: ${DB_RESET:-}
+      DB_SEED: ${DB_SEED:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - goreporter-network
+    volumes:
+      - ./logs:/home/appuser/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  goreporter-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
