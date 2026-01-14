@@ -147,7 +147,7 @@ export function usePdfFormFiller() {
           const suffix = index === 0 ? '' : `_${index + 1}`
           fillTextField(`lead_manufacturer${suffix}`, lead.lead?.manufacturer)
           fillTextField(`lead_name${suffix}`, lead.lead?.name)
-          fillTextField(`lead_model${suffix}`, lead.lead?.model)
+          fillTextField(`lead_model${suffix}`, lead.lead?.leadModel)
           fillTextField(`lead_serial${suffix}`, lead.serial)
           fillTextField(`lead_chamber${suffix}`, lead.chamber)
           fillTextField(`lead_status${suffix}`, lead.status)

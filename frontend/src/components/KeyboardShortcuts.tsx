@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog"
 import { 
   UserPlus, 
-  FilePlus, 
   CheckSquare, 
   Search, 
   Keyboard,

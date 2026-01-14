@@ -62,7 +62,7 @@ export function OverduePatientsCard() {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const getUrgencyBadge = (daysSinceReport: number | null, deviceType: string, reportType: string) => {
+  const getUrgencyBadge = (daysSinceReport: number | null, deviceType: string) => {
     if (daysSinceReport === null) {
       return <Badge variant="destructive">Never Reported</Badge>
     }
@@ -184,7 +184,7 @@ export function OverduePatientsCard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getUrgencyBadge(patient.daysSinceReport, patient.deviceType, patient.reportType)}
+                        {getUrgencyBadge(patient.daysSinceReport, patient.deviceType)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button asChild variant="outline" size="sm">
