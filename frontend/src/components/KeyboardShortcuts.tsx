@@ -83,21 +83,17 @@ export function KeyboardShortcuts() {
         e.preventDefault()
         setOpen((open) => !open)
       }
-      if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "P" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault()
         navigate("/patients/new")
       }
-      if (e.key === "r" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        navigate("/reports/new")
-      }
-      if (e.key === "t" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "T" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault()
         navigate("/tasks/new")
       }
       if (e.key === "?" && e.shiftKey) {
         e.preventDefault()
-        setOpen(true)
+        navigate("/knowledge-base")
       }
     }
 
@@ -243,24 +239,24 @@ export function KeyboardShortcuts() {
                   <CommandItem onSelect={() => runCommand(() => navigate("/patients/new"))}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     <span>New Patient</span>
-                    <CommandShortcut>⌘N</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem onSelect={() => runCommand(() => navigate("/reports/new"))}>
-                    <FilePlus className="mr-2 h-4 w-4" />
-                    <span>New Report</span>
-                    <CommandShortcut>⌘R</CommandShortcut>
+                    <CommandShortcut>⌘⇧P</CommandShortcut>
                   </CommandItem>
                   <CommandItem onSelect={() => runCommand(() => navigate("/tasks/new"))}>
                     <CheckSquare className="mr-2 h-4 w-4" />
                     <span>New Task</span>
-                    <CommandShortcut>⌘T</CommandShortcut>
+                    <CommandShortcut>⌘⇧T</CommandShortcut>
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
                 <CommandGroup heading="Help">
-                  <CommandItem onSelect={() => setOpen(true)}>
+                  {/* <CommandItem onSelect={() => setOpen(true)}>
                     <Keyboard className="mr-2 h-4 w-4" />
                     <span>Keyboard Shortcuts</span>
+                    <CommandShortcut>?</CommandShortcut>
+                  </CommandItem> */}
+                  <CommandItem onSelect={() => runCommand(() => navigate("/knowledge-base"))}>
+                    <Keyboard className="mr-2 h-4 w-4" />
+                    <span>Knowledge Base</span>
                     <CommandShortcut>?</CommandShortcut>
                   </CommandItem>
                 </CommandGroup>
