@@ -80,9 +80,24 @@ docker run -d \
   --name goreporter \
   -p 5000:5000 \
   -v $(pwd)/logs:/home/appuser/logs \
+  -v $(pwd)/uploads:/home/appuser/uploads \
   -e DATABASE_URL="postgresql://user:password@host:5432/dbname" \
   goreporter:prod
 ```
+
+### Run with All Persistent Storage (Recommended)
+```bash
+docker run -d \
+  --name goreporter \
+  -p 5000:5000 \
+  -v $(pwd)/logs:/home/appuser/logs \
+  -v $(pwd)/uploads:/home/appuser/uploads \
+  -e DATABASE_URL="postgresql://user:password@host:5432/dbname" \
+  --restart unless-stopped \
+  goreporter:prod
+```
+
+> **Important:** Always mount the `uploads/` directory as a volume to prevent data loss when containers are rebuilt or removed.
 
 ## Environment Variables
 
@@ -162,6 +177,37 @@ docker-compose up -d --build
 # Reset database (fresh start)
 docker-compose down -v
 docker-compose up -d
+```
+
+## Persistent Storage
+
+The application stores uploaded files in the `uploads/` directory. **This must be mounted as a volume** to prevent data loss.
+
+### What Gets Stored:
+- **Database Data**: PostgreSQL data (via `postgres_data` volume)
+- **Uploaded Files**: PDF reports in `uploads/reports/{patientId}/` (via `./uploads` volume)
+- **Application Logs**: Server logs in `logs/` (via `./logs` volume)
+
+### Directory Permissions:
+The production container runs as user `appuser` (UID 1000). Ensure host directories have correct permissions:
+
+```bash
+# Create directories with correct permissions
+mkdir -p uploads logs
+chown -R 1000:1000 uploads logs
+chmod 750 uploads logs
+```
+
+### Backup Strategy:
+```bash
+# Backup uploaded files
+tar -czf uploads-backup-$(date +%Y%m%d).tar.gz uploads/
+
+# Backup database
+docker-compose exec postgres pg_dump -U goreporter goreporter > backup-$(date +%Y%m%d).sql
+
+# Restore database
+docker-compose exec -T postgres psql -U goreporter goreporter < backup-20260114.sql
 ```
 
 ## Container Management

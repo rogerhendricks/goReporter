@@ -1,0 +1,55 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Environment files (sensitive)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+frontend/node_modules
+
+# Build outputs
+frontend/dist
+frontend/build
+bin/
+
+# Logs
+logs/
+*.log
+
+# Uploaded files (prevent including in image)
+uploads/
+
+# Development files
+*.db
+reporter.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README.md
+
+# Test files
+*_test.go
+test/
+coverage/
