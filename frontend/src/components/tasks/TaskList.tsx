@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Plus, Eye, Trash2, HelpCircle, X, Search, XCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Circle, Clock, User, Users, AlertCircle, Plus, Eye, Trash2, HelpCircle, X, Search, XCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { CardSkeleton } from '@/components/ui/loading-skeletons'
 import { 
@@ -38,7 +38,8 @@ import {
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
-import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+import { teamService, type Team } from '@/services/teamService'
+// import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { TaskForm } from '@/components/forms/TaskForm'
 
 interface TaskListProps {
@@ -85,6 +86,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [serialMatches, setSerialMatches] = useState<SerialNumberMatch[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const { patients, fetchPatients, searchPatients } = usePatientStore()
+  const [teams, setTeams] = useState<Team[]>([])
 
   // Load data when template dialog opens, not on mount
   useEffect(() => {
@@ -102,6 +104,22 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       loadData()
     }
   }, [isAdmin, openTemplateDialog])
+
+  // Load users and teams for admins
+  useEffect(() => {
+    if (isAdmin) {
+      const loadAssignmentData = async () => {
+        try {
+          await fetchUsers()
+          const teamsData = await teamService.getAllTeams()
+          setTeams(teamsData)
+        } catch (error) {
+          console.error('Failed to load users and teams:', error)
+        }
+      }
+      loadAssignmentData()
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -136,8 +154,20 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   //   }
   // }
 
-  const handleAssigneeChange = async (taskId: number, userId: number | null) => {
-    const success = await updateTask(taskId, { assignedToId: userId } as any)
+  const handleAssigneeChange = async (taskId: number, value: string) => {
+    let updateData: any = {}
+    
+    if (value === "unassigned") {
+      updateData = { assignedToId: null, assignedToTeamId: null }
+    } else if (value.startsWith('team-')) {
+      const teamId = parseInt(value.replace('team-', ''))
+      updateData = { assignedToTeamId: teamId, assignedToId: null }
+    } else {
+      const userId = parseInt(value)
+      updateData = { assignedToId: userId, assignedToTeamId: null }
+    }
+    
+    const success = await updateTask(taskId, updateData)
     if (success) toast.success('Assignee updated')
     else toast.error('Failed to update assignee')
   }
@@ -331,17 +361,18 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     onDeleteTask: handleDeleteTask,
     showPatient: !patientId,
     users,
+    teams,
     isAdmin
   }
 
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Tasks', href: '/tasks', current: true }
-  ]
+  // const breadcrumbItems = [
+  //   { label: 'Home', href: '/' },
+  //   { label: 'Tasks', href: '/tasks', current: true }
+  // ]
 
   return (
     <div className="container mx-auto">
-      <BreadcrumbNav items={breadcrumbItems} />
+      {/* <BreadcrumbNav items={breadcrumbItems} /> */}
       {/* Header with Filters */}
       {showFilters && (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -763,11 +794,12 @@ interface TaskTableProps {
   onStatusChange: (taskId: number, status: TaskStatus) => void
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
-  onAssigneeChange: (taskId: number, userId: number | null) => void
+  onAssigneeChange: (taskId: number, value: string) => void
   onViewTask: (taskId: number) => void
   onDeleteTask: (taskId: number) => void
   showPatient?: boolean
   users: any[]
+  teams: Team[]
   isAdmin: boolean
 }
 
@@ -781,6 +813,7 @@ function TaskTable({
   onDeleteTask,
   showPatient = true ,
   users,
+  teams,
   isAdmin
 }: TaskTableProps) {
   return (
@@ -810,6 +843,7 @@ function TaskTable({
               onDeleteTask={onDeleteTask}
               showPatient={showPatient}
               users={users}
+              teams={teams}
               isAdmin={isAdmin}
             />
           ))}
@@ -824,11 +858,12 @@ interface TaskRowProps {
   onStatusChange: (taskId: number, status: TaskStatus) => void
   onPriorityChange: (taskId: number, priority: TaskPriority) => void
   onDueDateChange: (taskId: number, date: Date | undefined) => void
-  onAssigneeChange: (taskId: number, userId: number | null) => void
+  onAssigneeChange: (taskId: number, value: string) => void
   onViewTask: (taskId: number) => void
   onDeleteTask: (taskId: number) => void
   showPatient?: boolean
   users: any[]
+  teams: Team[]
   isAdmin: boolean
 }
 
@@ -842,6 +877,7 @@ function TaskRow({
   onDeleteTask,
   showPatient = true,
   users,
+  teams,
   isAdmin 
 }: TaskRowProps) {
   const dueDateInfo = getDueDateInfo(task.dueDate)
@@ -1039,27 +1075,80 @@ function TaskRow({
       <TableCell className="text-left">
         {isAdmin ? (
           <Select
-            value={task.assignedToId?.toString() || "unassigned"}
-            onValueChange={(value) => onAssigneeChange(task.id, value === "unassigned" ? null : parseInt(value))}
+            value={
+              task.assignedToTeamId ? `team-${task.assignedToTeamId}` 
+              : task.assignedToId ? task.assignedToId.toString() 
+              : "unassigned"
+            }
+            onValueChange={(value) => onAssigneeChange(task.id, value)}
           >
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Unassigned" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="unassigned">Unassigned</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.ID} value={u.ID.toString()}>
-                  {u.fullName || u.username}
-                </SelectItem>
-              ))}
+              {teams.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Teams</div>
+                  {teams.map((team) => (
+                    <SelectItem key={`team-${team.id}`} value={`team-${team.id}`}>
+                      <div className="flex items-center gap-2">
+                        {team.color && (
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full" 
+                            style={{ backgroundColor: team.color }}
+                          />
+                        )}
+                        <span>{team.name}</span>
+                        <Badge variant="outline" className="text-xs ml-1">Team</Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+              {users.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Users</div>
+                  {users.map((u) => (
+                    <SelectItem key={u.ID} value={u.ID.toString()}>
+                      {u.fullName || u.username}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
             </SelectContent>
           </Select>
         ) : (
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">
-              {task.assignedTo ? (task.assignedTo.fullName || task.assignedTo.username) : 'Unassigned'}
-            </span>
+            {task.assignedToTeam ? (
+              <>
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1.5">
+                  {task.assignedToTeam.color && (
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full" 
+                      style={{ backgroundColor: task.assignedToTeam.color }}
+                    />
+                  )}
+                  <span className="text-sm font-medium">
+                    {task.assignedToTeam.name}
+                  </span>
+                  <Badge variant="outline" className="text-xs">Team</Badge>
+                </div>
+              </>
+            ) : task.assignedTo ? (
+              <>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {task.assignedTo.fullName || task.assignedTo.username}
+                </span>
+              </>
+            ) : (
+              <>
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Unassigned</span>
+              </>
+            )}
           </div>
         )}
       </TableCell>

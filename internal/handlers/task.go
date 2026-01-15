@@ -12,24 +12,26 @@ import (
 )
 
 type CreateTaskRequest struct {
-	Title        string     `json:"title" validate:"required"`
-	Description  string     `json:"description"`
-	Status       string     `json:"status"`
-	Priority     string     `json:"priority"`
-	DueDate      *time.Time `json:"dueDate"`
-	PatientID    *uint      `json:"patientId"`
-	AssignedToID *uint      `json:"assignedToId"`
-	TagIDs       []uint     `json:"tagIds"`
+	Title            string     `json:"title" validate:"required"`
+	Description      string     `json:"description"`
+	Status           string     `json:"status"`
+	Priority         string     `json:"priority"`
+	DueDate          *time.Time `json:"dueDate"`
+	PatientID        *uint      `json:"patientId"`
+	AssignedToID     *uint      `json:"assignedToId"`
+	AssignedToTeamID *uint      `json:"assignedToTeamId"`
+	TagIDs           []uint     `json:"tagIds"`
 }
 
 type UpdateTaskRequest struct {
-	Title        *string    `json:"title"`
-	Description  *string    `json:"description"`
-	Status       *string    `json:"status"`
-	Priority     *string    `json:"priority"`
-	DueDate      *time.Time `json:"dueDate"`
-	AssignedToID *uint      `json:"assignedToId"`
-	TagIDs       []uint     `json:"tagIds"`
+	Title            *string    `json:"title"`
+	Description      *string    `json:"description"`
+	Status           *string    `json:"status"`
+	Priority         *string    `json:"priority"`
+	DueDate          *time.Time `json:"dueDate"`
+	AssignedToID     *uint      `json:"assignedToId"`
+	AssignedToTeamID *uint      `json:"assignedToTeamId"`
+	TagIDs           []uint     `json:"tagIds"`
 }
 
 type AddTaskNoteRequest struct {
@@ -97,7 +99,7 @@ func GetTasks(c *fiber.Ctx) error {
 	}
 
 	var tasks []models.Task
-	query := config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy")
+	query := config.DB.Preload("Patient").Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy")
 
 	// Filters
 	if status := c.Query("status"); status != "" {
@@ -111,6 +113,9 @@ func GetTasks(c *fiber.Ctx) error {
 	}
 	if assignedTo := c.Query("assignedTo"); assignedTo != "" {
 		query = query.Where("assigned_to_id = ?", assignedTo)
+	}
+	if assignedToTeam := c.Query("assignedToTeam"); assignedToTeam != "" {
+		query = query.Where("assigned_to_team_id = ?", assignedToTeam)
 	}
 
 	// Due date filters
@@ -161,8 +166,14 @@ func GetTasks(c *fiber.Ctx) error {
 
 	// Role-based filtering
 	if userRole != "admin" && userRole != "doctor" {
-		// Regular users only see tasks assigned to them or created by them
-		query = query.Where("assigned_to_id = ? OR created_by_id = ?", userID, userID)
+		// Regular users see tasks assigned to them, created by them, or assigned to their teams
+		query = query.Where(
+			config.DB.Where("assigned_to_id = ?", userID).
+				Or("created_by_id = ?", userID).
+				Or("assigned_to_team_id IN (?)",
+					config.DB.Table("team_members").Select("team_id").Where("user_id = ?", userID),
+				),
+		)
 	}
 
 	if err := query.Order("due_date ASC NULLS LAST, priority DESC, created_at DESC").Find(&tasks).Error; err != nil {
@@ -212,7 +223,7 @@ func GetTask(c *fiber.Ctx) error {
 	}
 
 	var task models.Task
-	query := config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy")
+	query := config.DB.Preload("Patient").Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy")
 
 	if err := query.First(&task, id).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -222,12 +233,33 @@ func GetTask(c *fiber.Ctx) error {
 
 	// Check permissions
 	if userRole != "admin" && userRole != "doctor" {
-		if task.AssignedToID == nil || *task.AssignedToID != userID {
-			if task.CreatedByID != userID {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-					"error": "You don't have permission to view this task",
-				})
+		hasAccess := false
+
+		// Check if assigned to user
+		if task.AssignedToID != nil && *task.AssignedToID == userID {
+			hasAccess = true
+		}
+
+		// Check if created by user
+		if task.CreatedByID == userID {
+			hasAccess = true
+		}
+
+		// Check if user is member of assigned team
+		if task.AssignedToTeamID != nil {
+			var isMember int64
+			config.DB.Table("team_members").
+				Where("team_id = ? AND user_id = ?", *task.AssignedToTeamID, userID).
+				Count(&isMember)
+			if isMember > 0 {
+				hasAccess = true
 			}
+		}
+
+		if !hasAccess {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "You don't have permission to view this task",
+			})
 		}
 	}
 
@@ -272,23 +304,35 @@ func CreateTask(c *fiber.Ctx) error {
 
 	// For regular users, automatically assign the task to themselves if no assignee specified
 	assignedToID := req.AssignedToID
+	assignedToTeamID := req.AssignedToTeamID
+
 	if userRole != "admin" && userRole != "doctor" {
 		// Regular users can only assign to themselves
 		assignedToID = &userID
-	} else if assignedToID == nil {
-		// If admin/doctor doesn't specify an assignee, assign to themselves
-		assignedToID = &userID
+		assignedToTeamID = nil // Regular users cannot assign to teams
+	} else {
+		// Admins/doctors can assign to user or team, but not both
+		if assignedToID != nil && assignedToTeamID != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Task cannot be assigned to both a user and a team",
+			})
+		}
+		// If neither user nor team specified, assign to self
+		if assignedToID == nil && assignedToTeamID == nil {
+			assignedToID = &userID
+		}
 	}
 
 	task := models.Task{
-		Title:        req.Title,
-		Description:  req.Description,
-		Status:       models.TaskStatus(req.Status),
-		Priority:     models.TaskPriority(req.Priority),
-		DueDate:      req.DueDate,
-		PatientID:    req.PatientID,
-		AssignedToID: assignedToID,
-		CreatedByID:  userID,
+		Title:            req.Title,
+		Description:      req.Description,
+		Status:           models.TaskStatus(req.Status),
+		Priority:         models.TaskPriority(req.Priority),
+		DueDate:          req.DueDate,
+		PatientID:        req.PatientID,
+		AssignedToID:     assignedToID,
+		AssignedToTeamID: assignedToTeamID,
+		CreatedByID:      userID,
 	}
 
 	// Set defaults if not provided
@@ -313,7 +357,7 @@ func CreateTask(c *fiber.Ctx) error {
 	}
 
 	// Reload with associations
-	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
+	config.DB.Preload("Patient").Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").First(&task, task.ID)
 
 	// Trigger webhook for task creation
 	TriggerWebhook(models.EventTaskCreated, map[string]interface{}{
@@ -375,11 +419,22 @@ func UpdateTask(c *fiber.Ctx) error {
 
 	wasCompleted := task.Status == models.TaskStatusCompleted
 
-	// Check permissions - Allow admins, doctors, task creator, or assigned user
+	// Check permissions - Allow admins, doctors, task creator, or assigned user/team member
 	canUpdate := userRole == "admin" ||
 		userRole == "doctor" ||
 		task.CreatedByID == userID ||
 		(task.AssignedToID != nil && *task.AssignedToID == userID)
+
+	// Check if user is member of assigned team
+	if !canUpdate && task.AssignedToTeamID != nil {
+		var isMember int64
+		config.DB.Table("team_members").
+			Where("team_id = ? AND user_id = ?", *task.AssignedToTeamID, userID).
+			Count(&isMember)
+		if isMember > 0 {
+			canUpdate = true
+		}
+	}
 
 	if !canUpdate {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
@@ -415,8 +470,20 @@ func UpdateTask(c *fiber.Ctx) error {
 		task.DueDate = req.DueDate
 	}
 	// Only admins and doctors can reassign tasks
-	if req.AssignedToID != nil && (userRole == "admin" || userRole == "doctor") {
-		task.AssignedToID = req.AssignedToID
+	if userRole == "admin" || userRole == "doctor" {
+		if req.AssignedToID != nil && req.AssignedToTeamID != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Task cannot be assigned to both a user and a team",
+			})
+		}
+		if req.AssignedToID != nil {
+			task.AssignedToID = req.AssignedToID
+			task.AssignedToTeamID = nil // Clear team assignment
+		}
+		if req.AssignedToTeamID != nil {
+			task.AssignedToTeamID = req.AssignedToTeamID
+			task.AssignedToID = nil // Clear user assignment
+		}
 	}
 
 	if err := config.DB.Save(&task).Error; err != nil {
@@ -433,7 +500,7 @@ func UpdateTask(c *fiber.Ctx) error {
 	}
 
 	// Reload with associations
-	config.DB.Preload("Patient").Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").First(&task, task.ID)
+	config.DB.Preload("Patient").Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").First(&task, task.ID)
 
 	// Notify admins if task transitioned to completed.
 	if !wasCompleted && task.Status == models.TaskStatusCompleted {
@@ -705,7 +772,7 @@ func GetTasksByPatient(c *fiber.Ctx) error {
 
 	var tasks []models.Task
 	query := config.DB.Where("patient_id = ?", patientID).
-		Preload("AssignedTo").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").
+		Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").
 		Order("due_date ASC NULLS LAST, priority DESC, created_at DESC")
 
 	if err := query.Find(&tasks).Error; err != nil {

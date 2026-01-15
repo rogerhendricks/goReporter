@@ -6,6 +6,8 @@ import { usePatientStore } from '@/stores/patientStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
 import { tagService } from '@/services/tagService'
+import { teamService } from '@/services/teamService'
+import type { Team } from '@/services/teamService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, X, Plus, User } from 'lucide-react'
+import { CalendarIcon, X, Plus, User, Users } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -28,6 +30,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { useFormShortcuts } from '@/hooks/useFormShortcuts'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 
 interface TaskFormProps {
@@ -43,6 +46,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const { users, fetchUsers } = useUserStore()
   const { user } = useAuthStore()
   const [availableTags, setAvailableTags] = useState<any[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
+  const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
   // const [users, setUsers] = useState<any[]>([])
   const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
 
@@ -54,6 +59,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     dueDate: undefined,
     patientId: patientId,
     assignedToId: isAdminOrDoctor ? undefined : Number(user?.ID),
+    assignedToTeamId: undefined,
     tagIds: []
   })
 
@@ -71,6 +77,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
 
         if (isAdminOrDoctor) {
           await fetchUsers()
+          const teamsData = await teamService.getAllTeams()
+          setTeams(teamsData)
         }
       } catch (error) {
         console.error('Failed to load form data:', error)
@@ -253,26 +261,77 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
           {/* Assign To - Only show for admin/doctor */}
           {isAdminOrDoctor && (
             <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assign To</Label>
-              <Select
-                value={formData.assignedToId?.toString() || "self"}
-                onValueChange={(value) => setFormData({ 
-                  ...formData, 
-                  assignedToId: value === "self" ? Number(user?.ID) : parseInt(value) 
-                })}
-              >
-                <SelectTrigger id="assignedTo">
-                  <SelectValue placeholder="Assign to yourself" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="self">Assign to myself</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.ID} value={u.ID.toString()}>
-                      {u.fullName || u.username} ({u.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Assign To</Label>
+              <Tabs value={assignmentType} onValueChange={(v) => {
+                setAssignmentType(v as 'user' | 'team')
+                if (v === 'user') {
+                  setFormData({ ...formData, assignedToTeamId: undefined })
+                } else {
+                  setFormData({ ...formData, assignedToId: undefined })
+                }
+              }}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="user">
+                    <User className="h-4 w-4 mr-2" />
+                    User
+                  </TabsTrigger>
+                  <TabsTrigger value="team">
+                    <Users className="h-4 w-4 mr-2" />
+                    Team
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="user" className="mt-2">
+                  <Select
+                    value={formData.assignedToId?.toString() || "self"}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      assignedToId: value === "self" ? Number(user?.ID) : parseInt(value),
+                      assignedToTeamId: undefined
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign to yourself" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">Assign to myself</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.ID} value={u.ID.toString()}>
+                          {u.fullName || u.username} ({u.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TabsContent>
+                <TabsContent value="team" className="mt-2">
+                  <Select
+                    value={formData.assignedToTeamId?.toString() || ""}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      assignedToTeamId: value ? parseInt(value) : undefined,
+                      assignedToId: undefined
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            {team.color && (
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: team.color }}
+                              />
+                            )}
+                            {team.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 

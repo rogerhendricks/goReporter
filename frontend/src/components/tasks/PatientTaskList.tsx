@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, CheckCircle2, Circle, Clock, User, AlertCircle, Eye, Trash2, HelpCircle } from 'lucide-react'
+import { Calendar, CheckCircle2, Circle, Clock, User, Users, AlertCircle, Eye, Trash2, HelpCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -297,12 +297,13 @@ function TaskTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[30%]">Task</TableHead>
-            <TableHead className="w-[15%]">Priority</TableHead>
-            <TableHead className="w-[15%]">Status</TableHead>
+            <TableHead className="w-[25%]">Task</TableHead>
+            <TableHead className="w-[12%]">Priority</TableHead>
+            <TableHead className="w-[12%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>
-            {showPatient && <TableHead className="w-[15%]">Patient</TableHead>}
-            <TableHead className="w-[10%]">Actions</TableHead>
+            <TableHead className="w-[15%]">Assigned to</TableHead>
+            {showPatient && <TableHead className="w-[12%]">Patient</TableHead>}
+            <TableHead className="w-[9%]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -516,6 +517,49 @@ function TaskRow({
             )}
           </PopoverContent>
         </Popover>
+      </TableCell>
+
+      {/* Assigned To */}
+      <TableCell>
+        {task.assignedToTeam ? (
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1.5">
+              {task.assignedToTeam.color && (
+                <div 
+                  className="w-2.5 h-2.5 rounded-full" 
+                  style={{ backgroundColor: task.assignedToTeam.color }}
+                />
+              )}
+              <span className="text-sm font-medium">
+                {task.assignedToTeam.name}
+              </span>
+              <Badge variant="outline" className="text-xs">Team</Badge>
+            </div>
+          </div>
+        ) : task.assignedTo ? (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {task.assignedTo.fullName || task.assignedTo.username}
+            </span>
+          </div>
+        ) : task.assignedToTeamId ? (
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Team (ID: {task.assignedToTeamId})</span>
+          </div>
+        ) : task.assignedToId ? (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">User (ID: {task.assignedToId})</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Unassigned</span>
+          </div>
+        )}
       </TableCell>
 
       {/* Patient */}

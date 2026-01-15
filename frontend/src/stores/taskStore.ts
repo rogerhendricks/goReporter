@@ -45,6 +45,12 @@ export interface Task {
     username: string
     fullName: string
   }
+  assignedToTeamId?: number
+  assignedToTeam?: {
+    id: number
+    name: string
+    color?: string
+  }
   createdById: number
   createdBy: {
     id: number
@@ -71,6 +77,7 @@ export interface CreateTaskData {
   dueDate?: Date
   patientId?: number
   assignedToId?: number
+  assignedToTeamId?: number
   tagIds?: number[]
 }
 
@@ -81,6 +88,7 @@ export interface UpdateTaskData {
   priority?: TaskPriority
   dueDate?: Date
   assignedToId?: number
+  assignedToTeamId?: number
   tagIds?: number[]
 }
 

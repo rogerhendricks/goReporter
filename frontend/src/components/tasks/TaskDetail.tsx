@@ -11,12 +11,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Calendar as CalendarIcon, User, Clock, Edit2, Trash2, Save, X, MessageSquare, Edit, Check } from 'lucide-react'
+import { Calendar as CalendarIcon, User, Users, Clock, Edit2, Trash2, Save, X, MessageSquare, Edit, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { useAuthStore } from '@/stores/authStore'
 import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
+import { teamService } from '@/services/teamService'
+import type { Team } from '@/services/teamService'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function TaskDetail() {
   const { id } = useParams<{ id: string }>()
@@ -24,6 +27,8 @@ export function TaskDetail() {
   const { currentTask, fetchTask, updateTask, deleteTask, addNote, updateNote, deleteNote, isLoading } = useTaskStore()
   const { users, fetchUsers } = useUserStore()
   const { user } = useAuthStore()
+  const [teams, setTeams] = useState<Team[]>([])
+  const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<UpdateTaskData>({})
   const [newNote, setNewNote] = useState('')
@@ -33,11 +38,19 @@ export function TaskDetail() {
   const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
 
   useEffect(() => {
-    if (id) {
-      fetchTask(parseInt(id))
-      fetchUsers()
+    const loadData = async () => {
+      if (id) {
+        fetchTask(parseInt(id))
+        fetchUsers()
+        
+        if (isAdminOrDoctor) {
+          const teamsData = await teamService.getAllTeams()
+          setTeams(teamsData)
+        }
+      }
     }
-  }, [id, fetchTask, fetchUsers])
+    loadData()
+  }, [id, fetchTask, fetchUsers, isAdminOrDoctor])
 
   useEffect(() => {
     if (currentTask && !isEditing) {
@@ -47,7 +60,14 @@ export function TaskDetail() {
         status: currentTask.status,
         priority: currentTask.priority,
         assignedToId: currentTask.assignedToId,
+        assignedToTeamId: currentTask.assignedToTeamId,
       })
+      // Set assignment type based on current task
+      if (currentTask.assignedToTeamId) {
+        setAssignmentType('team')
+      } else {
+        setAssignmentType('user')
+      }
     }
   }, [currentTask, isEditing])
 
@@ -239,25 +259,77 @@ export function TaskDetail() {
                   {isAdminOrDoctor && (
                     <div className="space-y-2">
                       <Label>Assign To</Label>
-                      <Select
-                        value={editData.assignedToId?.toString() || "unassigned"}
-                        onValueChange={(value) => setEditData({
-                          ...editData,
-                          assignedToId: value === "unassigned" ? undefined : parseInt(value)
-                        })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Unassigned" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {users.map((u) => (
-                            <SelectItem key={u.ID} value={u.ID.toString()}>
-                              {u.fullName || u.username}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Tabs value={assignmentType} onValueChange={(v) => {
+                        setAssignmentType(v as 'user' | 'team')
+                        if (v === 'user') {
+                          setEditData({ ...editData, assignedToTeamId: undefined })
+                        } else {
+                          setEditData({ ...editData, assignedToId: undefined })
+                        }
+                      }}>
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="user">
+                            <User className="h-4 w-4 mr-2" />
+                            User
+                          </TabsTrigger>
+                          <TabsTrigger value="team">
+                            <Users className="h-4 w-4 mr-2" />
+                            Team
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="user" className="mt-2">
+                          <Select
+                            value={editData.assignedToId?.toString() || "unassigned"}
+                            onValueChange={(value) => setEditData({
+                              ...editData,
+                              assignedToId: value === "unassigned" ? undefined : parseInt(value),
+                              assignedToTeamId: undefined
+                            })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Unassigned" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              {users.map((u) => (
+                                <SelectItem key={u.ID} value={u.ID.toString()}>
+                                  {u.fullName || u.username}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TabsContent>
+                        <TabsContent value="team" className="mt-2">
+                          <Select
+                            value={editData.assignedToTeamId?.toString() || "unassigned"}
+                            onValueChange={(value) => setEditData({
+                              ...editData,
+                              assignedToTeamId: value === "unassigned" ? undefined : parseInt(value),
+                              assignedToId: undefined
+                            })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a team" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              {teams.map((team) => (
+                                <SelectItem key={team.id} value={team.id.toString()}>
+                                  <div className="flex items-center gap-2">
+                                    {team.color && (
+                                      <div 
+                                        className="w-3 h-3 rounded-full" 
+                                        style={{ backgroundColor: team.color }}
+                                      />
+                                    )}
+                                    {team.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TabsContent>
+                      </Tabs>
                     </div>
                   )}
                 </>
@@ -437,15 +509,38 @@ export function TaskDetail() {
                 </div>
               )}
 
-              {currentTask.assignedTo && (
+              {(currentTask.assignedTo || currentTask.assignedToTeam) && (
                 <div className="flex items-start gap-2">
-                  <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Assigned</p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentTask.assignedTo.username}
-                    </p>
-                  </div>
+                  {currentTask.assignedToTeam ? (
+                    <>
+                      <Users className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Assigned to Team</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {currentTask.assignedToTeam.color && (
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: currentTask.assignedToTeam.color }}
+                            />
+                          )}
+                          <p className="text-sm text-muted-foreground font-medium">
+                            {currentTask.assignedToTeam.name}
+                          </p>
+                          <Badge variant="outline" className="text-xs ml-1">Team</Badge>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Assigned to User</p>
+                        <p className="text-sm text-muted-foreground">
+                          {currentTask.assignedTo?.username}
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
