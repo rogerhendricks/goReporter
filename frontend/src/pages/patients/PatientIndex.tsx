@@ -34,6 +34,7 @@ export default function PatientIndex() {
   console.log("role:", role, "isAdmin:", isAdmin, "isUser:", isUser)
   const { 
     patients, 
+    searchResults,
     loading, 
     error, 
     fetchPatients, 
@@ -54,6 +55,9 @@ export default function PatientIndex() {
       await fetchPatients()
     }
   }
+
+  // Use searchResults if there's a search query, otherwise use patients
+  const displayPatients = searchQuery.trim() ? searchResults : patients
 
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete patient ${name}?`)) {
@@ -114,12 +118,12 @@ export default function PatientIndex() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Patients ({patients.length})</CardTitle>
+          <CardTitle>All Patients ({displayPatients.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <TableSkeleton rows={10} columns={7} />
-          ) : patients.length === 0 ? (
+          ) : displayPatients.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No patients found
             </div>
@@ -137,7 +141,7 @@ export default function PatientIndex() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patients.map((patient) => (
+                {displayPatients.map((patient) => (
                   <TableRow key={patient.id}>
                     <TableCell className="font-medium text-left">{patient.mrn}</TableCell>
                     <TableCell className="text-left">
