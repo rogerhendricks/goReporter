@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlayCircle, Save } from 'lucide-react';
+import { PlayCircle, Save, FolderOpen, Trash2, Calendar } from 'lucide-react';
 import { FieldSelector } from './FieldSelector';
 import { FilterBuilder } from './FilterBuilder';
 import { ReportPreview } from './ReportPreview';
@@ -25,8 +25,11 @@ export const ReportBuilder: React.FC = () => {
     setReportDefinition,
     availableFields,
     patientTags,
+    savedReports,
     executeReport,
     saveReport,
+    loadReport,
+    deleteReport,
     loading,
   } = useReportBuilder();
 
@@ -77,11 +80,35 @@ export const ReportBuilder: React.FC = () => {
   };
 
   const handleSaveReport = async () => {
+    if (!reportDefinition.name.trim()) {
+      toast.error('Please enter a report name before saving');
+      return;
+    }
     try {
       await saveReport(reportDefinition);
       toast.success('Report saved successfully');
     } catch (error) {
       toast.error('Failed to save report');
+    }
+  };
+
+  const handleLoadReport = async (reportId: string) => {
+    try {
+      await loadReport(reportId);
+      toast.success('Report loaded successfully');
+    } catch (error) {
+      toast.error('Failed to load report');
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string, reportName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${reportName}"?`)) {
+      try {
+        await deleteReport(reportId);
+        toast.success('Report deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete report');
+      }
     }
   };
 
@@ -167,8 +194,9 @@ export const ReportBuilder: React.FC = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="design">Design</TabsTrigger>
+          <TabsTrigger value="saved">Saved Reports ({savedReports.length})</TabsTrigger>
           <TabsTrigger value="preview" disabled={!reportResult}>
             Preview
           </TabsTrigger>
@@ -245,6 +273,68 @@ export const ReportBuilder: React.FC = () => {
               />
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="saved">
+          <Card>
+            <CardHeader>
+              <CardTitle>Saved Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {savedReports.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No saved reports yet</p>
+                  <p className="text-sm mt-2">Create and save reports to access them here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{report.name}</h3>
+                        {report.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {report.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(report.createdAt!).toLocaleDateString()}
+                          </span>
+                          <span>{report.selectedFields.length} fields</span>
+                          <span>{report.filters.length} filters</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLoadReport(report.id!)}
+                          disabled={loading}
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Load
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteReport(report.id!, report.name)}
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="preview">

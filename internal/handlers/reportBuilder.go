@@ -347,8 +347,14 @@ func (h *ReportBuilderHandler) SaveReport(c *fiber.Ctx) error {
 	}
 
 	// Get user from context
-	userID := c.Locals("userID").(uint)
-	report.CreatedBy = userID
+	userIDStr := c.Locals("userID").(string)
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+	report.CreatedBy = uint(userID)
 
 	if err := h.DB.Create(&report).Error; err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -361,10 +367,16 @@ func (h *ReportBuilderHandler) SaveReport(c *fiber.Ctx) error {
 
 // GetSavedReports returns all saved reports for the user
 func (h *ReportBuilderHandler) GetSavedReports(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(uint)
+	userIDStr := c.Locals("userID").(string)
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
 	var reports []models.CustomReport
-	if err := h.DB.Where("created_by = ?", userID).
+	if err := h.DB.Where("created_by = ?", uint(userID)).
 		Or("is_template = ?", true).
 		Order("created_at DESC").
 		Find(&reports).Error; err != nil {
@@ -385,7 +397,13 @@ func (h *ReportBuilderHandler) GetReportById(c *fiber.Ctx) error {
 		})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userIDStr := c.Locals("userID").(string)
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
 	var report models.CustomReport
 	if err := h.DB.Where("id = ? AND (created_by = ? OR is_template = ?)", reportID, userID, true).
@@ -412,11 +430,17 @@ func (h *ReportBuilderHandler) UpdateReport(c *fiber.Ctx) error {
 		})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userIDStr := c.Locals("userID").(string)
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
 	// Check if report exists and belongs to user
 	var existingReport models.CustomReport
-	if err := h.DB.Where("id = ? AND created_by = ?", reportID, userID).
+	if err := h.DB.Where("id = ? AND created_by = ?", reportID, uint(userID)).
 		First(&existingReport).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.Status(http.StatusNotFound).JSON(fiber.Map{
@@ -460,9 +484,15 @@ func (h *ReportBuilderHandler) DeleteReport(c *fiber.Ctx) error {
 		})
 	}
 
-	userID := c.Locals("userID").(uint)
+	userIDStr := c.Locals("userID").(string)
+	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
 
-	result := h.DB.Where("id = ? AND created_by = ?", reportID, userID).
+	result := h.DB.Where("id = ? AND created_by = ?", reportID, uint(userID)).
 		Delete(&models.CustomReport{})
 
 	if result.Error != nil {
