@@ -11,7 +11,7 @@ type Lead struct {
 	gorm.Model
 	Name         string          `json:"name" gorm:"type:varchar(255);not null"`
 	Manufacturer string          `json:"manufacturer" gorm:"type:varchar(255)"`
-	LeadModel    string          `json:"model" gorm:"type:varchar(50)"`
+	LeadModel    string          `json:"leadModel" gorm:"type:varchar(50)"`
 	IsMri        bool            `json:"isMri" gorm:"default:false"`
 	Connector    string          `json:"connector" gorm:"type:varchar(50)"`
 	Polarity     string          `json:"polarity" gorm:"type:varchar(100)"`
