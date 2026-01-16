@@ -307,7 +307,7 @@ docker-compose exec -T postgres psql -U goreporter goreporter < backup-20260114.
 psql -U goreporter -h localhost goreporter < backup-20260114.sql
 ```
 
----
+---```
 
 ## Container Management
 
