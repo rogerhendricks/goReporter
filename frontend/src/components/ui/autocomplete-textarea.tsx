@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useAutocomplete } from '@/hooks/useAutocomplete'
@@ -28,6 +28,11 @@ export function AutocompleteTextarea({
     reset,
     // setShowSuggestions
   } = useAutocomplete({ suggestions, minChars: 2, maxSuggestions: 5 })
+
+  // Sync internal state with external value prop
+  useEffect(() => {
+    setInputValue(String(value || ''))
+  }, [value])
 
   // Get the current word being typed
   const getCurrentWord = (text: string, position: number) => {

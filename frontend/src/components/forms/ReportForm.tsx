@@ -874,10 +874,11 @@ export function ReportForm({ patient }: ReportFormProps) {
 
   useEffect(() => {
     if (isEdit && currentReport) {
-      // Ensure date fields are converted to Date objects
+      // Ensure date fields are converted to Date objects and null values to appropriate defaults
       const reportWithDateObjects = {
         ...currentReport,
         reportDate: currentReport.reportDate ? new Date(currentReport.reportDate) : new Date(),
+        comments: currentReport.comments || '', // Convert null to empty string
       };
       setFormData(reportWithDateObjects)
     }
