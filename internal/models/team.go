@@ -10,7 +10,7 @@ import (
 // Team represents a group of users working together
 type Team struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
-	Name        string         `gorm:"not null;uniqueIndex" json:"name"`
+	Name        string         `gorm:"not null;uniqueIndex:idx_teams_name_deleted" json:"name"`
 	Description *string        `json:"description"`
 	Color       *string        `json:"color"`     // For UI differentiation
 	ManagerID   *uint          `json:"managerId"` // Optional team manager
@@ -18,7 +18,7 @@ type Team struct {
 	Members     []User         `gorm:"many2many:team_members;" json:"members"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt   gorm.DeletedAt `gorm:"uniqueIndex:idx_teams_name_deleted;index" json:"-"`
 }
 
 // GetAllTeams retrieves all teams with their members
