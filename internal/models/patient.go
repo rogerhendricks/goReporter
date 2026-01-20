@@ -599,6 +599,23 @@ func SaveSearchFilter(filter *SavedSearchFilter) error {
 			Where("user_id = ? AND id != ?", filter.UserID, filter.ID).
 			Update("is_default", false)
 	}
+
+	// Check if user has reached the limit of 4 saved filters
+	var count int64
+	config.DB.Model(&SavedSearchFilter{}).Where("user_id = ?", filter.UserID).Count(&count)
+
+	if count >= 4 {
+		// Delete the oldest filter (excluding the one being updated if it exists)
+		var oldestFilter SavedSearchFilter
+		err := config.DB.Where("user_id = ? AND id != ?", filter.UserID, filter.ID).
+			Order("created_at ASC").
+			First(&oldestFilter).Error
+
+		if err == nil {
+			config.DB.Delete(&oldestFilter)
+		}
+	}
+
 	return config.DB.Save(filter).Error
 }
 
@@ -619,6 +636,22 @@ func DeleteSavedSearchFilter(id uint, userID string) error {
 
 // AddSearchHistory records a search query
 func AddSearchHistory(history *SearchHistory) error {
+	// Check if user has reached the limit of 6 search histories
+	var count int64
+	config.DB.Model(&SearchHistory{}).Where("user_id = ?", history.UserID).Count(&count)
+
+	if count >= 6 {
+		// Delete the oldest history entry
+		var oldestHistory SearchHistory
+		err := config.DB.Where("user_id = ?", history.UserID).
+			Order("created_at ASC").
+			First(&oldestHistory).Error
+
+		if err == nil {
+			config.DB.Delete(&oldestHistory)
+		}
+	}
+
 	return config.DB.Create(history).Error
 }
 
