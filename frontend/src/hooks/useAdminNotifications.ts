@@ -67,6 +67,13 @@ export function useAdminNotifications() {
         try {
           const payload = JSON.parse(evt.data) as AdminNotificationEvent
           if (!payload?.title) return
+          
+          // Skip notifications for actions performed by the current user
+          if (payload.completedBy && user?.username && payload.completedBy === user.username) {
+            console.log('[AdminNotifications] Skipping self-notification')
+            return
+          }
+          
           toast(payload.title, { description: payload.message })
         } catch (err) {
           console.error('[AdminNotifications] Failed to parse message:', err)

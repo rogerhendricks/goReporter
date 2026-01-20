@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTaskStore } from '@/stores/taskStore'
 import { useUserStore } from '@/stores/userStore'
+import { useTeamStore } from '@/stores/teamStore'
 import type { UpdateTaskData } from '@/stores/taskStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,8 +18,6 @@ import { toast } from 'sonner'
 import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { useAuthStore } from '@/stores/authStore'
 import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
-import { teamService } from '@/services/teamService'
-import type { Team } from '@/services/teamService'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function TaskDetail() {
@@ -26,8 +25,8 @@ export function TaskDetail() {
   const navigate = useNavigate()
   const { currentTask, fetchTask, updateTask, deleteTask, addNote, updateNote, deleteNote, isLoading } = useTaskStore()
   const { users, fetchUsers } = useUserStore()
+  const { teams, fetchTeams } = useTeamStore()
   const { user } = useAuthStore()
-  const [teams, setTeams] = useState<Team[]>([])
   const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState<UpdateTaskData>({})
