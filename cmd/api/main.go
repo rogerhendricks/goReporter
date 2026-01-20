@@ -42,7 +42,7 @@ func main() {
 	// Load config from .env file for port address
 	cfg := config.LoadConfig()
 	log.Printf("Config loaded - Port: %s", cfg.Port)
-	
+
 	// Initialize the database connection
 	config.ConnectDatabase()
 
@@ -106,7 +106,7 @@ func main() {
 
 	// Set up middleware (if any)
 	app.Use(limiter.New(limiter.Config{
-		Max:        100,
+		Max:        500, // Increased from 100 to handle multiple parallel requests
 		Expiration: 1 * time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.IP()

@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import api from '@/utils/axios'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useTeamStore } from '@/stores/teamStore'
 
 interface User {
   ID: number
@@ -23,6 +24,7 @@ interface User {
 }
 
 export function TeamManagement() {
+  const { teams: storeTeams, fetchTeams: fetchTeamsFromStore } = useTeamStore()
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +51,8 @@ export function TeamManagement() {
         api.get<User[]>('/users').then(res => res.data)
       ])
       setTeams(teamsData)
+      // Also update the store so other components can use it
+      fetchTeamsFromStore()
       setUsers(usersData)
     } catch (error) {
       toast.error('Failed to load teams')

@@ -38,7 +38,8 @@ import {
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
-import { teamService, type Team } from '@/services/teamService'
+import { useTeamStore } from '@/stores/teamStore'
+import type { Team } from '@/services/teamService'
 // import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
 import { TaskForm } from '@/components/forms/TaskForm'
 
@@ -68,6 +69,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
   const { users, fetchUsers } = useUserStore()
+  const { teams, fetchTeams } = useTeamStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
   const [dueDateFilter, setDueDateFilter] = useState<DueDateFilter>('all')
@@ -86,7 +88,6 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [serialMatches, setSerialMatches] = useState<SerialNumberMatch[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const { patients, fetchPatients, searchPatients } = usePatientStore()
-  const [teams, setTeams] = useState<Team[]>([])
 
   // Load data when template dialog opens, not on mount
   useEffect(() => {
@@ -111,8 +112,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       const loadAssignmentData = async () => {
         try {
           await fetchUsers()
-          const teamsData = await teamService.getAllTeams()
-          setTeams(teamsData)
+          fetchTeams()
         } catch (error) {
           console.error('Failed to load users and teams:', error)
         }

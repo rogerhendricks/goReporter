@@ -44,13 +44,12 @@ export function TaskDetail() {
         fetchUsers()
         
         if (isAdminOrDoctor) {
-          const teamsData = await teamService.getAllTeams()
-          setTeams(teamsData)
+          fetchTeams()
         }
       }
     }
     loadData()
-  }, [id, fetchTask, fetchUsers, isAdminOrDoctor])
+  }, [id, fetchTask, fetchUsers, fetchTeams, isAdminOrDoctor])
 
   useEffect(() => {
     if (currentTask && !isEditing) {

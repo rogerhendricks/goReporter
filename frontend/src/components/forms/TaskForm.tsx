@@ -5,8 +5,8 @@ import type { CreateTaskData, TaskStatus, TaskPriority } from '@/stores/taskStor
 import { usePatientStore } from '@/stores/patientStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useUserStore } from '@/stores/userStore'
+import { useTeamStore } from '@/stores/teamStore'
 import { tagService } from '@/services/tagService'
-import { teamService } from '@/services/teamService'
 import type { Team } from '@/services/teamService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,11 +44,10 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const { createTask, isLoading } = useTaskStore()
   const { patients, fetchPatients, searchPatients } = usePatientStore()
   const { users, fetchUsers } = useUserStore()
+  const { teams, fetchTeams } = useTeamStore()
   const { user } = useAuthStore()
   const [availableTags, setAvailableTags] = useState<any[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
   const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
-  // const [users, setUsers] = useState<any[]>([])
   const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
 
   const [formData, setFormData] = useState<CreateTaskData>({
@@ -77,8 +76,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
 
         if (isAdminOrDoctor) {
           await fetchUsers()
-          const teamsData = await teamService.getAllTeams()
-          setTeams(teamsData)
+          fetchTeams()
         }
       } catch (error) {
         console.error('Failed to load form data:', error)
@@ -95,7 +93,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         setSelectedPatient(patient)
       }
     }
-  }, [patientId, patients.length, fetchPatients, isAdminOrDoctor, fetchUsers])
+  }, [patientId, patients.length, fetchPatients, isAdminOrDoctor, fetchUsers, fetchTeams])
 
   const handlePatientSearch = async (query: string) => {
     setPatientSearch(query)
