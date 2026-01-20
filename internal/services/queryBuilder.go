@@ -14,11 +14,13 @@ type QueryBuilder struct {
 func NewQueryBuilder() *QueryBuilder {
 	return &QueryBuilder{
 		allowedTables: map[string][]string{
-			"patients": {"id", "first_name", "last_name", "date_of_birth", "mrn", "tags", "created_at", "updated_at"},
-			"devices":  {"id", "name", "manufacturer", "dev_model", "is_mri", "type", "created_at", "updated_at"},
-			"reports":  {"id", "patient_id", "report_date", "report_type", "report_status", "current_heart_rate", "current_rhythm", "created_at", "updated_at"},
-			"tasks":    {"id", "patient_id", "title", "description", "due_date", "status", "priority", "created_at", "updated_at"},
-			"tags":     {"id", "name", "type", "color", "description", "created_at", "updated_at"},
+			"patients":          {"id", "first_name", "last_name", "date_of_birth", "mrn", "tags", "created_at", "updated_at"},
+			"devices":           {"id", "name", "manufacturer", "dev_model", "is_mri", "type", "created_at", "updated_at"},
+			"reports":           {"id", "patient_id", "report_date", "report_type", "report_status", "current_heart_rate", "current_rhythm", "created_at", "updated_at"},
+			"tasks":             {"id", "patient_id", "title", "description", "due_date", "status", "priority", "created_at", "updated_at"},
+			"tags":              {"id", "name", "type", "color", "description", "created_at", "updated_at"},
+			"implanted_devices": {"id", "patient_id", "device_id", "serial", "implanted_at", "explanted_at", "status", "created_at", "updated_at"},
+			"implanted_leads":   {"id", "patient_id", "lead_id", "serial", "chamber", "implanted_at", "explanted_at", "status", "created_at", "updated_at"},
 		},
 	}
 }
@@ -107,7 +109,7 @@ func (qb *QueryBuilder) BuildQuery(definition models.ReportDef) (string, []inter
 }
 
 func (qb *QueryBuilder) buildWhereClause(filters []models.FilterCondition, argIndex *int) (string, []interface{}, error) {
-	var clauses []string
+	var parts []string
 	var args []interface{}
 
 	for i, filter := range filters {
@@ -116,14 +118,19 @@ func (qb *QueryBuilder) buildWhereClause(filters []models.FilterCondition, argIn
 			return "", nil, err
 		}
 
-		if i > 0 && filter.LogicalOperator != "" {
-			clauses = append(clauses, filter.LogicalOperator)
+		if i > 0 {
+			// Use the logical operator from the current filter, default to AND
+			operator := "AND"
+			if filter.LogicalOperator != "" {
+				operator = filter.LogicalOperator
+			}
+			parts = append(parts, operator)
 		}
-		clauses = append(clauses, clause)
+		parts = append(parts, clause)
 		args = append(args, filterArgs...)
 	}
 
-	return strings.Join(clauses, " "), args, nil
+	return strings.Join(parts, " "), args, nil
 }
 
 func (qb *QueryBuilder) buildFilterClause(filter models.FilterCondition, argIndex *int) (string, []interface{}, error) {
@@ -248,11 +255,22 @@ func (qb *QueryBuilder) determineJoins(fields []models.ReportField, primaryTable
 
 	var joins []string
 
-	// Handle devices - requires joining through implanted_devices
-	if primaryTable != "devices" && tables["devices"] {
-		if primaryTable == "patients" {
+	// Handle devices and/or implanted_devices - both require joining through implanted_devices
+	if primaryTable == "patients" && (tables["devices"] || tables["implanted_devices"]) {
+		// Add implanted_devices join if needed
+		if tables["devices"] || tables["implanted_devices"] {
 			joins = append(joins, "LEFT JOIN implanted_devices ON patients.id = implanted_devices.patient_id")
+		}
+		// Add devices join only if devices table is referenced
+		if tables["devices"] {
 			joins = append(joins, "LEFT JOIN devices ON implanted_devices.device_id = devices.id")
+		}
+	}
+
+	// Handle implanted_leads table
+	if primaryTable != "implanted_leads" && tables["implanted_leads"] {
+		if primaryTable == "patients" {
+			joins = append(joins, "LEFT JOIN implanted_leads ON patients.id = implanted_leads.patient_id")
 		}
 	}
 

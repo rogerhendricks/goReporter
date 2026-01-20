@@ -50,6 +50,21 @@ func (h *ReportBuilderHandler) GetAvailableFields(c *fiber.Ctx) error {
 		{ID: "devices.type", Name: "type", Label: "Type", Type: "string", Table: "devices"},
 		{ID: "devices.is_mri", Name: "is_mri", Label: "MRI Compatible", Type: "boolean", Table: "devices"},
 
+		// Implanted Device fields
+		{ID: "implanted_devices.id", Name: "id", Label: "Implant ID", Type: "number", Table: "implanted_devices"},
+		{ID: "implanted_devices.serial", Name: "serial", Label: "Serial Number", Type: "string", Table: "implanted_devices"},
+		{ID: "implanted_devices.implanted_at", Name: "implanted_at", Label: "Implanted Date", Type: "date", Table: "implanted_devices"},
+		{ID: "implanted_devices.explanted_at", Name: "explanted_at", Label: "Explanted Date", Type: "date", Table: "implanted_devices"},
+		{ID: "implanted_devices.status", Name: "status", Label: "Device Status", Type: "string", Table: "implanted_devices"},
+
+		// Implanted Lead fields
+		{ID: "implanted_leads.id", Name: "id", Label: "Lead ID", Type: "number", Table: "implanted_leads"},
+		{ID: "implanted_leads.serial", Name: "serial", Label: "Lead Serial", Type: "string", Table: "implanted_leads"},
+		{ID: "implanted_leads.chamber", Name: "chamber", Label: "Chamber", Type: "string", Table: "implanted_leads"},
+		{ID: "implanted_leads.implanted_at", Name: "implanted_at", Label: "Lead Implanted Date", Type: "date", Table: "implanted_leads"},
+		{ID: "implanted_leads.explanted_at", Name: "explanted_at", Label: "Lead Explanted Date", Type: "date", Table: "implanted_leads"},
+		{ID: "implanted_leads.status", Name: "status", Label: "Lead Status", Type: "string", Table: "implanted_leads"},
+
 		// Report fields
 		{ID: "reports.id", Name: "id", Label: "Report ID", Type: "number", Table: "reports"},
 		{ID: "reports.report_date", Name: "report_date", Label: "Report Date", Type: "date", Table: "reports"},
