@@ -28,6 +28,7 @@ import {
 export default function PatientIndex() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchActive, setIsSearchActive] = useState(false)
   const role = useAuthStore(s => s.user?.role)
   const isAdmin = role?.toLowerCase() === 'admin'
   const isUser = role?.toLowerCase() === 'user'
@@ -51,13 +52,24 @@ export default function PatientIndex() {
     e.preventDefault()
     if (searchQuery.trim()) {
       await searchPatients(searchQuery)
+      setIsSearchActive(true)
     } else {
       await fetchPatients()
+      setIsSearchActive(false)
     }
   }
 
-  // Use searchResults if there's a search query, otherwise use patients
-  const displayPatients = searchQuery.trim() ? searchResults : patients
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchQuery(value)
+    // If the search box is cleared, reset to showing all patients
+    if (value.trim() === '') {
+      setIsSearchActive(false)
+    }
+  }
+
+  // Use searchResults only if a search has been performed, otherwise use patients
+  const displayPatients = isSearchActive ? searchResults : patients
 
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete patient ${name}?`)) {
@@ -106,7 +118,7 @@ export default function PatientIndex() {
             <Input
               placeholder="Search by name or MRN..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchInputChange}
               className="flex-1"
             />
             <Button type="submit" variant="outline">
