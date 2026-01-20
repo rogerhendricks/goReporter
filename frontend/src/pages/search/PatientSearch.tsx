@@ -199,6 +199,31 @@ export default function PatientSearch() {
     }
   }
 
+  const formatSearchSummary = (filters: any): string => {
+    const parts: string[] = []
+    
+    if (filters.firstName) parts.push(`First Name: ${filters.firstName}`)
+    if (filters.lastName) parts.push(`Last Name: ${filters.lastName}`)
+    if (filters.mrn) parts.push(`MRN: ${filters.mrn}`)
+    if (filters.dob) parts.push(`DOB: ${filters.dob}`)
+    if (filters.doctorName) parts.push(`Doctor: ${filters.doctorName}`)
+    if (filters.deviceSerial) parts.push(`Device Serial: ${filters.deviceSerial}`)
+    if (filters.deviceManufacturer) parts.push(`Device Mfr: ${filters.deviceManufacturer}`)
+    if (filters.deviceName) parts.push(`Device: ${filters.deviceName}`)
+    if (filters.deviceModel) parts.push(`Model: ${filters.deviceModel}`)
+    if (filters.leadManufacturer) parts.push(`Lead Mfr: ${filters.leadManufacturer}`)
+    if (filters.leadName) parts.push(`Lead: ${filters.leadName}`)
+    if (filters.tags && filters.tags.length > 0) {
+      const tagNames = filters.tags.map((tagId: number) => {
+        const tag = availableTags.find(t => t.ID === tagId)
+        return tag ? tag.name : `Tag #${tagId}`
+      }).join(', ')
+      parts.push(`Tags: ${tagNames}`)
+    }
+    
+    return parts.length > 0 ? parts.join(' • ') : 'Complex search'
+  }
+
   const handleExport = () => {
     if (searchResults.length === 0) {
       toast.info("There are no results to export.")
@@ -291,7 +316,9 @@ export default function PatientSearch() {
               <div className="space-y-2 max-h-[240px] overflow-y-auto">
                 {searchHistory.map((item) => (
                   <div key={item.id} className="p-2 border rounded">
-                    <p className="text-sm font-medium">{item.query || 'Complex search'}</p>
+                    <p className="text-sm font-medium truncate" title={formatSearchSummary(item.filters || {})}>
+                      {formatSearchSummary(item.filters || {})}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {item.results} results • {new Date(item.createdAt).toLocaleDateString()}
                     </p>
