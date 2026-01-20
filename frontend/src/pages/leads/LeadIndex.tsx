@@ -47,7 +47,7 @@ export default function LeadIndex() {
 
   useEffect(() => {
     fetchLeads(currentPage, ITEMS_PER_PAGE, searchQuery)
-  }, [currentPage, fetchLeads, searchQuery])
+  }, [currentPage, fetchLeads])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
