@@ -118,7 +118,6 @@ export default function PatientForm() {
   }, [selectedDoctor]);
 
   const [doctorSearch, setDoctorSearch] = useState("");
-  const [doctorResults, setDoctorResults] = useState<Doctor[]>([]);
   const [openDoctorSearch, setOpenDoctorSearch] = useState(false);
 
   const [deviceSearch, setDeviceSearch] = useState("");
@@ -218,16 +217,9 @@ export default function PatientForm() {
   const handleDoctorSearch = async (query: string) => {
     setDoctorSearch(query);
     if (query.length > 2) {
-      const results = await searchDoctors(query);
-      setDoctorResults(
-        results.map((doctor) => ({
-          ...doctor,
-          addresses: doctor.addresses.map((address) => ({
-            ...address,
-            id: address.id || 0, // Ensure `id` is a number
-          })),
-        }))
-      );
+      await searchDoctors(query);
+    } else {
+      await fetchDoctors();
     }
   };
 
@@ -724,7 +716,7 @@ export default function PatientForm() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput
                       placeholder="Search doctors..."
                       value={doctorSearch}
@@ -733,7 +725,7 @@ export default function PatientForm() {
                     <CommandList>
                       <CommandEmpty>No doctors found.</CommandEmpty>
                       <CommandGroup>
-                        {(doctorSearch.length > 2 ? doctorResults : doctors).map((doctor) => (
+                        {doctors.map((doctor) => (
                           <CommandItem
                             key={doctor.id}
                             onSelect={() => addDoctor(doctor)}
@@ -837,10 +829,7 @@ export default function PatientForm() {
                         <CommandList>
                           <CommandEmpty>No doctors found.</CommandEmpty>
                           <CommandGroup>
-                            {(doctorSearch.length > 2
-                              ? doctorResults
-                              : doctors
-                            ).map((doctor) => (
+                            {doctors.map((doctor) => (
                               <CommandItem
                                 key={doctor.id}
                                 onSelect={() =>

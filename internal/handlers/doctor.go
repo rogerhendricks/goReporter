@@ -73,7 +73,18 @@ func GetDoctors(c *fiber.Ctx) error {
 	//     return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 	// }
 
-	doctors, err := models.GetAllDoctors()
+	// Get search parameter
+	searchQuery := c.Query("search", "")
+
+	var doctors []models.Doctor
+	var err error
+
+	if searchQuery != "" {
+		doctors, err = models.GetAllDoctorsBySearch(searchQuery)
+	} else {
+		doctors, err = models.GetAllDoctors()
+	}
+
 	if err != nil {
 		log.Printf("Error fetching doctors: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch doctors"})

@@ -32,7 +32,7 @@ func GetAllDoctors() ([]Doctor, error) {
 // GetAllDoctorsBySearch retrieves doctors matching search criteria
 func GetAllDoctorsBySearch(query string) ([]Doctor, error) {
 	var doctors []Doctor
-	tx := config.DB.Preload("Addresses")
+	tx := config.DB.Preload("Addresses", "deleted_at IS NULL").Where("deleted_at IS NULL")
 
 	if query != "" {
 		searchQuery := "%" + query + "%"
