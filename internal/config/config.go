@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	Port string
-	URL  string
-	JWTSecret string
+	Port        string
+	URL         string
+	JWTSecret   string
+	JWTIssuer   string
+	JWTAudience string
 }
 
 func LoadConfig() *Config {
@@ -21,14 +23,17 @@ func LoadConfig() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-    log.Fatal("JWT_SECRET environment variable is required")
-}
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
 
 	return &Config{
-		Port: getEnv("PORT", "5000"),
-		URL:  getEnv("URL", "http://localhost:8000"),
-		JWTSecret: jwtSecret,
+		Port:        getEnv("PORT", "5000"),
+		URL:         getEnv("URL", "http://localhost:8000"),
+		JWTSecret:   jwtSecret,
+		JWTIssuer:   getEnv("JWT_ISSUER", "goReporter"),
+		JWTAudience: getEnv("JWT_AUDIENCE", "goReporter-client"),
 	}
+
 }
 
 func getEnv(key, fallback string) string {

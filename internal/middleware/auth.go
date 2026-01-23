@@ -65,6 +65,21 @@ func AuthenticateJWT(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
 	}
 
+	if claims.Issuer != cfg.JWTIssuer {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token issuer"})
+	}
+
+	audienceValid := false
+	for _, aud := range claims.Audience {
+		if aud == cfg.JWTAudience {
+			audienceValid = true
+			break
+		}
+	}
+	if !audienceValid {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token audience"})
+	}
+
 	// var user models.User
 	// if err := config.DB.First(&user, claims.Subject).Error; err != nil {
 	//     return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
