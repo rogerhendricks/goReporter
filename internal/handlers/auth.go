@@ -123,26 +123,33 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Generate tokens and set cookies
-	// if err := setAuthCookies(c, user.ID); err != nil {
-	//     log.Printf("Error setting auth cookies for user %d: %v", user.ID, err)
-	//     return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
-	// }
-
 	if err := setAuthCookies(c, user.ID); err != nil {
-		security.LogEventFromContext(c, security.EventLoginFailed,
+		security.LogEventWithUser(c, security.EventLoginFailed,
 			"Failed to set auth cookies",
 			"CRITICAL",
-			map[string]interface{}{"userId": user.ID, "error": err.Error()})
+			fmt.Sprintf("%d", user.ID),
+			user.Username,
+			map[string]interface{}{"error": err.Error()})
+
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
 	}
 
-	security.LogEventFromContext(c, security.EventLogin,
+	security.LogEventWithUser(c, security.EventTokenIssued,
+		fmt.Sprintf("Issued tokens for user: %s", username),
+		"INFO",
+		fmt.Sprintf("%d", user.ID),
+		username,
+		map[string]interface{}{
+			"role": user.Role,
+		})
+
+	security.LogEventWithUser(c, security.EventLogin,
 		fmt.Sprintf("Successful login: %s", username),
 		"INFO",
+		fmt.Sprintf("%d", user.ID),
+		username,
 		map[string]interface{}{
-			"userId":   fmt.Sprintf("%d", user.ID),
-			"username": username,
-			"role":     user.Role,
+			"role": user.Role,
 		})
 
 	// Remove sensitive data before returning
@@ -224,7 +231,13 @@ func Register(c *fiber.Ctx) error {
 
 	// Generate tokens and set cookies
 	if err := setAuthCookies(c, newUser.ID); err != nil {
-		log.Printf("Error setting auth cookies for user %d: %v", newUser.ID, err)
+		security.LogEventWithUser(c, security.EventLoginFailed,
+			"Failed to set auth cookies",
+			"CRITICAL",
+			fmt.Sprintf("%d", newUser.ID),
+			newUser.Username,
+			map[string]interface{}{"error": err.Error()})
+
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create session"})
 	}
 
@@ -238,6 +251,12 @@ func Register(c *fiber.Ctx) error {
 
 // setAuthCookies generates both access and refresh tokens and sets them as HTTP-only cookies
 func setAuthCookies(c *fiber.Ctx, userID uint) error {
+	currentUsername := ""
+	if uname := c.Locals("username"); uname != nil {
+		if unameStr, ok := uname.(string); ok {
+			currentUsername = unameStr
+		}
+	}
 	// Generate access token (JWT)
 	accessToken, err := generateAccessToken(userID)
 	if err != nil {
@@ -255,6 +274,15 @@ func setAuthCookies(c *fiber.Ctx, userID uint) error {
 	if err := models.CreateRefreshToken(userID, refreshToken, expiresAt); err != nil {
 		return err
 	}
+
+	security.LogEventWithUser(c, security.EventTokenIssued,
+		fmt.Sprintf("Issued tokens for user ID %d", userID),
+		"INFO",
+		fmt.Sprintf("%d", userID),
+		currentUsername,
+		map[string]interface{}{
+			"refreshExpiresAt": expiresAt,
+		})
 
 	// Determine if we're in production
 	isProduction := os.Getenv("ENVIRONMENT") == "production"
@@ -343,6 +371,15 @@ func RefreshToken(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to refresh session"})
 	}
 
+	security.LogEventWithUser(c, security.EventTokenRefreshed,
+		fmt.Sprintf("Refreshed tokens for user ID %d", user.ID),
+		"INFO",
+		fmt.Sprintf("%d", user.ID),
+		user.Username,
+		map[string]interface{}{
+			"oldTokenId": token.ID,
+		})
+
 	// Remove sensitive data
 	user.Password = ""
 
@@ -391,11 +428,22 @@ func Logout(c *fiber.Ctx) error {
 	// Get refresh token from cookie
 	refreshToken := c.Cookies("refresh_token")
 
+	userID, _ := c.Locals("userID").(string)
+	username, _ := c.Locals("username").(string)
+
 	// Revoke the refresh token if present
 	if refreshToken != "" {
 		if err := models.RevokeRefreshToken(refreshToken); err != nil {
 			log.Printf("Error revoking refresh token on logout: %v", err)
 		}
+		security.LogEventWithUser(c, security.EventTokenRevoked,
+			"Revoked refresh token on logout",
+			"INFO",
+			userID,
+			username,
+			map[string]interface{}{
+				"token": refreshToken,
+			})
 	}
 
 	// Clear cookies
