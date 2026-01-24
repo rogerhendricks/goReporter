@@ -123,7 +123,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// Generate tokens and set cookies
-	if err := setAuthCookies(c, user.ID); err != nil {
+	if err := setAuthCookies(c, user); err != nil {
 		security.LogEventWithUser(c, security.EventLoginFailed,
 			"Failed to set auth cookies",
 			"CRITICAL",
@@ -230,7 +230,7 @@ func Register(c *fiber.Ctx) error {
 		})
 
 	// Generate tokens and set cookies
-	if err := setAuthCookies(c, newUser.ID); err != nil {
+	if err := setAuthCookies(c, &newUser); err != nil {
 		security.LogEventWithUser(c, security.EventLoginFailed,
 			"Failed to set auth cookies",
 			"CRITICAL",
@@ -249,64 +249,74 @@ func Register(c *fiber.Ctx) error {
 	})
 }
 
-// setAuthCookies generates both access and refresh tokens and sets them as HTTP-only cookies
-func setAuthCookies(c *fiber.Ctx, userID uint) error {
-	currentUsername := ""
-	if uname := c.Locals("username"); uname != nil {
-		if unameStr, ok := uname.(string); ok {
-			currentUsername = unameStr
-		}
-	}
-	// Generate access token (JWT)
-	accessToken, err := generateAccessToken(userID)
+type tokenIssueResult struct {
+	AccessToken      string
+	RefreshToken     string
+	RefreshExpiresAt time.Time
+	RefreshRecordID  uint
+}
+
+func issueTokensForUser(user *models.User) (*tokenIssueResult, error) {
+	accessToken, err := generateAccessToken(user.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Generate refresh token (random string)
 	refreshToken, err := models.GenerateRefreshToken()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Store refresh token in database
 	expiresAt := time.Now().Add(RefreshTokenDuration)
-	if err := models.CreateRefreshToken(userID, refreshToken, expiresAt); err != nil {
+	refreshRecord, err := models.CreateRefreshToken(user.ID, refreshToken, expiresAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenIssueResult{
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		RefreshExpiresAt: expiresAt,
+		RefreshRecordID:  refreshRecord.ID,
+	}, nil
+}
+
+// setAuthCookies generates both tokens, stores metadata, logs details, and sets HTTP-only cookies
+func setAuthCookies(c *fiber.Ctx, user *models.User) error {
+	result, err := issueTokensForUser(user)
+	if err != nil {
 		return err
 	}
 
 	security.LogEventWithUser(c, security.EventTokenIssued,
-		fmt.Sprintf("Issued tokens for user ID %d", userID),
+		fmt.Sprintf("Issued tokens for user ID %d", user.ID),
 		"INFO",
-		fmt.Sprintf("%d", userID),
-		currentUsername,
+		fmt.Sprintf("%d", user.ID),
+		user.Username,
 		map[string]interface{}{
-			"refreshExpiresAt": expiresAt,
+			"refreshExpiresAt": result.RefreshExpiresAt,
 		})
 
-	// Determine if we're in production
 	isProduction := os.Getenv("ENVIRONMENT") == "production"
 
-	// Set access token cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
-		Value:    accessToken,
+		Value:    result.AccessToken,
 		HTTPOnly: true,
-		Secure:   isProduction, // Only send over HTTPS in production
-		SameSite: "Lax",        // Changed from Strict to Lax for better compatibility
+		Secure:   isProduction,
+		SameSite: "Lax",
 		MaxAge:   int(AccessTokenDuration.Seconds()),
 		Path:     "/",
 	})
 
-	// Set refresh token cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken,
+		Value:    result.RefreshToken,
 		HTTPOnly: true,
 		Secure:   isProduction,
 		SameSite: "Lax",
 		MaxAge:   int(RefreshTokenDuration.Seconds()),
-		Path:     "/", // Only send to refresh endpoint
+		Path:     "/",
 	})
 
 	return nil
@@ -366,7 +376,7 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	// Generate new tokens and set cookies
-	if err := setAuthCookies(c, user.ID); err != nil {
+	if err := setAuthCookies(c, user); err != nil {
 		log.Printf("Error setting new auth cookies for user %d: %v", user.ID, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to refresh session"})
 	}
