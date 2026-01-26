@@ -28,7 +28,14 @@ func SetupTestEnv(t *testing.T) *gorm.DB {
 	}
 
 	// Ensure tables exist for models used in tests.
-	if err := db.AutoMigrate(&models.User{}, &models.Token{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.Token{},
+		&models.Doctor{},
+		&models.Patient{},
+		&models.PatientDoctor{},
+		&models.Address{},
+	); err != nil {
 		t.Fatalf("failed to migrate test database: %v", err)
 	}
 

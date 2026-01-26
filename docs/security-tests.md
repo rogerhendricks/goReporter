@@ -16,6 +16,7 @@ The goal of the security test suite is to ensure the Fiber-based backend enforce
   - Valid JWTs carried via cookies or `Authorization` headers pass.
   - Missing tokens, invalid signatures, mismatched issuer/audience, or unknown users return `401/403` responses.
   - Role-based helpers (`RequireAdmin`, `RequireDoctor`, `RequireAdminOrUser`) only allow the configured roles.
+  - `AuthorizeDoctorPatientAccess` now has integration-style tests ensuring doctors can only reach patients they are linked to, admins/users bypass association checks, and malformed patient IDs are rejected with 400s.
 
 ### CSRF protection coverage
 

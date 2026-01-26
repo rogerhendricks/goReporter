@@ -17,9 +17,7 @@ import (
 
 func setupAuthMiddlewareApp(t *testing.T) *fiber.App {
 	app := fiber.New()
-	app.Use(func(c *fiber.Ctx) error {
-		return AuthenticateJWT(c)
-	})
+	app.Use(AuthenticateJWT)
 	app.Get("/protected", func(c *fiber.Ctx) error {
 		userID, ok := c.Locals("userID").(string)
 		if !ok || userID == "" {
@@ -47,6 +45,75 @@ func setupAdminRouteApp() *fiber.App {
 		return c.SendStatus(http.StatusOK)
 	})
 	return app
+}
+
+func setupDoctorAccessApp(user *models.User, handler fiber.Handler) *fiber.App {
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("userID", fmt.Sprintf("%d", user.ID))
+		c.Locals("userRole", user.Role)
+		return c.Next()
+	})
+	app.Get("/patients/:patientId", AuthorizeDoctorPatientAccess, handler)
+
+	return app
+}
+
+func seedDoctorWithUser(t *testing.T, username string) (*models.User, *models.Doctor) {
+	t.Helper()
+
+	doctor := &models.Doctor{
+		FullName:  fmt.Sprintf("Dr. %s", username),
+		Email:     fmt.Sprintf("%s@clinic.test", username),
+		Phone:     "555-0101",
+		Specialty: "Cardiology",
+	}
+	if err := config.DB.Create(doctor).Error; err != nil {
+		t.Fatalf("failed to seed doctor: %v", err)
+	}
+
+	user := seedMiddlewareUser(t, username, "doctor", func(u *models.User) {
+		u.DoctorID = &doctor.ID
+	})
+
+	doctor.UserID = &user.ID
+	if err := config.DB.Save(doctor).Error; err != nil {
+		t.Fatalf("failed to link doctor to user: %v", err)
+	}
+
+	return user, doctor
+}
+
+func seedPatient(t *testing.T, mrn int) *models.Patient {
+	t.Helper()
+
+	patient := &models.Patient{
+		MRN:       mrn,
+		FirstName: fmt.Sprintf("Patient%d", mrn),
+		LastName:  "Test",
+		DOB:       "1990-01-01",
+		Gender:    "Other",
+	}
+
+	if err := config.DB.Create(patient).Error; err != nil {
+		t.Fatalf("failed to seed patient: %v", err)
+	}
+
+	return patient
+}
+
+func associateDoctorPatient(t *testing.T, doctor *models.Doctor, patient *models.Patient, isPrimary bool) {
+	t.Helper()
+
+	relation := &models.PatientDoctor{
+		DoctorID:  doctor.ID,
+		PatientID: patient.ID,
+		IsPrimary: isPrimary,
+	}
+
+	if err := config.DB.Create(relation).Error; err != nil {
+		t.Fatalf("failed to associate doctor and patient: %v", err)
+	}
 }
 
 func seedMiddlewareUser(t *testing.T, username, role string, extra ...func(*models.User)) *models.User {
@@ -352,5 +419,135 @@ func TestRequireAdminOrUserBlocksUnauthorizedRoles(t *testing.T) {
 				t.Fatalf("expected %d for %s, got %d", tc.code, tc.role, resp.StatusCode)
 			}
 		})
+	}
+}
+
+func TestAuthorizeDoctorPatientAccess_AllowsAssociatedDoctor(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	doctorUser, doctor := seedDoctorWithUser(t, "assoc-doctor")
+	patient := seedPatient(t, 4001)
+	associateDoctorPatient(t, doctor, patient, true)
+
+	handler := func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	}
+
+	app := setupDoctorAccessApp(doctorUser, handler)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/patients/%d", patient.ID), nil)
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 for associated doctor, got %d", resp.StatusCode)
+	}
+}
+
+func TestAuthorizeDoctorPatientAccess_BlocksUnassociatedDoctor(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	doctorUser, _ := seedDoctorWithUser(t, "unassoc-doctor")
+	patient := seedPatient(t, 4002)
+
+	handler := func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	}
+
+	app := setupDoctorAccessApp(doctorUser, handler)
+
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/patients/%d", patient.ID), nil)
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 for unassociated doctor, got %d", resp.StatusCode)
+	}
+}
+
+func TestAuthorizeDoctorPatientAccess_AllowsAdminAndUserRoles(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	patient := seedPatient(t, 4003)
+
+	handler := func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	}
+
+	cases := []struct {
+		name string
+		role string
+	}{
+		{"admin bypass", "admin"},
+		{"user bypass", "user"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			member := seedMiddlewareUser(t, fmt.Sprintf("%s-access", tc.role), tc.role)
+			app := setupDoctorAccessApp(member, handler)
+
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/patients/%d", patient.ID), nil)
+			resp, err := app.Test(req, -1)
+			if err != nil {
+				t.Fatalf("request failed: %v", err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected 200 for %s role, got %d", tc.role, resp.StatusCode)
+			}
+		})
+	}
+}
+
+func TestAuthorizeDoctorPatientAccess_RejectsMissingPatientID(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	member := seedMiddlewareUser(t, "doctor-missing-patient", "doctor")
+
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("userID", fmt.Sprintf("%d", member.ID))
+		c.Locals("userRole", member.Role)
+		return c.Next()
+	})
+	app.Get("/patients", AuthorizeDoctorPatientAccess, func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/patients", nil)
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing patient ID, got %d", resp.StatusCode)
+	}
+}
+
+func TestAuthorizeDoctorPatientAccess_RejectsInvalidPatientID(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	doctorUser, _ := seedDoctorWithUser(t, "doctor-invalid-id")
+
+	handler := func(c *fiber.Ctx) error {
+		return c.SendStatus(http.StatusOK)
+	}
+
+	app := setupDoctorAccessApp(doctorUser, handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/patients/not-a-number", nil)
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid patient ID, got %d", resp.StatusCode)
 	}
 }
