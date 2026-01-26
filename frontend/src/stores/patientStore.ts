@@ -39,6 +39,7 @@ export interface Device {
   model: string;
   type: string;
   isMri: boolean;
+  hasAlert: boolean;
 }
 
 export interface Lead {
@@ -49,6 +50,7 @@ export interface Lead {
   connector: string;
   polarity: string;
   isMri: boolean;
+  hasAlert: boolean;
 }
 
 export interface ImplantedDevice {
@@ -60,6 +62,7 @@ export interface ImplantedDevice {
   implantedAt: string;
   explantedAt?: string | null;
   device: Device; // Nested device details
+  hasAlert?: boolean; // convenience flag for backward compatibility
 }
 
 export interface ImplantedLead {
@@ -72,6 +75,7 @@ export interface ImplantedLead {
   implantedAt: string;
   explantedAt?: string | null;
   lead: Lead; // Nested lead details
+  hasAlert?: boolean; // convenience flag
 }
 
 export interface Patient {

@@ -1,323 +1,323 @@
 package handlers
 
 import (
-    "github.com/gofiber/fiber/v2"
-    "github.com/rogerhendricks/goReporter/internal/models"
-    "net/http"
-    "log"
-    "strings"
-    "html"
-    "errors"
-    "gorm.io/gorm"
-    "strconv"
+	"errors"
+	"html"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/rogerhendricks/goReporter/internal/models"
+	"gorm.io/gorm"
 )
 
 // --- DTO for API Responses ---
 type DeviceResponse struct {
-    ID           uint   `json:"id"`
-    Name         string `json:"name"`
-    Manufacturer string `json:"manufacturer"`
-    Model        string `json:"model"`
-    Type         string `json:"type"`
-    IsMri        bool   `json:"isMri"`
+	ID           uint   `json:"id"`
+	Name         string `json:"name"`
+	Manufacturer string `json:"manufacturer"`
+	Model        string `json:"model"`
+	Type         string `json:"type"`
+	IsMri        bool   `json:"isMri"`
+	HasAlert     bool   `json:"hasAlert"`
 }
-
 
 // GetDevices retrieves all devices
 func GetDevices(c *fiber.Ctx) error {
-    // Check if user has admin role for full access
-    userID := c.Locals("userID").(string)
-    user, err := models.GetUserByID(userID)
-    if err != nil || user.Role != "admin" {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
+	// Check if user has admin role for full access
+	userID := c.Locals("userID").(string)
+	user, err := models.GetUserByID(userID)
+	if err != nil || user.Role != "admin" {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
 
-    devices, err := models.GetAllDevices()
-    if err != nil {
-        log.Printf("Error fetching devices: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
-    }
+	devices, err := models.GetAllDevices()
+	if err != nil {
+		log.Printf("Error fetching devices: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+	}
 
-    return c.JSON(devices)
+	return c.JSON(devices)
 }
 
 // GetDevicesBasic retrieves basic device information with pagination
 func GetDevicesBasic(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
-    
-    _, err := models.GetUserByID(userID)
-    if err != nil {
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
+	userID := c.Locals("userID").(string)
 
-    // Parse pagination parameters
-    page, _ := strconv.Atoi(c.Query("page", "1"))
-    limit, _ := strconv.Atoi(c.Query("limit", "25"))
-    search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
+	_, err := models.GetUserByID(userID)
+	if err != nil {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
 
-    if page < 1 {
-        page = 1
-    }
-    if limit < 1 || limit > 100 {
-        limit = 25
-    }
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "25"))
+	search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
 
-    devices, total, err := models.GetDevicesPaginated(search, page, limit)
-    if err != nil {
-        log.Printf("Error fetching devices: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
-    }
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
 
-    // Return paginated response
-    return c.JSON(fiber.Map{
-        "data": devices,
-        "pagination": fiber.Map{
-            "page":       page,
-            "limit":      limit,
-            "total":      total,
-            "totalPages": (total + int64(limit) - 1) / int64(limit),
-        },
-    })
+	devices, total, err := models.GetDevicesPaginated(search, page, limit)
+	if err != nil {
+		log.Printf("Error fetching devices: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+	}
+
+	// Return paginated response
+	return c.JSON(fiber.Map{
+		"data": devices,
+		"pagination": fiber.Map{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"totalPages": (total + int64(limit) - 1) / int64(limit),
+		},
+	})
 }
-
 
 // GetDevicesBasic retrieves basic device information (name, manufacturer, type, model)
 func SearchDevices(c *fiber.Ctx) error {
-    // The AuthenticateJWT middleware has already run and verified the user.
-    userID := c.Locals("userID").(string)
+	// The AuthenticateJWT middleware has already run and verified the user.
+	userID := c.Locals("userID").(string)
 
-    // Get the search query from the URL, if it exists.
-    searchQuery := c.Query("search")
-    searchQuery = html.EscapeString(strings.TrimSpace(searchQuery))
+	// Get the search query from the URL, if it exists.
+	searchQuery := c.Query("search")
+	searchQuery = html.EscapeString(strings.TrimSpace(searchQuery))
 
-    _, err := models.GetUserByID(userID)
-    if err != nil {
-        log.Printf("User authentication failed: %v", err) // Add this debug line
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
+	_, err := models.GetUserByID(userID)
+	if err != nil {
+		log.Printf("User authentication failed: %v", err) // Add this debug line
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
 
+	// Pass the query to the model function. It will be empty if no search is performed.
+	devices, err := models.GetAllDevicesBySearch(searchQuery)
+	if err != nil {
+		log.Printf("Error fetching devices: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
+	}
 
-    // Pass the query to the model function. It will be empty if no search is performed.
-    devices, err := models.GetAllDevicesBySearch(searchQuery)
-    if err != nil {
-        log.Printf("Error fetching devices: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch devices"})
-    }
+	if devices == nil {
+		log.Printf("Devices is ni") // Add this debug line
+		return c.JSON([]interface{}{})
+	}
 
-    if devices == nil {
-        log.Printf("Devices is ni") // Add this debug line
-        return c.JSON([]interface{}{})
-    }
+	if len(devices) == 0 {
+		return c.JSON([]interface{}{})
+	}
 
-    if len(devices) == 0 {
-        return c.JSON([]interface{}{})
-    }
+	// Create a simplified response with consistent field names
+	type DeviceBasic struct {
+		ID           uint   `json:"id"`
+		Name         string `json:"name"`
+		Manufacturer string `json:"manufacturer"`
+		Type         string `json:"type"`
+		Model        string `json:"model"`
+		IsMri        bool   `json:"isMri"`
+		HasAlert     bool   `json:"hasAlert"`
+	}
 
-    // Create a simplified response with consistent field names
-    type DeviceBasic struct {
-        ID           uint   `json:"id"`
-        Name         string `json:"name"`
-        Manufacturer string `json:"manufacturer"`
-        Type         string `json:"type"`
-        Model        string `json:"model"`
-        IsMri        bool   `json:"isMri"`
-    }
+	var basicDevices []DeviceBasic
+	for _, device := range devices {
+		basicDevices = append(basicDevices, DeviceBasic{
+			ID:           device.ID,
+			Name:         device.Name,
+			Manufacturer: device.Manufacturer,
+			Type:         device.Type,
+			Model:        device.DevModel,
+			IsMri:        device.IsMri,
+			HasAlert:     device.HasAlert,
+		})
+	}
 
-    var basicDevices []DeviceBasic
-    for _, device := range devices {
-        basicDevices = append(basicDevices, DeviceBasic{
-            ID:           device.ID,
-            Name:         device.Name,
-            Manufacturer: device.Manufacturer,
-            Type:         device.Type,
-            Model:        device.DevModel,
-            IsMri:        device.IsMri,
-        })
-    }
-
-    return c.JSON(basicDevices)
+	return c.JSON(basicDevices)
 }
-
 
 // GetDevice retrieves a specific device by ID
 func GetDevice(c *fiber.Ctx) error {
-    deviceID := c.Params("id")
-    
-    // Validate ID format
-    id, err := strconv.ParseUint(deviceID, 10, 32)
-    if err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
-    }
+	deviceID := c.Params("id")
 
-    device, err := models.GetDeviceByID(uint(id))
-    if err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
-        }
-        log.Printf("Error fetching device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-    }
+	// Validate ID format
+	id, err := strconv.ParseUint(deviceID, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
+	}
 
-    return c.JSON(device)
+	device, err := models.GetDeviceByID(uint(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
+		}
+		log.Printf("Error fetching device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+	}
+
+	return c.JSON(device)
 }
 
 // CreateDevice creates a new device
 func CreateDevice(c *fiber.Ctx) error {
-    var newDevice models.Device
-    if err := c.BodyParser(&newDevice); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-    }
+	var newDevice models.Device
+	if err := c.BodyParser(&newDevice); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+	}
 
-    // Validate input
-    if err := validateDevice(&newDevice); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-    }
+	// Validate input
+	if err := validateDevice(&newDevice); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
 
-    // Sanitize input
-    newDevice.Name = html.EscapeString(strings.TrimSpace(newDevice.Name))
-    newDevice.Manufacturer = html.EscapeString(strings.TrimSpace(newDevice.Manufacturer))
-    newDevice.DevModel = html.EscapeString(strings.TrimSpace(newDevice.DevModel))
-    newDevice.Type = html.EscapeString(strings.TrimSpace(newDevice.Type))
+	// Sanitize input
+	newDevice.Name = html.EscapeString(strings.TrimSpace(newDevice.Name))
+	newDevice.Manufacturer = html.EscapeString(strings.TrimSpace(newDevice.Manufacturer))
+	newDevice.DevModel = html.EscapeString(strings.TrimSpace(newDevice.DevModel))
+	newDevice.Type = html.EscapeString(strings.TrimSpace(newDevice.Type))
 
-    // Create device in database
-    if err := models.CreateDevice(&newDevice); err != nil {
-        log.Printf("Error creating device: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create device"})
-    }
+	// Create device in database
+	if err := models.CreateDevice(&newDevice); err != nil {
+		log.Printf("Error creating device: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create device"})
+	}
 
-    return c.Status(http.StatusCreated).JSON(newDevice)
+	return c.Status(http.StatusCreated).JSON(newDevice)
 }
 
 // UpdateDevice updates an existing device
 func UpdateDevice(c *fiber.Ctx) error {
-    deviceID := c.Params("id")
-    
-    // Validate ID format
-    id, err := strconv.ParseUint(deviceID, 10, 32)
-    if err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
-    }
+	deviceID := c.Params("id")
 
-    var updateData models.Device
-    if err := c.BodyParser(&updateData); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
-    }
+	// Validate ID format
+	id, err := strconv.ParseUint(deviceID, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
+	}
 
-    // Get existing device
-    existingDevice, err := models.GetDeviceByID(uint(id))
-    if err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
-        }
-        log.Printf("Error fetching device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-    }
+	var updateData models.Device
+	if err := c.BodyParser(&updateData); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
+	}
 
-    // Validate input
-    if err := validateDeviceUpdate(&updateData); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-    }
+	// Get existing device
+	existingDevice, err := models.GetDeviceByID(uint(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
+		}
+		log.Printf("Error fetching device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+	}
 
-    // Update fields if provided
-    if updateData.Name != "" {
-        existingDevice.Name = html.EscapeString(strings.TrimSpace(updateData.Name))
-    }
-    if updateData.Manufacturer != "" {
-        existingDevice.Manufacturer = html.EscapeString(strings.TrimSpace(updateData.Manufacturer))
-    }
-    if updateData.DevModel != "" {
-        existingDevice.DevModel = html.EscapeString(strings.TrimSpace(updateData.DevModel))
-    }
-    if updateData.Type != "" {
-        existingDevice.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
-    }
+	// Validate input
+	if err := validateDeviceUpdate(&updateData); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
 
-    // Update boolean field
-    existingDevice.IsMri = updateData.IsMri
+	// Update fields if provided
+	if updateData.Name != "" {
+		existingDevice.Name = html.EscapeString(strings.TrimSpace(updateData.Name))
+	}
+	if updateData.Manufacturer != "" {
+		existingDevice.Manufacturer = html.EscapeString(strings.TrimSpace(updateData.Manufacturer))
+	}
+	if updateData.DevModel != "" {
+		existingDevice.DevModel = html.EscapeString(strings.TrimSpace(updateData.DevModel))
+	}
+	if updateData.Type != "" {
+		existingDevice.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
+	}
 
-    if err := models.UpdateDevice(existingDevice); err != nil {
-        log.Printf("Error updating device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update device"})
-    }
+	// Update boolean field
+	existingDevice.IsMri = updateData.IsMri
 
-    return c.JSON(existingDevice)
+	if err := models.UpdateDevice(existingDevice); err != nil {
+		log.Printf("Error updating device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update device"})
+	}
+
+	return c.JSON(existingDevice)
 }
 
 // DeleteDevice removes a device
 func DeleteDevice(c *fiber.Ctx) error {
-    deviceID := c.Params("id")
-    
-    // Validate ID format
-    id, err := strconv.ParseUint(deviceID, 10, 32)
-    if err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
-    }
+	deviceID := c.Params("id")
 
-    // Check if device exists
-    _, err = models.GetDeviceByID(uint(id))
-    if err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
-        }
-        log.Printf("Error fetching device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-    }
+	// Validate ID format
+	id, err := strconv.ParseUint(deviceID, 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid device ID format"})
+	}
 
-    // Check if device is being used (has implanted devices)
-    hasImplanted, err := models.DeviceHasImplantedDevices(uint(id))
-    if err != nil {
-        log.Printf("Error checking implanted devices for device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-    }
-    
-    if hasImplanted {
-        return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Cannot delete device that has implanted instances"})
-    }
+	// Check if device exists
+	_, err = models.GetDeviceByID(uint(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Device not found"})
+		}
+		log.Printf("Error fetching device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+	}
 
-    if err := models.DeleteDevice(uint(id)); err != nil {
-        log.Printf("Error deleting device %d: %v", id, err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete device"})
-    }
+	// Check if device is being used (has implanted devices)
+	hasImplanted, err := models.DeviceHasImplantedDevices(uint(id))
+	if err != nil {
+		log.Printf("Error checking implanted devices for device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+	}
 
-    return c.SendStatus(http.StatusNoContent)
+	if hasImplanted {
+		return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Cannot delete device that has implanted instances"})
+	}
+
+	if err := models.DeleteDevice(uint(id)); err != nil {
+		log.Printf("Error deleting device %d: %v", id, err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete device"})
+	}
+
+	return c.SendStatus(http.StatusNoContent)
 }
 
 // validateDevice validates device creation input
 func validateDevice(device *models.Device) error {
-    if strings.TrimSpace(device.Name) == "" {
-        return errors.New("device name is required")
-    }
-    
-    if len(strings.TrimSpace(device.Name)) > 255 {
-        return errors.New("device name must be less than 255 characters")
-    }
-    
-    if device.DevModel != "" && len(strings.TrimSpace(device.DevModel)) > 100 {
-        return errors.New("device model must be less than 100 characters")
-    }
-    
-    if device.Type != "" && len(strings.TrimSpace(device.Type)) > 100 {
-        return errors.New("device type must be less than 100 characters")
-    }
-    
-    return nil
+	if strings.TrimSpace(device.Name) == "" {
+		return errors.New("device name is required")
+	}
+
+	if len(strings.TrimSpace(device.Name)) > 255 {
+		return errors.New("device name must be less than 255 characters")
+	}
+
+	if device.DevModel != "" && len(strings.TrimSpace(device.DevModel)) > 100 {
+		return errors.New("device model must be less than 100 characters")
+	}
+
+	if device.Type != "" && len(strings.TrimSpace(device.Type)) > 100 {
+		return errors.New("device type must be less than 100 characters")
+	}
+
+	return nil
 }
 
 // validateDeviceUpdate validates device update input
 func validateDeviceUpdate(device *models.Device) error {
-    if device.Name != "" {
-        if len(strings.TrimSpace(device.Name)) > 255 {
-            return errors.New("device name must be less than 255 characters")
-        }
-    }
-    
-    if device.DevModel != "" && len(strings.TrimSpace(device.DevModel)) > 100 {
-        return errors.New("device model must be less than 100 characters")
-    }
-    
-    if device.Type != "" && len(strings.TrimSpace(device.Type)) > 100 {
-        return errors.New("device type must be less than 100 characters")
-    }
-    
-    return nil
+	if device.Name != "" {
+		if len(strings.TrimSpace(device.Name)) > 255 {
+			return errors.New("device name must be less than 255 characters")
+		}
+	}
+
+	if device.DevModel != "" && len(strings.TrimSpace(device.DevModel)) > 100 {
+		return errors.New("device model must be less than 100 characters")
+	}
+
+	if device.Type != "" && len(strings.TrimSpace(device.Type)) > 100 {
+		return errors.New("device type must be less than 100 characters")
+	}
+
+	return nil
 }

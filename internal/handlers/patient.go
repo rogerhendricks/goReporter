@@ -103,6 +103,7 @@ func toDeviceResponse(device models.Device) DeviceResponse {
 		Model:        device.DevModel,
 		Type:         device.Type,
 		IsMri:        device.IsMri,
+		HasAlert:      device.HasAlert,
 	}
 }
 
@@ -114,6 +115,7 @@ func toLeadResponse(lead models.Lead) LeadResponse {
 		LeadModel:    lead.LeadModel,
 		Connector:    lead.Connector,
 		IsMri:        lead.IsMri,
+		HasAlert:     lead.HasAlert,
 	}
 }
 

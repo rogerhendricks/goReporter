@@ -525,23 +525,40 @@ export default function PatientDetail() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentPatient.devices.map((implanted) => (
-                    <TableRow key={implanted.id}>
-                      <TableCell className="text-left">
-                        <div className="text-sm text-muted-foreground">
-                          {implanted.device.manufacturer} {implanted.device.model}
-                        </div>
-                        <div className="font-medium">{implanted.device.name}</div>
-                      </TableCell>
-                      <TableCell className="text-left">{implanted.serial}</TableCell>
-                      <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
-                      <TableCell className="text-left">
-                        <Badge variant={implanted.explantedAt ? "destructive" : "default"}>
-                          {implanted.explantedAt ? "Explanted" : "Active"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {currentPatient.devices.map((implanted) => {
+                    const hasDeviceAlert = implanted.device?.hasAlert || implanted.hasAlert
+                    return (
+                      <TableRow key={implanted.id} className={hasDeviceAlert ? 'bg-destructive/10' : undefined}>
+                        <TableCell className="text-left">
+                          <div className="flex flex-col gap-1">
+                            <div className="text-sm text-muted-foreground">
+                              {implanted.device.manufacturer} {implanted.device.model}
+                            </div>
+                            <div className="font-medium flex items-center gap-2">
+                              {implanted.device.name}
+                              {hasDeviceAlert && (
+                                <Badge variant="destructive" className="uppercase tracking-wide">
+                                  Alert
+                                </Badge>
+                              )}
+                            </div>
+                            {hasDeviceAlert && (
+                              <div className="text-sm text-destructive font-semibold">
+                                Check notes: this device has known issues.
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-left">{implanted.serial}</TableCell>
+                        <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
+                        <TableCell className="text-left">
+                          <Badge variant={implanted.explantedAt ? "destructive" : "default"}>
+                            {implanted.explantedAt ? "Explanted" : "Active"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -553,33 +570,51 @@ export default function PatientDetail() {
             <CardTitle>Implanted Leads ({currentPatient.leads?.length || 0})</CardTitle>
           </CardHeader>
           <CardContent>
-            {currentPatient.leads && currentPatient.leads.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Lead</TableHead>
-                    <TableHead className="text-left">Serial</TableHead>
-                    <TableHead className="text-left">Chamber</TableHead>
-                    <TableHead className="text-left">Implanted On</TableHead>
-                    <TableHead className="text-left">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentPatient.leads.map((implanted) => (
-                    <TableRow key={implanted.id}>
-                      <TableCell className="text-left">
-                        <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.leadModel}</div>
-                        <div className="font-medium">{implanted.lead.name}</div>
-                      </TableCell>
-                      <TableCell className="text-left">{implanted.serial}</TableCell>
-                      <TableCell className="text-left">{implanted.chamber}</TableCell>
-                      <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
-                      <TableCell className="text-left">{implanted.status}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
+                {currentPatient.leads && currentPatient.leads.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left">Lead</TableHead>
+                        <TableHead className="text-left">Serial</TableHead>
+                        <TableHead className="text-left">Chamber</TableHead>
+                        <TableHead className="text-left">Implanted On</TableHead>
+                        <TableHead className="text-left">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentPatient.leads.map((implanted) => {
+                        const hasLeadAlert = implanted.lead?.hasAlert || implanted.hasAlert
+                        return (
+                          <TableRow key={implanted.id} className={hasLeadAlert ? 'bg-destructive/10' : undefined}>
+                            <TableCell className="text-left">
+                              <div className="flex flex-col gap-1">
+                                <div className="text-sm text-muted-foreground">{implanted.lead.manufacturer} {implanted.lead.leadModel}</div>
+                                <div className="font-medium flex items-center gap-2">
+                                  {implanted.lead.name}
+                                  {hasLeadAlert && (
+                                    <Badge variant="destructive" className="uppercase tracking-wide">
+                                      Alert
+                                    </Badge>
+                                  )}
+                                </div>
+                                {hasLeadAlert && (
+                                  <div className="text-sm text-destructive font-semibold">
+                                    Check notes: this lead has known issues.
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-left">{implanted.serial}</TableCell>
+                            <TableCell className="text-left">{implanted.chamber}</TableCell>
+                            <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
+                            <TableCell className="text-left">{implanted.status}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+
               <p className="text-muted-foreground">No leads implanted</p>
             )}
           </CardContent>

@@ -13,6 +13,7 @@ type Device struct {
 	Manufacturer string            `json:"manufacturer" gorm:"type:text"`
 	DevModel     string            `json:"model" gorm:"type:varchar(100)"`
 	IsMri        bool              `json:"isMri" gorm:"default:false"`
+	HasAlert     bool              `json:"hasAlert" gorm:"default:false"`
 	Type         string            `json:"type" gorm:"type:varchar(100)"`
 	Implanted    []ImplantedDevice `json:"implanted" gorm:"foreignKey:DeviceID"`
 }
