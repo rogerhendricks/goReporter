@@ -53,19 +53,38 @@ export interface ConsentStats {
   }>
 }
 
+export const CONSENT_LANGUAGES: Record<string, string> = {
+  en: 'English',
+  zh: 'Mandarin',
+  yue: 'Cantonese',
+  es: 'Spanish',
+  el: 'Greek',
+  ar: 'Arabic',
+}
+
+const DEFAULT_CONSENT_LANGUAGE = 'en'
+
 export const consentService = {
   // Get terms and conditions for a consent type
-  getTerms: async (consentType: ConsentType): Promise<string> => {
-    try {
-      const response = await fetch(`/terms/${consentType}.md`)
-      if (!response.ok) {
-        throw new Error('Terms not found')
+  getTerms: async (consentType: ConsentType, language: keyof typeof CONSENT_LANGUAGES = DEFAULT_CONSENT_LANGUAGE): Promise<string> => {
+    const paths = language === DEFAULT_CONSENT_LANGUAGE
+      ? [`/terms/${consentType}.md`]
+      : [`/terms/${language}/${consentType}.md`, `/terms/${consentType}.md`]
+
+    for (const path of paths) {
+      try {
+        const response = await fetch(path)
+        if (!response.ok) {
+          throw new Error(`Terms not found for ${path}`)
+        }
+        return await response.text()
+      } catch (error) {
+        console.warn('Error fetching terms:', error)
       }
-      return await response.text()
-    } catch (error) {
-      console.error('Error fetching terms:', error)
-      return '# Terms and Conditions\n\nTerms and conditions for this consent type are currently unavailable.'
     }
+
+    console.error('All term fetch attempts failed')
+    return '# Terms and Conditions\n\nTerms and conditions for this consent type are currently unavailable.'
   },
 
   // Get all consents for a patient

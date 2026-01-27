@@ -20,7 +20,7 @@ import { CalendarIcon, Plus, XCircle, CheckCircle, Clock, HelpCircle, Edit, Save
 import { toast } from 'sonner'
 import { TableSkeleton } from '@/components/ui/loading-skeletons'
 import ReactMarkdown from 'react-markdown'
-import { consentService, type PatientConsent, type ConsentType } from '@/services/consentService'
+import { consentService, type PatientConsent, type ConsentType, CONSENT_LANGUAGES } from '@/services/consentService'
 
 interface ConsentManagerProps {
   patientId: number
@@ -48,6 +48,7 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedType, setSelectedType] = useState<ConsentType>('TREATMENT')
+  const [selectedLanguage, setSelectedLanguage] = useState<keyof typeof CONSENT_LANGUAGES>('en')
   const [expiryDate, setExpiryDate] = useState<Date>()
   const [notes, setNotes] = useState('')
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -84,15 +85,15 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
   // Load terms when consent type changes
   useEffect(() => {
     if (isDialogOpen) {
-      loadTerms(selectedType)
-      setTermsAccepted(false) // Reset acceptance when type changes
+      loadTerms(selectedType, selectedLanguage)
+      setTermsAccepted(false) // Reset acceptance when type/language changes
     }
-  }, [selectedType, isDialogOpen])
+  }, [selectedType, isDialogOpen, selectedLanguage])
 
-  const loadTerms = async (consentType: ConsentType) => {
+  const loadTerms = async (consentType: ConsentType, language: keyof typeof CONSENT_LANGUAGES) => {
     setLoadingTerms(true)
     try {
-      const terms = await consentService.getTerms(consentType)
+      const terms = await consentService.getTerms(consentType, language)
       setTermsContent(terms)
     } catch (error) {
       console.error('Error loading terms:', error)
@@ -211,7 +212,7 @@ const openReacceptDialog = async (consent: PatientConsent) => {
   // Load terms for the consent type
   setLoadingReacceptTerms(true)
   try {
-    const terms = await consentService.getTerms(consent.consentType)
+    const terms = await consentService.getTerms(consent.consentType, selectedLanguage)
     setReacceptTermsContent(terms)
   } catch (error) {
     console.error('Error loading terms:', error)
@@ -273,6 +274,22 @@ const handleReacceptTerms = async () => {
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(consentTypeLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Language</Label>
+                  <Select value={selectedLanguage} onValueChange={(value) => setSelectedLanguage(value as keyof typeof CONSENT_LANGUAGES)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(CONSENT_LANGUAGES).map(([value, label]) => (
                         <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>
