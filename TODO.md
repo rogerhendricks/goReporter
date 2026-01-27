@@ -209,7 +209,7 @@ Building on ConsentManager.tsx:
 
 - Digital signature capture
 - Consent renewal workflow automation
-- Multi-language consent forms
+- **Done** ~~Multi-language consent forms~~
 - Consent audit trail with version history
 - Automated expiration notifications
 #### Data Retention Policies
@@ -230,9 +230,9 @@ type RetentionPolicy struct {
 #### Access Control Granularity
 - Field-level permissions
 - Data masking for sensitive fields
-- Temporary access grants
+# - Temporary access grants
 - Access request workflow
-- Permission templates by role
+# - Permission templates by role
 
 ### Integration Features
 ####  Third-Party Integrations
