@@ -69,6 +69,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 			return true
 		},
 	}))
+
 	// User routes
 	// app.Get("/api/users", handlers.GetUsers)
 	app.Get("/api/users", middleware.RequireAdmin, handlers.GetUsers)
@@ -173,9 +174,9 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	tags.Delete("/:id", middleware.RequireAdminOrUser, handlers.DeleteTag)
 
 	// Task routes
-	app.Get("/api/tasks", middleware.RequireAdminOrUser, handlers.GetTasks)
+	app.Get("/api/tasks", middleware.SetUserRole, handlers.GetTasks)
 	app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
-	app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
+	app.Get("/api/tasks/:id", middleware.SetUserRole, handlers.GetTask)
 	app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
 	app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
 	app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
@@ -183,7 +184,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Delete("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeleteTaskNote)
 
 	// Patient-specific tasks
-	app.Get("/api/patients/:patientId/tasks", middleware.RequireAdminOrUser, handlers.GetTasksByPatient)
+	app.Get("/api/patients/:patientId/tasks", middleware.AuthorizeDoctorPatientAccess, handlers.GetTasksByPatient)
 
 	// Appointment routes
 	app.Get("/api/appointments", handlers.GetAppointments)

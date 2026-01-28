@@ -103,7 +103,6 @@ func toDeviceResponse(device models.Device) DeviceResponse {
 		Model:        device.DevModel,
 		Type:         device.Type,
 		IsMri:        device.IsMri,
-		HasAlert:      device.HasAlert,
 	}
 }
 
@@ -115,7 +114,6 @@ func toLeadResponse(lead models.Lead) LeadResponse {
 		LeadModel:    lead.LeadModel,
 		Connector:    lead.Connector,
 		IsMri:        lead.IsMri,
-		HasAlert:     lead.HasAlert,
 	}
 }
 
@@ -208,34 +206,27 @@ func GetPatients(c *fiber.Ctx) error {
 	var patients []models.Patient
 	var err error
 
-	// Admin users can see all patients
+	// Admin-level users can see all patients
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		if searchQuery != "" {
 			patients, err = models.SearchPatients(searchQuery)
 		} else {
 			patients, err = models.GetAllPatients()
 		}
 	case "doctor":
-		// Doctor users can only see their assigned patients
 		patients, err = models.GetPatientsForDoctor(userID)
-		if err != nil {
-			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
-		}
-
-		// If there's a search query, filter the doctor's patients
-		if searchQuery != "" {
-			var filteredPatients []models.Patient
-			searchLower := strings.ToLower(searchQuery)
+		if err == nil && searchQuery != "" {
+			var filtered []models.Patient
+			needle := strings.ToLower(searchQuery)
 			for _, p := range patients {
-				if strings.Contains(strings.ToLower(p.FirstName), searchLower) ||
-					strings.Contains(strings.ToLower(p.LastName), searchLower) ||
+				if strings.Contains(strings.ToLower(p.FirstName), needle) ||
+					strings.Contains(strings.ToLower(p.LastName), needle) ||
 					strings.Contains(strconv.Itoa(p.MRN), searchQuery) {
-					filteredPatients = append(filteredPatients, p)
+					filtered = append(filtered, p)
 				}
 			}
-			patients = filteredPatients
+			patients = filtered
 		}
 	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
@@ -246,32 +237,15 @@ func GetPatients(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
 	}
 
-	return c.JSON(patients)
+	var patientResponses []PatientResponse
+	for _, p := range patients {
+		patientResponses = append(patientResponses, toPatientResponse(p))
+	}
+
+	return c.JSON(patientResponses)
 }
 
-// func GetPatientsBasic(c *fiber.Ctx) error {
-// 	userID := c.Locals("userID").(string)
-// 	userRole := c.Locals("userRole").(string)
-// 	var patients []models.Patient
-// 	var err error
-
-// 	// Admin
-// 	switch userRole {
-// 	case "admin", "user":
-// 		patients, err = models.GetAllPatientsBasic()
-// 	case "doctor":
-// 		patients, err = models.GetPatientsForDoctorBasic(userID)
-// 	default:
-// 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
-// 	}
-// 	if err != nil {
-// 		log.Printf("Error fetching basic patients: %v", err)
-// 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
-// 	}
-// 	return c.JSON(patients)
-// }
-
-// GetAllPatients retrieves all patients (alternative endpoint)
+// GetAllPatients returns the full patient list based on role visibility
 func GetAllPatients(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 	userRole := c.Locals("userRole").(string)
@@ -279,12 +253,10 @@ func GetAllPatients(c *fiber.Ctx) error {
 	var patients []models.Patient
 	var err error
 
-	// Admin users can see all patients
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		patients, err = models.GetAllPatients()
 	case "doctor":
-		// Doctor users can only see their assigned patients
 		patients, err = models.GetPatientsForDoctor(userID)
 	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
@@ -303,7 +275,7 @@ func GetAllPatients(c *fiber.Ctx) error {
 	return c.JSON(patientResponses)
 }
 
-// GetMostRecentPatientList retrieves the most recent patients
+// GetMostRecentPatientList returns the latest patients for dashboards
 func GetMostRecentPatientList(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 	userRole := c.Locals("userRole").(string)
@@ -311,18 +283,15 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	var patients []models.Patient
 	var err error
 
-	// Admin users can see all patients
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		patients, err = models.GetMostRecentPatientList()
 	case "doctor":
-		// Doctor users can only see their assigned patients (we'll get all and limit to recent)
-		allPatients, err := models.GetPatientsForDoctor(userID)
-		if err != nil {
-			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+		allPatients, docErr := models.GetPatientsForDoctor(userID)
+		if docErr != nil {
+			log.Printf("Error fetching patients for doctor %s: %v", userID, docErr)
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
 		}
-		// Limit to 10 most recent for doctors too
 		if len(allPatients) > 10 {
 			patients = allPatients[:10]
 		} else {
@@ -333,7 +302,7 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		log.Printf("Error fetching all patients: %v", err)
+		log.Printf("Error fetching recent patients: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
 	}
 
@@ -345,12 +314,11 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	return c.JSON(patientResponses)
 }
 
-// GetPatientsPaginated retrieves patients with pagination based on user role
+// GetPatientsPaginated returns paginated patients with optional search
 func GetPatientsPaginated(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 	userRole := c.Locals("userRole").(string)
 
-	// Parse pagination parameters
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "25"))
 	search := html.EscapeString(strings.TrimSpace(c.Query("search", "")))
@@ -366,9 +334,8 @@ func GetPatientsPaginated(c *fiber.Ctx) error {
 	var total int64
 	var err error
 
-	// Role-based patient retrieval
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		patients, total, err = models.GetPatientsPaginated(search, page, limit)
 	case "doctor":
 		patients, total, err = models.GetPatientsPaginatedForDoctor(userID, search, page, limit)
@@ -381,13 +348,11 @@ func GetPatientsPaginated(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
 	}
 
-	// Map to response format
 	var patientResponses []PatientResponse
 	for _, p := range patients {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
 
-	// Return paginated response
 	return c.JSON(fiber.Map{
 		"data": patientResponses,
 		"pagination": fiber.Map{

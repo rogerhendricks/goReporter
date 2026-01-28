@@ -165,7 +165,7 @@ func GetTasks(c *fiber.Ctx) error {
 	}
 
 	// Role-based filtering
-	if userRole != "admin" && userRole != "doctor" {
+	if userRole != "admin" && userRole != "doctor" && userRole != "viewer" {
 		// Regular users see tasks assigned to them, created by them, or assigned to their teams
 		query = query.Where(
 			config.DB.Where("assigned_to_id = ?", userID).
@@ -232,7 +232,7 @@ func GetTask(c *fiber.Ctx) error {
 	}
 
 	// Check permissions
-	if userRole != "admin" && userRole != "doctor" {
+	if userRole != "admin" && userRole != "doctor" && userRole != "viewer" {
 		hasAccess := false
 
 		// Check if assigned to user
@@ -506,7 +506,7 @@ func UpdateTask(c *fiber.Ctx) error {
 	if !wasCompleted && task.Status == models.TaskStatusCompleted {
 		username, _ := c.Locals("username").(string)
 		taskID := task.ID
-		services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+		services.NotificationsHub.BroadcastToAdmins(services.NotificationEvent{
 			Type:        "task.completed",
 			Title:       "Task completed",
 			Message:     fmt.Sprintf("%s marked task '%s' complete", username, task.Title),
@@ -770,10 +770,28 @@ func GetTasksByPatient(c *fiber.Ctx) error {
 		})
 	}
 
+	userIDVal := c.Locals("user_id")
+	var userID uint
+	if userIDRaw, ok := userIDVal.(uint); ok {
+		userID = userIDRaw
+	}
+	userRoleVal := c.Locals("user_role")
+	userRole, _ := userRoleVal.(string)
+
 	var tasks []models.Task
 	query := config.DB.Where("patient_id = ?", patientID).
 		Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").
 		Order("due_date ASC NULLS LAST, priority DESC, created_at DESC")
+
+	if userRole != "admin" && userRole != "doctor" && userRole != "viewer" {
+		query = query.Where(
+			config.DB.Where("assigned_to_id = ?", userID).
+				Or("created_by_id = ?", userID).
+				Or("assigned_to_team_id IN (?)",
+					config.DB.Table("team_members").Select("team_id").Where("user_id = ?", userID),
+				),
+		)
+	}
 
 	if err := query.Find(&tasks).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

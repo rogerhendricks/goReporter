@@ -6,7 +6,7 @@ interface User {
   ID: number
   email: string
   username: string
-  role: 'admin' | 'doctor' | 'user'
+  role: 'admin' | 'doctor' | 'user' | 'viewer'
   fullName?: string
   themePreference?: string
   CreatedAt?: string
@@ -34,6 +34,7 @@ interface AuthState {
   get isAdmin(): boolean
   get isDoctor(): boolean
   get isUser(): boolean
+  get isViewer(): boolean
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -45,7 +46,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hasAccess: (roles: string[]) => {
     const { user } = get()
-    return user ? roles.includes(user.role) : false
+    if (!user || roles.length === 0) return false
+
+    if (roles.includes(user.role)) return true
+
+    if (roles.includes('user')) {
+      if (user.role === 'viewer') {
+        const restricted = ['admin', 'doctor']
+        return !restricted.some((r) => roles.includes(r))
+      }
+    }
+
+    return false
   },
 
   get isAdmin() {
@@ -61,6 +73,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   get isUser() {
     const role = get().user?.role
     return role?.toLowerCase() === 'user'
+  },
+
+  get isViewer() {
+    const role = get().user?.role
+    return role?.toLowerCase() === 'viewer'
   },
 
   login: async (username: string, password: string) => {

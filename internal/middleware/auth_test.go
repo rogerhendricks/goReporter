@@ -299,6 +299,31 @@ func TestAuthenticateJWTAllowsAuthorizationHeader(t *testing.T) {
 	}
 }
 
+func TestAuthenticateJWTRejectsExpiredTemporaryUser(t *testing.T) {
+	testutil.SetupTestEnv(t)
+	app := setupAuthMiddlewareApp(t)
+	expiredAt := time.Now().Add(-time.Hour)
+	user := seedMiddlewareUser(t, "expired-temp", "user", func(u *models.User) {
+		u.IsTemporary = true
+		u.ExpiresAt = &expiredAt
+	})
+
+	token := generateTestJWT(t, user.ID)
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.AddCookie(&http.Cookie{Name: "access_token", Value: token})
+
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 for expired temporary user, got %d", resp.StatusCode)
+	}
+}
+
 func TestRequireAdminAllowsAdmins(t *testing.T) {
 	testutil.SetupTestEnv(t)
 	app := setupAdminRouteApp()

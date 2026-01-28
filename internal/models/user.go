@@ -17,18 +17,22 @@ const (
 
 type User struct {
 	gorm.Model
-	Username            string     `json:"username" gorm:"type:varchar(255);uniqueIndex;not null"`
-	Password            string     `json:"password" gorm:"type:varchar(255);not null"`
-	Email               string     `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
-	Role                string     `json:"role" gorm:"type:varchar(50);not null"`
-	FullName            string     `json:"fullName,omitempty" gorm:"type:varchar(100)"`                        // Optional full name
-	ThemePreference     string     `json:"themePreference,omitempty" gorm:"type:varchar(50);default:'system'"` // User's preferred theme
-	DoctorID            *uint      `json:"doctorId,omitempty" gorm:"index"`                                    // Link to doctor record for doctor role users
-	Doctor              *Doctor    `json:"doctor,omitempty" gorm:"foreignKey:DoctorID"`                        // Belongs to doctor
-	Reports             []Report   `json:"reports"`                                                            // Has many reports
-	RefreshTokens       []Token    `json:"refresh_tokens"`
-	FailedLoginAttempts int        `json:"-" gorm:"default:0"` // Track failed login attempts
-	LockedUntil         *time.Time `json:"-" gorm:"index"`     // Has many tokens
+	Username                    string     `json:"username" gorm:"type:varchar(255);uniqueIndex;not null"`
+	Password                    string     `json:"password" gorm:"type:varchar(255);not null"`
+	Email                       string     `json:"email" gorm:"type:varchar(255);uniqueIndex;not null"`
+	Role                        string     `json:"role" gorm:"type:varchar(50);not null"`
+	FullName                    string     `json:"fullName,omitempty" gorm:"type:varchar(100)"`                        // Optional full name
+	ThemePreference             string     `json:"themePreference,omitempty" gorm:"type:varchar(50);default:'system'"` // User's preferred theme
+	DoctorID                    *uint      `json:"doctorId,omitempty" gorm:"index"`                                    // Link to doctor record for doctor role users
+	Doctor                      *Doctor    `json:"doctor,omitempty" gorm:"foreignKey:DoctorID"`                        // Belongs to doctor
+	Reports                     []Report   `json:"reports"`                                                            // Has many reports
+	RefreshTokens               []Token    `json:"refresh_tokens"`
+	FailedLoginAttempts         int        `json:"-" gorm:"default:0"`
+	LockedUntil                 *time.Time `json:"-" gorm:"index"`
+	IsTemporary                 bool       `json:"isTemporary" gorm:"default:false"`
+	ExpiresAt                   *time.Time `json:"expiresAt" gorm:"index"`
+	LastTemporaryWarningAt      *time.Time `json:"-" gorm:"index"`
+	LastTemporaryExpiryNoticeAt *time.Time `json:"-" gorm:"index"`
 }
 
 func (u *User) TableName() string {
@@ -93,6 +97,20 @@ func GetUserByID(userID string) (*User, error) {
 	return &user, nil
 }
 
+func (u *User) IsTemporaryExpired() bool {
+	if !u.IsTemporary || u.ExpiresAt == nil {
+		return false
+	}
+	return time.Now().After(*u.ExpiresAt)
+}
+
+func (u *User) IsTemporaryWithin(days int) bool {
+	if !u.IsTemporary || u.ExpiresAt == nil {
+		return false
+	}
+	return time.Until(*u.ExpiresAt) <= (time.Hour * 24 * time.Duration(days))
+}
+
 // GetUsername returns the username of the user
 func (u *User) GetUsername() string {
 	return u.Username
@@ -136,6 +154,40 @@ func CreateUser(user *User) error {
 // UpdateUser updates an existing user
 func UpdateUser(user *User) error {
 	return config.DB.Save(user).Error
+}
+
+func GetTemporaryUsersRequiringWarning(daysBefore int) ([]User, error) {
+	if daysBefore <= 0 {
+		daysBefore = 3
+	}
+
+	threshold := time.Now().Add(time.Hour * 24 * time.Duration(daysBefore))
+	var users []User
+	err := config.DB.Where("is_temporary = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (last_temporary_warning_at IS NULL OR last_temporary_warning_at < ?) AND (expires_at > ?)",
+		true,
+		threshold,
+		threshold,
+		time.Now(),
+	).Find(&users).Error
+	return users, err
+}
+
+func GetTemporaryUsersExpired() ([]User, error) {
+	var users []User
+	err := config.DB.Where("is_temporary = ? AND expires_at IS NOT NULL AND expires_at <= ? AND (last_temporary_expiry_notice_at IS NULL OR last_temporary_expiry_notice_at < ?)",
+		true,
+		time.Now(),
+		time.Now(),
+	).Find(&users).Error
+	return users, err
+}
+
+func MarkTemporaryWarningSent(userID uint) error {
+	return config.DB.Model(&User{}).Where("id = ?", userID).Update("last_temporary_warning_at", time.Now()).Error
+}
+
+func MarkTemporaryExpiryNoticeSent(userID uint) error {
+	return config.DB.Model(&User{}).Where("id = ?", userID).Update("last_temporary_expiry_notice_at", time.Now()).Error
 }
 
 // DeleteUser deletes a user by ID

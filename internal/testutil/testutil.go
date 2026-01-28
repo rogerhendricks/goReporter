@@ -35,7 +35,10 @@ func SetupTestEnv(t *testing.T) *gorm.DB {
 		&models.Patient{},
 		&models.PatientDoctor{},
 		&models.Address{},
+		&models.Task{},
+		&models.Report{},
 	); err != nil {
+
 		t.Fatalf("failed to migrate test database: %v", err)
 	}
 

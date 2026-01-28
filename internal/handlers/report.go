@@ -417,7 +417,7 @@ func CreateReport(c *fiber.Ctx) error {
 			// Notify admins (in-app) when report is created as completed.
 			username, _ := c.Locals("username").(string)
 			reportID := createdReport.ID
-			services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+			services.NotificationsHub.BroadcastToAdmins(services.NotificationEvent{
 				Type:        "report.completed",
 				Title:       "Report completed",
 				Message:     fmt.Sprintf("%s marked report #%d complete", username, createdReport.ID),
@@ -579,7 +579,7 @@ func UpdateReport(c *fiber.Ctx) error {
 			// Notify admins (in-app) when report becomes completed.
 			username, _ := c.Locals("username").(string)
 			reportID := finalReport.ID
-			services.AdminNotificationsHub.BroadcastToAdmins(services.NotificationEvent{
+			services.NotificationsHub.BroadcastToAdmins(services.NotificationEvent{
 				Type:        "report.completed",
 				Title:       "Report completed",
 				Message:     fmt.Sprintf("%s marked report #%d complete", username, finalReport.ID),

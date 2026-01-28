@@ -103,6 +103,12 @@ func AuthenticateJWT(c *fiber.Ctx) error {
 		})
 	}
 
+	if user.IsTemporaryExpired() {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{
+			"error": "Temporary access has expired",
+		})
+	}
+
 	c.Locals("userID", userID)
 	c.Locals("user", &user)
 	c.Locals("user_id", user.ID) // Legacy variable for task.go handlers
@@ -170,7 +176,7 @@ func AuthorizeDoctorPatientAccess(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: User not found"})
 	}
 
-	if user.Role == "admin" || user.Role == "user" {
+	if user.Role == "admin" || user.Role == "user" || user.Role == "viewer" {
 		return c.Next()
 	}
 
@@ -199,7 +205,7 @@ func SetUserRole(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: User not found"})
 	}
 
-	if user.Role == "admin" || user.Role == "user" || user.Role == "doctor" {
+	if user.Role == "admin" || user.Role == "user" || user.Role == "doctor" || user.Role == "viewer" {
 		c.Locals("userRole", user.Role)
 		return c.Next()
 	}

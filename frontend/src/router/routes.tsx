@@ -91,14 +91,14 @@ export const routes: RouteConfig[] = [
     element: <KnowledgeBase />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   {
     path: '/appointments',
     element: <AppointmentCalendarPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   // Patient routes - admin can create/edit, doctors can view their patients
   {
@@ -106,7 +106,7 @@ export const routes: RouteConfig[] = [
     element: <PatientIndex />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   {
     path: '/patients/new',
@@ -120,7 +120,7 @@ export const routes: RouteConfig[] = [
     element: <PatientDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   {
     path: '/patients/:id/edit',
@@ -134,7 +134,7 @@ export const routes: RouteConfig[] = [
     element: <PatientReportList />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   {
     path: '/patients/:patientId/reports/new',
@@ -167,10 +167,10 @@ export const routes: RouteConfig[] = [
 
   },
   { path: 'search/patients', 
-    element: <PatientSearch />,
+    element: <PatientSearch />, 
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   // Doctor routes - admin only for create/edit
   {
@@ -277,11 +277,11 @@ export const routes: RouteConfig[] = [
 
   // Task management
   {
-  path: '/tasks',
-  element: <TaskList />,
-  requiresAuth: true,
-  layout: 'default',
-  roles: ['admin', 'doctor', 'user']
+    path: '/tasks',
+    element: <TaskList />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user', 'viewer']
   },
   {
     path: 'tasks/new',

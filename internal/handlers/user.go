@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rogerhendricks/goReporter/internal/utils"
 
@@ -17,25 +18,91 @@ import (
 	"gorm.io/gorm"
 )
 
+// Payloads dedicated to user management to avoid leaking unintended fields
+// and to capture optional temporary-access metadata cleanly.
+type userCreateRequest struct {
+	Username    string     `json:"username"`
+	Email       string     `json:"email"`
+	FullName    string     `json:"fullName"`
+	Role        string     `json:"role"`
+	Password    string     `json:"password"`
+	IsTemporary *bool      `json:"isTemporary"`
+	ExpiresAt   *time.Time `json:"expiresAt"`
+}
+
+type userUpdateRequest struct {
+	Username    *string    `json:"username"`
+	Email       *string    `json:"email"`
+	FullName    *string    `json:"fullName"`
+	Role        *string    `json:"role"`
+	Password    *string    `json:"password"`
+	DoctorID    *uint      `json:"doctorId"`
+	IsTemporary *bool      `json:"isTemporary"`
+	ExpiresAt   *time.Time `json:"expiresAt"`
+}
+
 // CreateUser creates a new user
 func CreateUser(c *fiber.Ctx) error {
-	var newUser models.User
-	if err := c.BodyParser(&newUser); err != nil {
+	authenticatedUserID, ok := c.Locals("userID").(string)
+	if !ok || authenticatedUserID == "" {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid session"})
+	}
+
+	requester, err := models.GetUserByID(authenticatedUserID)
+	if err != nil || requester.Role != "admin" {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Admin access required"})
+	}
+
+	var payload userCreateRequest
+	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
 	}
 
-	// Validate input
+	role := strings.TrimSpace(payload.Role)
+	if role == "" {
+		role = "user"
+	}
+
+	isTemporary := payload.IsTemporary != nil && *payload.IsTemporary
+
+	newUser := models.User{
+		Username:    strings.TrimSpace(payload.Username),
+		Email:       strings.TrimSpace(payload.Email),
+		FullName:    strings.TrimSpace(payload.FullName),
+		Role:        role,
+		IsTemporary: isTemporary,
+	}
+
+	if newUser.IsTemporary {
+		newUser.Role = "viewer"
+
+		if payload.ExpiresAt == nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users must include an expiration date"})
+		}
+
+		expiresAt := *payload.ExpiresAt
+		newUser.ExpiresAt = &expiresAt
+	} else {
+		newUser.ExpiresAt = nil
+	}
+
+	if newUser.Role == "doctor" && newUser.IsTemporary {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users cannot be doctors"})
+	}
+
+	if newUser.IsTemporary && newUser.DoctorID != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users cannot be linked to doctor records"})
+	}
+
 	if err := validateUserUpdate(&newUser, true); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// Sanitize input
-	newUser.Username = html.EscapeString(strings.TrimSpace(newUser.Username))
-	newUser.Email = html.EscapeString(strings.TrimSpace(newUser.Email))
-	newUser.FullName = html.EscapeString(strings.TrimSpace(newUser.FullName))
+	newUser.Username = html.EscapeString(newUser.Username)
+	newUser.Email = html.EscapeString(newUser.Email)
+	newUser.FullName = html.EscapeString(newUser.FullName)
 
-	// Hash password (assuming a HashPassword function exists)
-	hashedPassword, err := models.HashPassword(newUser.Password)
+	hashedPassword, err := models.HashPassword(payload.Password)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to hash password"})
 	}
@@ -45,6 +112,10 @@ func CreateUser(c *fiber.Ctx) error {
 	if err := models.CreateUser(&newUser); err != nil {
 		log.Printf("Error creating user: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
+	}
+
+	if newUser.IsTemporary {
+		newUser.Role = "viewer"
 	}
 
 	// If the user is a doctor, create a corresponding doctor record
@@ -156,17 +227,12 @@ func UpdateUser(c *fiber.Ctx) error {
 		isAdmin = true
 	}
 
-	var updateData models.User
-	if err := c.BodyParser(&updateData); err != nil {
+	var payload userUpdateRequest
+	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
 	}
 
-	// Validate input
-	if err := validateUserUpdate(&updateData, isAdmin); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	// Get existing user using string conversion (as your GetUserByID expects string)
+	// Load the user that is being updated
 	existingUser, err := models.GetUserByID(userIDParam)
 	if err != nil {
 		log.Printf("Error fetching user %s: %v", userIDParam, err)
@@ -176,50 +242,113 @@ func UpdateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
 	}
 
-	// Check for username uniqueness if updating username
-	if updateData.Username != "" && updateData.Username != existingUser.Username {
-		existingUserByUsername, err := models.GetUserByUsername(updateData.Username)
-		if err == nil && existingUserByUsername.ID != existingUser.ID {
-			return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Username already exists"})
+	oldRole := existingUser.Role
+	originalIsTemporary := existingUser.IsTemporary
+
+	// Non-admins are not allowed to manipulate privileged fields
+	if !isAdmin {
+		if payload.Role != nil || payload.Password != nil || payload.DoctorID != nil ||
+			payload.IsTemporary != nil || payload.ExpiresAt != nil {
+			return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 		}
+	}
+
+	// Build a proposed user state to validate and then apply
+	proposed := *existingUser
+	proposed.Password = ""
+
+	if payload.Username != nil {
+		proposed.Username = strings.TrimSpace(*payload.Username)
+	}
+	if payload.Email != nil {
+		proposed.Email = strings.TrimSpace(*payload.Email)
+	}
+	if payload.FullName != nil {
+		proposed.FullName = strings.TrimSpace(*payload.FullName)
+	}
+	if payload.Role != nil {
+		nextRole := strings.TrimSpace(*payload.Role)
+		if proposed.IsTemporary && nextRole != "viewer" {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users must use the viewer role"})
+		}
+		proposed.Role = nextRole
+	}
+	if payload.Password != nil {
+		proposed.Password = *payload.Password
+	}
+	if payload.IsTemporary != nil {
+		proposed.IsTemporary = *payload.IsTemporary
+		if proposed.IsTemporary {
+			proposed.Role = "viewer"
+		}
+	}
+
+	if proposed.IsTemporary {
+		if payload.ExpiresAt == nil && existingUser.ExpiresAt == nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users must include an expiration date"})
+		}
+		if payload.ExpiresAt != nil {
+			proposed.ExpiresAt = payload.ExpiresAt
+		}
+	} else {
+		proposed.ExpiresAt = nil
+	}
+
+	if payload.ExpiresAt != nil && !proposed.IsTemporary {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Expiration dates are only valid for temporary users"})
+	}
+
+	if err := validateUserUpdate(&proposed, isAdmin); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// Check for username uniqueness if updating username
+	if payload.Username != nil {
+		newUsername := proposed.Username
+		if newUsername != existingUser.Username {
+			existingUserByUsername, err := models.GetUserByUsername(newUsername)
+			if err == nil && existingUserByUsername.ID != existingUser.ID {
+				return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Username already exists"})
+			}
+		}
+		existingUser.Username = html.EscapeString(newUsername)
 	}
 
 	// Check for email uniqueness if updating email
-	if updateData.Email != "" && updateData.Email != existingUser.Email {
-		existingUserByEmail, err := models.GetUserByEmail(updateData.Email)
-		if err == nil && existingUserByEmail.ID != existingUser.ID {
-			return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Email already exists"})
+	if payload.Email != nil {
+		newEmail := proposed.Email
+		if newEmail != existingUser.Email {
+			existingUserByEmail, err := models.GetUserByEmail(newEmail)
+			if err == nil && existingUserByEmail.ID != existingUser.ID {
+				return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Email already exists"})
+			}
 		}
+		existingUser.Email = html.EscapeString(newEmail)
 	}
 
-	if updateData.FullName != "" && updateData.FullName != existingUser.FullName {
-		existingUserByFullName, err := models.GetUserByFullName(updateData.FullName)
-		if err == nil && existingUserByFullName.ID != existingUser.ID {
-			return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Full name already exists"})
+	if payload.FullName != nil {
+		newFullName := proposed.FullName
+		if newFullName != existingUser.FullName {
+			existingUserByFullName, err := models.GetUserByFullName(newFullName)
+			if err == nil && existingUserByFullName.ID != existingUser.ID {
+				return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Full name already exists"})
+			}
 		}
-	}
-	// Sanitize and update allowed fields
-	if updateData.Username != "" {
-		existingUser.Username = html.EscapeString(strings.TrimSpace(updateData.Username))
+		existingUser.FullName = html.EscapeString(newFullName)
 	}
 
-	if updateData.Email != "" {
-		existingUser.Email = html.EscapeString(strings.TrimSpace(updateData.Email))
-	}
-
-	if updateData.FullName != "" {
-		existingUser.FullName = html.EscapeString(strings.TrimSpace(updateData.FullName))
-	}
-
-	// Only admin can change roles
-	oldRole := existingUser.Role
-	if isAdmin && updateData.Role != "" {
-		existingUser.Role = html.EscapeString(strings.TrimSpace(updateData.Role))
+	// Only admin can change roles (temporary users are always viewers)
+	if isAdmin && payload.Role != nil {
+		if proposed.IsTemporary && proposed.Role != "viewer" {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users must use the viewer role"})
+		}
+		newRole := proposed.Role
+		existingUser.Role = html.EscapeString(newRole)
 	}
 
 	// Handle password updates (admin only through this endpoint)
-	if isAdmin && updateData.Password != "" {
-		hashedPassword, err := models.HashPassword(updateData.Password)
+	if isAdmin && payload.Password != nil {
+		hashedPassword, err := models.HashPassword(proposed.Password)
 		if err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -227,8 +356,25 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	// Handle doctor ID updates (admin only)
-	if isAdmin && updateData.DoctorID != nil {
-		existingUser.DoctorID = updateData.DoctorID
+	if isAdmin && payload.DoctorID != nil {
+		if proposed.IsTemporary {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users cannot be linked to doctor records"})
+		}
+		existingUser.DoctorID = payload.DoctorID
+	}
+
+	// Apply the proposed temporary state and enforce viewer role if needed
+	existingUser.IsTemporary = proposed.IsTemporary
+	if existingUser.IsTemporary {
+		existingUser.Role = "viewer"
+		existingUser.ExpiresAt = proposed.ExpiresAt
+		existingUser.DoctorID = nil
+	} else {
+		existingUser.ExpiresAt = nil
+		if originalIsTemporary {
+			existingUser.LastTemporaryWarningAt = nil
+			existingUser.LastTemporaryExpiryNoticeAt = nil
+		}
 	}
 
 	// Update user in the database
@@ -341,6 +487,15 @@ func validateUserUpdate(user *models.User, isAdmin bool) error {
 		return errors.New("invalid role")
 	}
 
+	if user.IsTemporary {
+		if user.ExpiresAt == nil {
+			return errors.New("temporary users must include an expiration date")
+		}
+		if time.Until(*user.ExpiresAt) <= 0 {
+			return errors.New("temporary user expiration must be in the future")
+		}
+	}
+
 	// Validate password if provided (admin only updates) - use new complexity validation
 	if user.Password != "" {
 		if err := utils.ValidatePasswordComplexity(user.Password); err != nil {
@@ -370,7 +525,7 @@ func isValidEmail(email string) bool {
 
 // isValidRole checks if role is one of the allowed values
 func isValidRole(role string) bool {
-	allowedRoles := []string{"admin", "user", "doctor"}
+	allowedRoles := []string{"admin", "user", "doctor", "viewer"}
 	for _, allowedRole := range allowedRoles {
 		if role == allowedRole {
 			return true

@@ -17,6 +17,7 @@ import (
 	"github.com/rogerhendricks/goReporter/internal/models"
 	"github.com/rogerhendricks/goReporter/internal/router"
 	"github.com/rogerhendricks/goReporter/internal/security"
+	"github.com/rogerhendricks/goReporter/internal/services"
 )
 
 func main() {
@@ -28,11 +29,8 @@ func main() {
 		config.CloseDatabase()
 	}()
 
-	// Start background tasks
-	go startBackgroundTasks()
-
 	// Optional: reset SQLite DB file on startup if requested
-	// DB_RESET=file -> remove [reporter.db](http://_vscodecontentref_/1) before connecting
+	// DB_RESET=file -> remove reporter.db before connecting
 	if os.Getenv("DB_RESET") == "file" {
 		if err := os.Remove("reporter.db"); err == nil {
 			log.Println("SQLite database file removed for reset.")
@@ -64,6 +62,10 @@ func main() {
 	// Initialize webhook service
 	handlers.InitWebhookService(config.DB)
 	log.Println("Webhook service initialized.")
+
+	// Start background tasks after DB + services are ready
+	go startBackgroundTasks()
+	go startTemporaryAccessTasks()
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -133,8 +135,6 @@ func main() {
 	log.Println("Static file routes setup complete.")
 
 	log.Println("Starting server on port 5000...")
-	// Start the server
-	// Start the server
 	if err := app.Listen(":5000"); err != nil {
 		log.Fatalf("Fiber server failed to start: %v", err)
 	}
@@ -151,4 +151,9 @@ func startBackgroundTasks() {
 			log.Println("Successfully checked and updated expired consents")
 		}
 	}
+}
+
+func startTemporaryAccessTasks() {
+	monitor := services.NewTemporaryAccessMonitor()
+	monitor.Start()
 }

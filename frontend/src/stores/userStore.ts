@@ -3,14 +3,16 @@ import api from '@/utils/axios'
 import { toast } from 'sonner'
 
 export interface User {
-  ID: string
+  ID?: string
   username: string
   fullName: string
   email: string
-  role: 'admin' | 'doctor' | 'user'
+  role: 'admin' | 'doctor' | 'user' | 'viewer'
   password?: string
   createdAt: string
   updatedAt: string
+  isTemporary: boolean
+  expiresAt: string | null
 }
 
 interface UserState {
@@ -24,7 +26,20 @@ interface UserState {
   clearError: () => void
 }
 
+const normalizeUserPayload = (user: User): User => ({
+  ...user,
+  password: '',
+  isTemporary: Boolean(user.isTemporary),
+  expiresAt: user.expiresAt || null,
+})
+
+const serializeUserData = (userData: Partial<User>) => ({
+  ...userData,
+  expiresAt: userData.expiresAt ? new Date(userData.expiresAt).toISOString() : null,
+})
+
 export const useUserStore = create<UserState>((set) => ({
+
   users: [],
   loading: false,
   error: null,
@@ -35,7 +50,7 @@ export const useUserStore = create<UserState>((set) => ({
     set({ loading: true, error: null })
     try {
       const response = await api.get<User[]>('/users')
-      const users = response.data.map(u => ({ ...u, password: '' }))
+      const users = response.data.map(normalizeUserPayload)
       set({ users, loading: false })
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Failed to fetch users'
@@ -47,10 +62,10 @@ export const useUserStore = create<UserState>((set) => ({
   createUser: async (userData) => {
     set({ loading: true, error: null })
     try {
-      const response = await api.post<User>('/users', userData)
-      const newUser = response.data
+      const response = await api.post<User>('/users', serializeUserData(userData))
+      const newUser = normalizeUserPayload(response.data)
       set((state) => ({
-        users: [...state.users, { ...newUser, password: '' }],
+        users: [...state.users, newUser],
         loading: false,
       }))
       toast.success(`User "${newUser.username}" created successfully.`)
@@ -66,11 +81,11 @@ export const useUserStore = create<UserState>((set) => ({
   updateUser: async (userId, userData) => {
     set({ loading: true, error: null })
     try {
-      const response = await api.put<User>(`/users/${userId}`, userData)
-      const updatedUser = response.data
+      const response = await api.put<User>(`/users/${userId}`, serializeUserData(userData))
+      const updatedUser = normalizeUserPayload(response.data)
       set((state) => ({
         users: state.users.map((user) =>
-          user.ID === userId ? { ...updatedUser, password: '' } : user
+          user.ID === userId ? updatedUser : user
         ),
         loading: false,
       }))

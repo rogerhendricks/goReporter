@@ -608,7 +608,7 @@ func resolveUserContext(c *fiber.Ctx) (uint, string, error) {
 
 func canAccessPatient(userRole string, userID uint, patientID uint) (bool, error) {
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		return true, nil
 	case "doctor":
 		return models.IsDoctorAssociatedWithPatient(userID, patientID)

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { API_BASE_URL } from '@/lib/api'
-
+import { buildWsUrl } from '@/utils/ws'
 type AdminNotificationEvent = {
   type: string
   title: string
@@ -10,11 +10,6 @@ type AdminNotificationEvent = {
   taskId?: number
   reportId?: number
   completedBy?: string
-}
-
-function getWsUrl(path: string) {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  return `${protocol}://${window.location.host}${path}`
 }
 
 export function useAdminNotifications() {
@@ -47,7 +42,7 @@ export function useAdminNotifications() {
       return
     }
 
-    const url = getWsUrl(`${API_BASE_URL}/admin/notifications/ws`)
+    const url = buildWsUrl(`${API_BASE_URL}/admin/notifications/ws`)
 
     let closedByCleanup = false
 
@@ -85,7 +80,7 @@ export function useAdminNotifications() {
         wsRef.current = null
         if (closedByCleanup) return
 
-        // basic reconnect loop
+        // Basic reconnect loop
         if (reconnectTimerRef.current) {
           window.clearTimeout(reconnectTimerRef.current)
         }

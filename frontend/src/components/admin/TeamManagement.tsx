@@ -24,7 +24,7 @@ interface User {
 }
 
 export function TeamManagement() {
-  const { teams: storeTeams, fetchTeams: fetchTeamsFromStore } = useTeamStore()
+  const { fetchTeams: fetchTeamsFromStore } = useTeamStore()
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)

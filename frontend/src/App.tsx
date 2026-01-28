@@ -10,12 +10,14 @@ import { routes } from './router/routes'
 import './App.css'
 import { fetchCSRFToken } from './utils/axios'
 import { useAdminNotifications } from '@/hooks/useAdminNotifications'
+import { useUserNotifications } from '@/hooks/useUserNotifications'
 
 function AppContent() {
   const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
   const { theme } = useTheme()
 
   useAdminNotifications()
+  useUserNotifications()
   
   useEffect(() => {
     fetchCSRFToken()

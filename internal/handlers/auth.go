@@ -88,6 +88,25 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
+	if user.IsTemporaryExpired() {
+		security.LogEventWithUser(c, security.EventLoginFailed,
+			fmt.Sprintf("Expired temporary user attempted login: %s", username),
+			"WARNING",
+			fmt.Sprintf("%d", user.ID),
+			username,
+			map[string]interface{}{
+				"expiresAt": user.ExpiresAt,
+			})
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Temporary access has expired"})
+	}
+
+	// Check if account was locked but lock has expired - auto-unlock
+	if user.LockedUntil != nil && !user.IsLocked() {
+		if err := user.UnlockAccount(); err != nil {
+			log.Printf("Error auto-unlocking account for user %s: %v", username, err)
+		}
+	}
+
 	// Check if account was locked but lock has expired - auto-unlock
 	if user.LockedUntil != nil && !user.IsLocked() {
 		if err := user.UnlockAccount(); err != nil {
@@ -368,6 +387,13 @@ func RefreshToken(c *fiber.Ctx) error {
 	user, err := models.GetUserByID(fmt.Sprintf("%d", token.UserID))
 	if err != nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+	}
+
+	if user.IsTemporaryExpired() {
+		if err := models.RevokeRefreshToken(refreshToken); err != nil {
+			log.Printf("Error revoking refresh token for expired temp user: %v", err)
+		}
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Temporary access has expired"})
 	}
 
 	// Revoke old refresh token (token rotation)

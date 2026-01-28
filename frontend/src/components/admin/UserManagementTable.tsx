@@ -19,12 +19,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Edit, Trash2, Save, X, Plus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Save, X, Plus, Loader2, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { format, formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -35,6 +40,7 @@ export function UserManagementTable() {
     const [editingRowId, setEditingRowId] = useState<string | null>(null);
     const [editedUser, setEditedUser] = useState<Partial<User> | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+
 
     useEffect(() => {
         fetchUsers();
@@ -54,6 +60,11 @@ export function UserManagementTable() {
 
     const handleSave = async () => {
         if (!editedUser) return;
+
+        if (editedUser.isTemporary && !editedUser.expiresAt) {
+            toast.error('Temporary users require an expiration date.');
+            return;
+        }
 
         try {
             setSaving(true);
@@ -90,22 +101,40 @@ export function UserManagementTable() {
         }
     };
 
-    const handleInputChange = (field: keyof User, value: string) => {
-        if (editedUser) {
-            // Check if role is being changed to 'doctor'
-            if (field === 'role' && value === 'doctor' && editedUser.role !== 'doctor') {
-                if (!confirm('Changing role to "Doctor" will create a doctor record for patient access. Continue?')) {
-                    return; // User cancelled, don't update
-                }
+    const handleInputChange = (field: keyof User, value: string | boolean | null) => {
+        if (!editedUser) return;
+
+        if (field === 'role' && value === 'doctor' && editedUser.role !== 'doctor') {
+            if (!confirm('Changing role to "Doctor" will create a doctor record for patient access. Continue?')) {
+                return;
             }
-            setEditedUser({ ...editedUser, [field]: value });
         }
+
+        const nextState: Partial<User> = { ...editedUser, [field]: value as never };
+
+        if (field === 'isTemporary' && value === false) {
+            nextState.expiresAt = null;
+        }
+
+        if (field === 'expiresAt') {
+            nextState.expiresAt = (value as string | null) || null;
+        }
+
+        setEditedUser(nextState);
     };
 
     const handleAddNew = () => {
         handleCancel();
         setIsAdding(true);
-        setEditedUser({ username: '', email: '', role: 'user', password: '', fullName: '' });
+        setEditedUser({
+            username: '',
+            email: '',
+            role: 'user',
+            password: '',
+            fullName: '',
+            isTemporary: false,
+            expiresAt: null,
+        });
     };
 
     const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
@@ -123,6 +152,74 @@ export function UserManagementTable() {
         if (currentPage > 1) {
             setCurrentPage(currentPage - 1);
         }
+    };
+
+    const renderTemporaryControls = (userState: Partial<User>) => {
+        const isTemporary = Boolean(userState.isTemporary);
+        const expiresAt = userState.expiresAt ? new Date(userState.expiresAt) : null;
+        const isExpired = isTemporary && expiresAt ? expiresAt < new Date() : false;
+        const expiresLabel = expiresAt ? formatDistanceToNow(expiresAt, { addSuffix: true }) : 'Not set';
+        const switchId = userState.ID ? `temp-access-${userState.ID}` : 'temp-access-new';
+
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor={switchId} className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Temporary Access
+                    </Label>
+                    <Switch
+                        id={switchId}
+                        checked={isTemporary}
+                        onCheckedChange={(checked) => handleInputChange('isTemporary', checked)}
+                    />
+                </div>
+                <div className={cn('rounded-md border p-3 space-y-2', isTemporary ? 'bg-muted' : 'opacity-60')}>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Expiration
+                    </div>
+                    {isTemporary ? (
+                        <div className="space-y-2">
+                            <Input
+                                type="datetime-local"
+                                value={userState.expiresAt ? format(new Date(userState.expiresAt), "yyyy-MM-dd'T'HH:mm") : ''}
+                                onChange={(e) => handleInputChange('expiresAt', e.target.value)}
+                                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                            />
+                            <div className="flex items-center gap-2 text-xs">
+                                {expiresAt && (
+                                    <Badge variant={isExpired ? 'destructive' : 'secondary'}>
+                                        {isExpired ? 'Expired' : `Expires ${expiresLabel}`}
+                                    </Badge>
+                                )}
+                                {!expiresAt && <span className="text-destructive">Expiration required</span>}
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">Enable to grant limited-time access.</p>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderTemporaryStatus = (user: User) => {
+        if (!user.isTemporary) return null;
+        const expiresAt = user.expiresAt ? new Date(user.expiresAt) : null;
+        const isExpired = expiresAt ? expiresAt < new Date() : false;
+
+        return (
+            <div className="flex flex-col gap-1">
+                <Badge variant={isExpired ? 'destructive' : 'secondary'} className="w-fit">
+                    {isExpired ? 'Expired' : 'Temporary'}
+                </Badge>
+                {expiresAt && (
+                    <span className="text-xs text-muted-foreground">
+                        Expires {formatDistanceToNow(expiresAt, { addSuffix: true })}
+                    </span>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -147,13 +244,14 @@ export function UserManagementTable() {
                                 <TableHead className="text-left">Email</TableHead>
                                 <TableHead className="text-left">Password</TableHead>
                                 <TableHead className="text-left">Role</TableHead>
+                                <TableHead className="text-left">Temporary Access</TableHead>
                                 <TableHead className="text-left">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading && users.length === 0 ? (
                                 <TableRow className="text-left">
-                                    <TableCell colSpan={6} className="text-center">
+                                    <TableCell colSpan={7} className="text-center">
                                         <Skeleton className="h-8 w-full" />
                                     </TableCell>
                                 </TableRow>
@@ -199,6 +297,9 @@ export function UserManagementTable() {
                                                         <SelectItem value="user">User</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                {renderTemporaryControls(editedUser)}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
@@ -258,6 +359,10 @@ export function UserManagementTable() {
                                                         </Select>
                                                     </TableCell>
                                                     <TableCell>
+                                                        {renderTemporaryControls({ ...editedUser, ID: user.ID })}
+                                                    </TableCell>
+
+                                                    <TableCell>
                                                         <div className="flex gap-2">
                                                             <Button onClick={handleSave} size="sm" disabled={saving}>
                                                                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -278,9 +383,10 @@ export function UserManagementTable() {
                                                 <TableCell>{user.email}</TableCell>
                                                 <TableCell>******</TableCell>
                                                 <TableCell>{user.role}</TableCell>
+                                                <TableCell>{renderTemporaryStatus(user)}</TableCell>
                                                 <TableCell>
                                                     <div className="flex gap-2">
-                                                        <Button onClick={() => handleEdit(user)} variant="outline" size="sm" disabled={isAdding || !!editingRowId}>
+                                                        <Button onClick={() => handleEdit(user)} variant="outline" size="sm" disabled={isAdding || (!!editingRowId && editingRowId !== user.ID)}>
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
                                                         <Button onClick={() => handleDelete(user)} variant="destructive" size="sm" disabled={isAdding || !!editingRowId}>

@@ -56,7 +56,7 @@ func setupLimitedCSRFIssuanceApp(t *testing.T, maxRequests int, window time.Dura
 	return app
 }
 
-func seedTestUser(t *testing.T, username, password, role string) *models.User {
+func seedTestUser(t *testing.T, username, password, role string, mutate ...func(*models.User)) *models.User {
 	t.Helper()
 
 	hashed, err := models.HashPassword(password)
@@ -69,6 +69,10 @@ func seedTestUser(t *testing.T, username, password, role string) *models.User {
 		Email:    fmt.Sprintf("%s@example.com", username),
 		Password: hashed,
 		Role:     role,
+	}
+
+	for _, fn := range mutate {
+		fn(user)
 	}
 
 	if err := config.DB.Create(user).Error; err != nil {
@@ -178,6 +182,34 @@ func TestLoginLockoutAfterFailedAttempts(t *testing.T) {
 	}
 }
 
+func TestLoginRejectsExpiredTemporaryUser(t *testing.T) {
+	app := setupAuthTestApp(t)
+	password := "TempP@ssw0rd!"
+	expiredAt := time.Now().Add(-1 * time.Hour)
+	seedTestUser(t, "temp-expired", password, "user", func(u *models.User) {
+		u.IsTemporary = true
+		u.ExpiresAt = &expiredAt
+	})
+
+	app.Post("/login", Login)
+
+	resp := performLoginRequest(t, app, "temp-expired", password)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for expired temporary user, got %d", resp.StatusCode)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if payload["error"] != "Temporary access has expired" {
+		t.Fatalf("expected temporary access error, got %s", payload["error"])
+	}
+}
+
 func TestRefreshTokenRotatesAndRevokesOld(t *testing.T) {
 	app := setupAuthTestApp(t)
 	user := seedTestUser(t, "refresh", "Renew@bleP@ssA9Z", "user")
@@ -229,6 +261,53 @@ func TestRefreshTokenRotatesAndRevokesOld(t *testing.T) {
 
 	if _, err := models.ValidateRefreshToken(refreshToken); err == nil {
 		t.Fatalf("expected old refresh token to be revoked")
+	}
+}
+
+func TestRefreshTokenRejectsExpiredTemporaryUser(t *testing.T) {
+	app := setupAuthTestApp(t)
+	expiredAt := time.Now().Add(-30 * time.Minute)
+	user := seedTestUser(t, "refresh-temp-expired", "Renew@bleP@ssA9Z", "user", func(u *models.User) {
+		u.IsTemporary = true
+		u.ExpiresAt = &expiredAt
+	})
+
+	app.Post("/refresh-token", RefreshToken)
+
+	refreshToken, err := models.GenerateRefreshToken()
+	if err != nil {
+		t.Fatalf("failed to generate refresh token: %v", err)
+	}
+
+	expiresAt := time.Now().Add(24 * time.Hour)
+	if _, err := models.CreateRefreshToken(user.ID, refreshToken, expiresAt); err != nil {
+		t.Fatalf("failed to persist refresh token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/refresh-token", nil)
+	req.AddCookie(&http.Cookie{Name: "refresh_token", Value: refreshToken})
+
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("refresh request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 Forbidden for expired temporary refresh, got %d", resp.StatusCode)
+	}
+
+	var payload map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if payload["error"] != "Temporary access has expired" {
+		t.Fatalf("expected temporary access error, got %s", payload["error"])
+	}
+
+	if _, err := models.ValidateRefreshToken(refreshToken); err == nil {
+		t.Fatalf("expected refresh token to be revoked for expired user")
 	}
 }
 
