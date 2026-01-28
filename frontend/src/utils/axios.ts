@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { toast } from 'sonner'
 import { useAuthStore } from '../stores/authStore'
 import { API_BASE_URL } from '../lib/api'
 
@@ -66,6 +67,19 @@ api.interceptors.response.use(
       return api(originalRequest)
     }
 
+    // Show permission toast for 403s (non-CSRF)
+    if (error.response?.status === 403 &&
+        !error.response?.data?.error?.includes('CSRF')) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        'Insufficient permissions'
+      if (!originalRequest._permissionToastShown) {
+        originalRequest._permissionToastShown = true
+        toast.error(message)
+      }
+    }
+      
     // If we get a 401 and haven't tried to refresh yet
     if (error.response?.status === 401 && 
         !originalRequest._retry &&
@@ -74,9 +88,6 @@ api.interceptors.response.use(
         !originalRequest.url?.includes('/auth/login') &&
         !originalRequest.url?.includes('/auth/me') &&
         !originalRequest.url?.includes('/auth/logout')) {
-      
-      originalRequest._retry = true
-      
       try {
         // Use existing refresh promise or create a new one
         if (!refreshPromise) {
@@ -107,4 +118,3 @@ api.interceptors.response.use(
 )
 
 export default api
- 

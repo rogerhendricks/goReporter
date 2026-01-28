@@ -60,6 +60,7 @@ import { CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function PatientDetail() {
+
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { currentPatient, loading, fetchPatient, deletePatient, updatePatient } = usePatientStore()

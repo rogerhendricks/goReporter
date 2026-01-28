@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Unauthorized() {
+  useEffect(() => {
+    toast.error('Insufficient permissions')
+  }, [])
+
   return (
     <div className="flex justify-center items-center min-h-screen">
       <Card className="w-full max-w-md">

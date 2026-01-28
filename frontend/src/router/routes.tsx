@@ -305,7 +305,7 @@ export const routes: RouteConfig[] = [
     roles: ['admin']
   },
   {
-    path: '/patients/:patientId/tasks/mew',
+    path: '/patients/:patientId/tasks/new',
     element: <TaskForm />,
     requiresAuth: true,
     layout: 'default',
@@ -341,6 +341,6 @@ export const routes: RouteConfig[] = [
     element: <ProductivityReportPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'user', 'viewer']
   }
 ]
