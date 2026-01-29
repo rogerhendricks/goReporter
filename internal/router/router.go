@@ -218,14 +218,11 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/admin/consents/range", middleware.RequireAdmin, handlers.GetConsentsByDateRange)
 
 	searchGroup := app.Group("/api/search")
-	searchGroup.Use(middleware.RequireAdminOrUser)
-	{
-		searchGroup.Get("/filters", handlers.GetSavedSearchFilters)
-		searchGroup.Post("/filters", handlers.SaveSearchFilter)
-		searchGroup.Delete("/filters/:id", handlers.DeleteSavedSearchFilter)
-		searchGroup.Get("/history", handlers.GetSearchHistory)
-		searchGroup.Get("/suggestions", handlers.GetSearchSuggestions)
-	}
+	searchGroup.Get("/filters", middleware.SetUserRole, handlers.GetSavedSearchFilters)
+	searchGroup.Post("/filters", middleware.RequireAdminOrUser, handlers.SaveSearchFilter)
+	searchGroup.Delete("/filters/:id", middleware.RequireAdminOrUser, handlers.DeleteSavedSearchFilter)
+	searchGroup.Get("/history", middleware.SetUserRole, handlers.GetSearchHistory)
+	searchGroup.Get("/suggestions", middleware.SetUserRole, handlers.GetSearchSuggestions)
 
 	// Webhook routes
 	app.Get("/api/webhooks", middleware.RequireAdmin, handlers.GetWebhooks)

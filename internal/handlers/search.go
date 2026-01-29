@@ -97,158 +97,161 @@ import (
 // }
 
 func SearchPatientsComplex(c *fiber.Ctx) error {
-    var params models.PatientSearchParams
-    if err := c.QueryParser(&params); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid search parameters"})
-    }
+	var params models.PatientSearchParams
+	if err := c.QueryParser(&params); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid search parameters"})
+	}
 
-    userID := c.Locals("userID").(string)
-    userRole := c.Locals("userRole").(string)
+	userID := c.Locals("userID").(string)
+	userRole := c.Locals("userRole").(string)
 
-    // Set default fuzzy match to true if not specified
-    if c.Query("fuzzyMatch") == "" {
-        params.FuzzyMatch = true
-    }
+	// Set default fuzzy match to true if not specified
+	if c.Query("fuzzyMatch") == "" {
+		params.FuzzyMatch = true
+	}
 
-    var patients []models.Patient
-    var err error
+	var patients []models.Patient
+	var err error
 
-    switch userRole {
+	switch userRole {
 	case "admin":
-        patients, err = models.SearchPatientsComplex(params)
-    case "user":
-        patients, err = models.SearchPatientsComplex(params)
-    case "doctor":
-        // For doctors, get their patients first
-        allPatients, err := models.GetPatientsForDoctor(userID)
-        if err != nil {
-            log.Printf("Error fetching patients for doctor %s: %v", userID, err)
-            return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
-        }
-        patients = allPatients
-    default:
-        return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
-    }
+		patients, err = models.SearchPatientsComplex(params)
+	case "user":
+		patients, err = models.SearchPatientsComplex(params)
+	case "viewer":
+		patients, err = models.SearchPatientsComplex(params)
+	case "doctor":
+		// For doctors, get their patients first
+		allPatients, err := models.GetPatientsForDoctor(userID)
+		if err != nil {
+			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
+		}
+		patients = allPatients
+	default:
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
+	}
 
-    if err != nil {
-        log.Printf("Error during complex patient search: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to execute search"})
-    }
+	if err != nil {
+		log.Printf("Error during complex patient search: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to execute search"})
+	}
 
-    // Record search history asynchronously
-    go func() {
-        filterMap := make(models.JSON)
-        filterMap["firstName"] = params.FirstName
-        filterMap["lastName"] = params.LastName
-        filterMap["mrn"] = params.MRN
-        filterMap["fuzzyMatch"] = params.FuzzyMatch
-        filterMap["booleanOperator"] = params.BooleanOperator
+	// Record search history asynchronously
+	go func() {
+		filterMap := make(models.JSON)
+		filterMap["firstName"] = params.FirstName
+		filterMap["lastName"] = params.LastName
+		filterMap["mrn"] = params.MRN
+		filterMap["fuzzyMatch"] = params.FuzzyMatch
+		filterMap["booleanOperator"] = params.BooleanOperator
 
-        history := &models.SearchHistory{
-            UserID:  userID,
-            Query:   params.FirstName + " " + params.LastName,
-            Filters: filterMap,
-            Results: len(patients),
-        }
-        if err := models.AddSearchHistory(history); err != nil {
-            log.Printf("Failed to save search history: %v", err)
-        }
-    }()
+		history := &models.SearchHistory{
+			UserID:  userID,
+			Query:   params.FirstName + " " + params.LastName,
+			Filters: filterMap,
+			Results: len(patients),
+		}
+		if err := models.AddSearchHistory(history); err != nil {
+			log.Printf("Failed to save search history: %v", err)
+		}
+	}()
 
-    if patients == nil {
-        return c.JSON([]PatientResponse{})
-    }
+	if patients == nil {
+		return c.JSON([]PatientResponse{})
+	}
 
-    var patientResponses []PatientResponse
-    for _, p := range patients {
-        patientResponses = append(patientResponses, toPatientResponse(p))
-    }
+	var patientResponses []PatientResponse
+	for _, p := range patients {
+		patientResponses = append(patientResponses, toPatientResponse(p))
+	}
 
-    return c.JSON(patientResponses)
+	return c.JSON(patientResponses)
 }
+
 // SaveSearchFilter saves a user's search configuration
 func SaveSearchFilter(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
+	userID := c.Locals("userID").(string)
 
-    var filter models.SavedSearchFilter
-    if err := c.BodyParser(&filter); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
-    }
+	var filter models.SavedSearchFilter
+	if err := c.BodyParser(&filter); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
 
-    filter.UserID = userID
+	filter.UserID = userID
 
-    if err := models.SaveSearchFilter(&filter); err != nil {
-        log.Printf("Error saving search filter: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save filter"})
-    }
+	if err := models.SaveSearchFilter(&filter); err != nil {
+		log.Printf("Error saving search filter: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to save filter"})
+	}
 
-    return c.Status(http.StatusCreated).JSON(filter)
+	return c.Status(http.StatusCreated).JSON(filter)
 }
 
 // GetSavedSearchFilters retrieves all saved searches for a user
 func GetSavedSearchFilters(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
+	userID := c.Locals("userID").(string)
 
-    filters, err := models.GetSavedSearchFilters(userID)
-    if err != nil {
-        log.Printf("Error fetching saved filters: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch filters"})
-    }
+	filters, err := models.GetSavedSearchFilters(userID)
+	if err != nil {
+		log.Printf("Error fetching saved filters: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch filters"})
+	}
 
-    return c.JSON(filters)
+	return c.JSON(filters)
 }
 
 // DeleteSavedSearchFilter removes a saved search
 func DeleteSavedSearchFilter(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
-    id, err := strconv.ParseUint(c.Params("id"), 10, 32)
-    if err != nil {
-        return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filter ID"})
-    }
+	userID := c.Locals("userID").(string)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid filter ID"})
+	}
 
-    if err := models.DeleteSavedSearchFilter(uint(id), userID); err != nil {
-        log.Printf("Error deleting filter: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete filter"})
-    }
+	if err := models.DeleteSavedSearchFilter(uint(id), userID); err != nil {
+		log.Printf("Error deleting filter: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete filter"})
+	}
 
-    return c.SendStatus(http.StatusNoContent)
+	return c.SendStatus(http.StatusNoContent)
 }
 
 // GetSearchHistory retrieves recent search history
 func GetSearchHistory(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
-    limit := 10
+	userID := c.Locals("userID").(string)
+	limit := 10
 
-    if l := c.Query("limit"); l != "" {
-        if parsed, err := strconv.Atoi(l); err == nil {
-            limit = parsed
-        }
-    }
+	if l := c.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil {
+			limit = parsed
+		}
+	}
 
-    history, err := models.GetSearchHistory(userID, limit)
-    if err != nil {
-        log.Printf("Error fetching search history: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch history"})
-    }
+	history, err := models.GetSearchHistory(userID, limit)
+	if err != nil {
+		log.Printf("Error fetching search history: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch history"})
+	}
 
-    return c.JSON(history)
+	return c.JSON(history)
 }
 
 // GetSearchSuggestions provides autocomplete suggestions
 func GetSearchSuggestions(c *fiber.Ctx) error {
-    userID := c.Locals("userID").(string)
-    query := c.Query("q")
-    limit := 5
+	userID := c.Locals("userID").(string)
+	query := c.Query("q")
+	limit := 5
 
-    if query == "" {
-        return c.JSON([]string{})
-    }
+	if query == "" {
+		return c.JSON([]string{})
+	}
 
-    suggestions, err := models.GetSearchSuggestions(userID, query, limit)
-    if err != nil {
-        log.Printf("Error fetching suggestions: %v", err)
-        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch suggestions"})
-    }
+	suggestions, err := models.GetSearchSuggestions(userID, query, limit)
+	if err != nil {
+		log.Printf("Error fetching suggestions: %v", err)
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch suggestions"})
+	}
 
-    return c.JSON(suggestions)
+	return c.JSON(suggestions)
 }
