@@ -129,7 +129,7 @@ interface ReportState {
   fetchMostRecentReport: (patientId: number) => Promise<Report | null>
   // createReport: (data: Partial<Report>) => Promise<Report>
   // updateReport: (id: number, data: Partial<Report>) => Promise<Report>
-  setCurrentReport: (report: Report) => void 
+  setCurrentReport: (report: Report) => void
   deleteReport: (reportId: number) => Promise<void>
   clearError: () => void
 }
@@ -144,9 +144,9 @@ export const useReportStore = create<ReportState>((set) => ({
   fetchReportsForPatient: async (patientId) => {
     set({ loading: true, error: null })
     try {
-      console.log(`Fetching reports for patient ID: ${patientId}`)
+      // console.log(`Fetching reports for patient ID: ${patientId}`)
       const response = await api.get(`/patients/${patientId}/reports`)
-      console.log('Reports fetched:', response.data)
+      // console.log('Reports fetched:', response.data)
       set({ reports: response.data, loading: false })
     } catch (err: any) {
       set({ error: err.response?.data?.message || 'Failed to fetch reports', loading: false, reports: [] })
@@ -154,7 +154,7 @@ export const useReportStore = create<ReportState>((set) => ({
   },
 
   setCurrentReport: (report: Report) => set({ currentReport: report }),
-  
+
   fetchReport: async (reportId) => {
     set({ loading: true, error: null, currentReport: null })
     try {
@@ -184,9 +184,9 @@ export const useReportStore = create<ReportState>((set) => ({
     try {
       const response = await api.post('/reports', data)
       const newReport = response.data
-      set(state => ({ 
-        reports: [newReport, ...state.reports], 
-        loading: false 
+      set(state => ({
+        reports: [newReport, ...state.reports],
+        loading: false
       }))
       return newReport
     } catch (error: any) {

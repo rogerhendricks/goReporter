@@ -125,17 +125,17 @@ export function useAppointments(options: UseAppointmentsOptions = {}) {
   }, [])
 
   useEffect(() => {
-    console.log('useAppointments effect running - autoLoad:', autoLoad, 'patientId:', patientId)
+    // console.log('useAppointments effect running - autoLoad:', autoLoad, 'patientId:', patientId)
     if (autoLoad) {
       fetchAppointments()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoad, patientId])
 
-  useEffect(() => {
-    console.log('PatientAppointments mounted for patient', patientId)
-    return () => console.log('PatientAppointments unmounted')
-  }, [])
+  // useEffect(() => {
+  //   console.log('PatientAppointments mounted for patient', patientId)
+  //   return () => console.log('PatientAppointments unmounted')
+  // }, [])
 
   return {
     appointments,

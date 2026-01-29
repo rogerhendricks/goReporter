@@ -66,15 +66,15 @@ export function ConsentManager({ patientId }: ConsentManagerProps) {
   })
 
   useEffect(() => {
-    console.log('ConsentManager mounted for patient', patientId)
+    // console.log('ConsentManager mounted for patient', patientId)
     fetchConsents()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId])
 
-  useEffect(() => {
-    console.log('ConsentManager mounted')
-    return () => console.log('ConsentManager unmounted')
-  }, [])
+  // useEffect(() => {
+  //   console.log('ConsentManager mounted')
+  //   return () => console.log('ConsentManager unmounted')
+  // }, [])
 
   const fetchConsents = async () => {
     try {

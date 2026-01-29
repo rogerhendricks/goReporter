@@ -33,15 +33,15 @@ export default function PatientIndex() {
   const isAdmin = role?.toLowerCase() === 'admin'
   const isUser = role?.toLowerCase() === 'user'
   console.log("role:", role, "isAdmin:", isAdmin, "isUser:", isUser)
-  const { 
-    patients, 
+  const {
+    patients,
     searchResults,
-    loading, 
-    error, 
-    fetchPatients, 
-    deletePatient, 
+    loading,
+    error,
+    fetchPatients,
+    deletePatient,
     searchPatients,
-    clearError 
+    clearError
   } = usePatientStore()
 
   useEffect(() => {
@@ -81,10 +81,10 @@ export default function PatientIndex() {
     return new Date(dateString).toLocaleDateString()
   }
 
-    const breadcrumbItems = [
+  const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: 'Patients', current: true },
-    { label: '+ Add Patient', href: "/patients/new"}
+    { label: '+ Add Patient', href: "/patients/new" }
 
   ]
   return (
@@ -108,7 +108,7 @@ export default function PatientIndex() {
           </Button>
         </Alert>
       )}
-      
+
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Search Patients</CardTitle>
@@ -157,7 +157,7 @@ export default function PatientIndex() {
                   <TableRow key={patient.id}>
                     <TableCell className="font-medium text-left">{patient.mrn}</TableCell>
                     <TableCell className="text-left">
-                      <Link 
+                      <Link
                         to={`/patients/${patient.id}`}
                         className="flex items-center gap-2 hover:underline"
                       >
@@ -168,62 +168,62 @@ export default function PatientIndex() {
                     <TableCell className="text-left">{formatDate(patient.dob)}</TableCell>
                     <TableCell className="text-left">{patient.phone}</TableCell>
                     <TableCell className="text-left">
-                    {((patient.devices && patient.devices.length > 0) || (patient.leads && patient.leads.length > 0)) ? (
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
-                            {(patient.devices?.length || 0) + (patient.leads?.length || 0)} item(s)
-                          </Badge>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-80">
-                          <div className="flex flex-col space-y-2">
-                            {/* Devices Section */}
-                            {patient.devices && patient.devices.length > 0 && (
-                              <div>
-                                <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Devices</h4>
-                                <div className="flex flex-col space-y-2">
-                                  {patient.devices.map((device) => (
-                                    <div key={device.id}>
-                                      <p className="text-sm font-semibold">{`${device.device.manufacturer} ${device.device.model}`}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Name: {device.device.name} {device.status ? `(${device.status})` : ''}
-                                      </p>
-                                    </div>
-                                  ))}
+                      {((patient.devices && patient.devices.length > 0) || (patient.leads && patient.leads.length > 0)) ? (
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
+                              {(patient.devices?.length || 0) + (patient.leads?.length || 0)} item(s)
+                            </Badge>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="flex flex-col space-y-2">
+                              {/* Devices Section */}
+                              {patient.devices && patient.devices.length > 0 && (
+                                <div>
+                                  <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Devices</h4>
+                                  <div className="flex flex-col space-y-2">
+                                    {patient.devices.map((device) => (
+                                      <div key={device.id}>
+                                        <p className="text-sm font-semibold">{`${device.device.manufacturer} ${device.device.model}`}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          Name: {device.device.name} {device.status ? `(${device.status})` : ''}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Separator */}
-                            {patient.devices && patient.devices.length > 0 && patient.leads && patient.leads.length > 0 && (
-                              <hr className="my-2" />
-                            )}
+                              {/* Separator */}
+                              {patient.devices && patient.devices.length > 0 && patient.leads && patient.leads.length > 0 && (
+                                <hr className="my-2" />
+                              )}
 
-                            {/* Leads Section */}
-                            {patient.leads && patient.leads.length > 0 && (
-                              <div>
-                                <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Leads</h4>
-                                <div className="flex flex-col space-y-2">
-                                  {patient.leads.map((lead) => (
-                                    <div key={lead.id}>
-                                      <p className="text-sm font-semibold">{`${lead.lead.manufacturer} ${lead.lead.name}`}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        Model: {lead.lead.leadModel} {lead.status ? `(${lead.status})` : ''}
-                                      </p>
-                                    </div>
-                                  ))}
+                              {/* Leads Section */}
+                              {patient.leads && patient.leads.length > 0 && (
+                                <div>
+                                  <h4 className="mb-1 text-sm font-bold text-gray-500 dark:text-gray-400">Leads</h4>
+                                  <div className="flex flex-col space-y-2">
+                                    {patient.leads.map((lead) => (
+                                      <div key={lead.id}>
+                                        <p className="text-sm font-semibold">{`${lead.lead.manufacturer} ${lead.lead.name}`}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          Model: {lead.lead.leadModel} {lead.status ? `(${lead.status})` : ''}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        </HoverCardContent>
-                      </HoverCard>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">No devices or leads</span>
-                    )}
+                              )}
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No devices or leads</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-left">
-                    {patient.patientDoctors && patient.patientDoctors.length > 0 ? (
+                      {patient.patientDoctors && patient.patientDoctors.length > 0 ? (
                         <HoverCard>
                           <HoverCardTrigger asChild>
                             <Badge variant="secondary" className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700">
@@ -235,12 +235,12 @@ export default function PatientIndex() {
                               {patient.patientDoctors.map((pd, index) => (
                                 <div key={pd.id}>
                                   <div>
-                                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                                    <h4 className="text-sm font-semibold flex items-center gap-2">
                                       {pd.doctor.fullName}
                                       {pd.isPrimary && <Badge variant="outline">Primary</Badge>}
                                     </h4>
                                     <p className="text-xs text-muted-foreground">
-                                    {pd.address
+                                      {pd.address
                                         ? `${pd.address.street}, ${pd.address.city}, ${pd.address.state} ${pd.address.zip}`
                                         : 'No specific address assigned'
                                       }

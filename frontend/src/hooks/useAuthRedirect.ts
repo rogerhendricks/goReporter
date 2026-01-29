@@ -8,7 +8,7 @@ export function useAuthRedirect() {
   const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
-    console.log('useAuthRedirect triggered:', isAuthenticated)
+    // console.log('useAuthRedirect triggered:', isAuthenticated)
     if (isAuthenticated) {
       const from = location.state?.from?.pathname || '/'
       navigate(from, { replace: true })

@@ -15,17 +15,17 @@ export default function DeviceDetail() {
 
   useEffect(() => {
     if (id) {
-      console.log('DeviceDetail: ID from params:', id)
-      console.log('DeviceDetail: ID type:', typeof id)
-      
+      // console.log('DeviceDetail: ID from params:', id)
+      // console.log('DeviceDetail: ID type:', typeof id)
+
       const numericId = parseInt(id, 10)
       if (isNaN(numericId)) {
         console.error('DeviceDetail: Invalid ID format:', id)
         return
       }
-      
-      console.log('DeviceDetail: Fetching device with numeric ID:', numericId)
-      
+
+      // console.log('DeviceDetail: Fetching device with numeric ID:', numericId)
+
       fetchDevice(parseInt(id))
     }
   }, [id, fetchDevice])

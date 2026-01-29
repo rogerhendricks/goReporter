@@ -38,7 +38,7 @@ interface DoctorState {
   createDoctor: (data: Partial<Doctor>) => Promise<Doctor | undefined>
   updateDoctor: (id: number, data: Partial<Doctor>) => Promise<Doctor | undefined>
   deleteDoctor: (id: number) => Promise<void>
-  searchDoctors: (query: string) => Promise<Doctor []>
+  searchDoctors: (query: string) => Promise<Doctor[]>
   clearError: () => void
 }
 
@@ -58,29 +58,29 @@ export const useDoctorStore = create<DoctorState>((set) => ({
       params.append('page', page.toString())
       params.append('limit', limit.toString())
       if (search) params.append('search', search)
-      
+
       const response = await api.get(`/doctors/all?${params.toString()}`)
-      
+
       // Check if response has the paginated structure
       if (response.data && typeof response.data === 'object' && 'data' in response.data) {
         // Backend returns { data: [...], pagination: {...} }
-        set({ 
-          doctors: response.data.data || [], 
+        set({
+          doctors: response.data.data || [],
           pagination: response.data.pagination || null,
-          loading: false 
+          loading: false
         })
       } else {
         // Backend returns array directly (fallback)
-        set({ 
-          doctors: Array.isArray(response.data) ? response.data : [], 
+        set({
+          doctors: Array.isArray(response.data) ? response.data : [],
           pagination: null,
-          loading: false 
+          loading: false
         })
       }
     } catch (error: any) {
       console.error('Error fetching doctors:', error)
-      set({ 
-        error: error.response?.data?.error || 'Failed to fetch doctors', 
+      set({
+        error: error.response?.data?.error || 'Failed to fetch doctors',
         loading: false,
         doctors: [],
         pagination: null
@@ -91,12 +91,12 @@ export const useDoctorStore = create<DoctorState>((set) => ({
   fetchDoctor: async (id: number) => {
     set({ loading: true, error: null })
     try {
-      console.log(`Fetching doctor ${id} with addresses...`)
+      // console.log(`Fetching doctor ${id} with addresses...`)
       const response = await api.get(`/doctors/${id}`)
-      console.log('Doctor response:', response.data)
+      // console.log('Doctor response:', response.data)
       set({ currentDoctor: response.data, loading: false })
     } catch (error: any) {
-      console.error('Error fetching doctor:', error)
+      // console.error('Error fetching doctor:', error)
       set({ error: error.response?.data?.error || 'Failed to fetch doctor', loading: false })
     }
   },
@@ -157,20 +157,20 @@ export const useDoctorStore = create<DoctorState>((set) => ({
   //     return []
   //   }
   // }
-  
+
   searchDoctors: async (query: string): Promise<Doctor[]> => { // changed
     set({ loading: true, error: null })
     try {
-      console.log(`Searching doctors with query: ${query}`)
-      const response = await api.get('/doctors/search', { 
-        params: { search: query } 
+      // console.log(`Searching doctors with query: ${query}`)
+      const response = await api.get('/doctors/search', {
+        params: { search: query }
       })
-      console.log('Search doctors response:', response.data)
+      // console.log('Search doctors response:', response.data)
       const doctorsData: Doctor[] = Array.isArray(response.data) ? response.data : []
       set({ doctors: doctorsData, loading: false })
       return doctorsData // return results
     } catch (error: any) {
-      console.error('Error searching doctors:', error)
+      // console.error('Error searching doctors:', error)
       set({
         error: error.response?.data?.error || 'Failed to search doctors',
         loading: false,

@@ -129,7 +129,7 @@ interface PatientState {
   clearError: () => void
 }
 
-export const usePatientStore = create<PatientState>((set, get) => ({
+export const usePatientStore = create<PatientState>((set) => ({
   patients: [],
   searchResults: [],
   currentPatient: null,
@@ -140,9 +140,9 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   fetchPatients: async () => {
     set({ loading: true, error: null })
     try {
-      console.log('Fetching patients...')
+      // console.log('Fetching patients...')
       const response = await api.get('/patients/list')
-      console.log('Patients response:', response.data)
+      // console.log('Patients response:', response.data)
 
       // Ensure we always set an array
       const patientsData = Array.isArray(response.data) ? response.data : []
@@ -158,47 +158,49 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   },
 
   fetchPatient: async (id: number) => {
-    const state = get()
+    // const state = get()
 
     // Guard: prevent duplicate requests
-    if (state.loading) {
-      console.log(`Already loading patient, skipping request for ${id}`)
-      return
-    }
+    // if (state.loading) {
+    //   console.log(`Already loading patient, skipping request for ${id}`)
+    //   return
+    // }
 
     // Guard: if we already have this patient loaded, skip
-    if (state.currentPatient?.id === id) {
-      console.log(`Patient ${id} already loaded, skipping request`)
-      return
-    }
+    // if (state.currentPatient?.id === id) {
+    //   console.log(`Patient ${id} already loaded, skipping request`)
+    //   return
+    // }
 
     set({ loading: true, error: null })
     try {
-      console.log(`Fetching patient ${id}...`)
+      // console.log(`Fetching patient ${id}...`)
       const response = await api.get(`/patients/${id}`)
-      console.log('Patient response:', response.data)
+      // console.log('Patient response:', response.data)
       set({ currentPatient: response.data, loading: false })
     } catch (error: any) {
-      console.error('Error fetching patient:', error)
+      // console.error('Error fetching patient:', error)
       set({ error: error.response?.data?.error || 'Failed to fetch patient', loading: false })
+      toast.error('Failed to fetch patient')
     }
   },
 
   createPatient: async (data: Partial<Patient>) => {
     set({ loading: true, error: null })
     try {
-      console.log('Creating patient:', data)
+      // console.log('Creating patient:', data)
       const response = await api.post('/patients', data)
-      console.log('Create patient response:', response.data)
+      // console.log('Create patient response:', response.data)
 
       const newPatient = response.data.patient || response.data
       set(state => ({
         patients: [newPatient, ...state.patients],
         loading: false
       }))
+      toast.success('Patient created successfully')
       return newPatient
     } catch (error: any) {
-      console.error('Error creating patient:', error)
+      // console.error('Error creating patient:', error)
 
       // Check for duplicate MRN error
       if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
@@ -220,9 +222,9 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   updatePatient: async (id: number, data: Partial<Patient>) => {
     set({ loading: true, error: null })
     try {
-      console.log(`Updating patient ${id}:`, data)
+      // console.log(`Updating patient ${id}:`, data)
       const response = await api.put(`/patients/${id}`, data)
-      console.log('Update patient response:', response.data)
+      // console.log('Update patient response:', response.data)
 
       const updatedPatient = response.data
       set(state => ({
@@ -230,9 +232,10 @@ export const usePatientStore = create<PatientState>((set, get) => ({
         currentPatient: state.currentPatient?.id === id ? updatedPatient : state.currentPatient,
         loading: false
       }))
+      toast.success('Patient updated successfully')
       return updatedPatient
     } catch (error: any) {
-      console.error('Error updating patient:', error)
+      // console.error('Error updating patient:', error)
 
       // Check for duplicate MRN error
       if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
@@ -254,16 +257,18 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   deletePatient: async (id: number) => {
     set({ loading: true, error: null })
     try {
-      console.log(`Deleting patient ${id}...`)
+      // console.log(`Deleting patient ${id}...`)
       await api.delete(`/patients/${id}`)
       set(state => ({
         patients: state.patients.filter(p => p.id !== id),
         currentPatient: state.currentPatient?.id === id ? null : state.currentPatient,
         loading: false
       }))
+      toast.success('Patient deleted successfully')
     } catch (error: any) {
-      console.error('Error deleting patient:', error)
+      // console.error('Error deleting patient:', error)
       set({ error: error.response?.data?.error || 'Failed to delete patient', loading: false })
+      toast.error('Failed to delete patient')
       throw error
     }
   },
@@ -271,15 +276,15 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   searchPatients: async (query: string) => {
     set({ loading: true, error: null })
     try {
-      console.log(`Searching patients with query: ${query}`)
+      // console.log(`Searching patients with query: ${query}`)
       const response = await api.get('/patients/search', { params: { search: query } })
-      console.log('Search patients response:', response.data)
+      // console.log('Search patients response:', response.data)
 
       // Ensure we always set an array to searchResults
       const patientsData = Array.isArray(response.data) ? response.data : []
       set({ searchResults: patientsData, loading: false })
     } catch (error: any) {
-      console.error('Error searching patients:', error)
+      // console.error('Error searching patients:', error)
       set({
         error: error.response?.data?.error || 'No patients found',
         loading: false,

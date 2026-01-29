@@ -81,12 +81,12 @@ export default function PatientDetail() {
   }, [id])
 
   // Debug: Track renders
-  console.log('PatientDetail render - currentPatient:', currentPatient?.id, 'loading:', loading)
+  // console.log('PatientDetail render - currentPatient:', currentPatient?.id, 'loading:', loading)
 
   // Debug: Track currentPatient.id changes
-  useEffect(() => {
-    console.log('currentPatient.id changed to:', currentPatient?.id)
-  }, [currentPatient?.id])
+  // useEffect(() => {
+  //   console.log('currentPatient.id changed to:', currentPatient?.id)
+  // }, [currentPatient?.id])
 
   const handleToggleTag = async (tagId: number) => {
     if (!currentPatient) return

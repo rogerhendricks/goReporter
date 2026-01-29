@@ -110,12 +110,12 @@ export default function PatientForm() {
     tags: [],
   });
 
-  useEffect(() => {
-    if (selectedDoctor) {
-      console.log("Selected doctor:", selectedDoctor);
-      console.log("Doctor addresses:", selectedDoctor.addresses);
-    }
-  }, [selectedDoctor]);
+  // useEffect(() => {
+  //   if (selectedDoctor) {
+  //     console.log("Selected doctor:", selectedDoctor);
+  //     console.log("Doctor addresses:", selectedDoctor.addresses);
+  //   }
+  // }, [selectedDoctor]);
 
   const [doctorSearch, setDoctorSearch] = useState("");
   const [openDoctorSearch, setOpenDoctorSearch] = useState(false);
@@ -294,7 +294,7 @@ export default function PatientForm() {
   };
 
   const addDevice = (device: Device) => {
-    console.log("Adding device:", device);
+    // console.log("Adding device:", device);
     const deviceId = (device as any).ID || (device as any).id;
     if (!device || !deviceId) {
       console.error("Invalid device selected - missing or no ID:", device);
@@ -337,7 +337,7 @@ export default function PatientForm() {
       leads: [
         ...prev.leads,
         {
-         
+
           leadId: leadId,
           serial: "",
           chamber: "",
@@ -470,7 +470,7 @@ export default function PatientForm() {
     } catch (error: any) {
       // Error is handled by the store with toast notifications
       console.error("Error saving patient:", error);
-      
+
       // Set field-specific error for duplicate MRN
       if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
         setFieldErrors({ mrn: error.response.data.error });
@@ -491,17 +491,16 @@ export default function PatientForm() {
     { label: "Patients", href: "/patients" },
     {
       label: isEdit
-        ? `Edit ${
-            [currentPatient?.fname, currentPatient?.lname]
-              .filter(Boolean)
-              .join(" ") || "Patient"
-          }`
+        ? `Edit ${[currentPatient?.fname, currentPatient?.lname]
+          .filter(Boolean)
+          .join(" ") || "Patient"
+        }`
         : "New Patient",
       current: true,
     },
   ];
 
-  console.log("Form Data:", formData);
+  // console.log("Form Data:", formData);
 
   return (
     <div className="container mx-auto">
@@ -889,9 +888,8 @@ export default function PatientForm() {
                           <Label>Select Address (Optional)</Label>
                           <div className="space-y-2 max-h-32 overflow-y-auto">
                             <div
-                              className={`p-2 border rounded cursor-pointer ${
-                                !selectedAddress ? "bg-accent" : ""
-                              }`}
+                              className={`p-2 border rounded cursor-pointer ${!selectedAddress ? "bg-accent" : ""
+                                }`}
                               onClick={() => setSelectedAddress(null)}
                             >
                               <div className="text-sm">No specific address</div>
@@ -899,11 +897,10 @@ export default function PatientForm() {
                             {selectedDoctor.addresses.map((address) => (
                               <div
                                 key={address.id}
-                                className={`p-2 border rounded cursor-pointer ${
-                                  selectedAddress?.id === address.id
+                                className={`p-2 border rounded cursor-pointer ${selectedAddress?.id === address.id
                                     ? "bg-accent"
                                     : ""
-                                }`}
+                                  }`}
                                 onClick={() => setSelectedAddress(address)}
                               >
                                 <div className="text-sm">
@@ -964,11 +961,10 @@ export default function PatientForm() {
                 {formData.devices.map((implanted, index) => (
                   <div
                     key={index}
-                    className={`p-4 border rounded-md space-y-4 relative ${
-                      !implanted.deviceId || implanted.deviceId === 0
+                    className={`p-4 border rounded-md space-y-4 relative ${!implanted.deviceId || implanted.deviceId === 0
                         ? "border-red-500 bg-red-50"
                         : ""
-                    }`}
+                      }`}
                   >
                     <Button
                       type="button"
@@ -1119,11 +1115,10 @@ export default function PatientForm() {
                 {formData.leads.map((implanted, index) => (
                   <div
                     key={index}
-                    className={`p-4 border rounded-md space-y-4 relative ${
-                      !implanted.leadId || implanted.leadId === 0
+                    className={`p-4 border rounded-md space-y-4 relative ${!implanted.leadId || implanted.leadId === 0
                         ? "border-red-500 bg-red-50"
                         : ""
-                    }`}
+                      }`}
                   >
                     <Button
                       type="button"
@@ -1234,7 +1229,7 @@ export default function PatientForm() {
                           onChange={(e) =>
                             handleImplantedDataChange("leads", index, e)
                           }
-                   
+
                         />
                       </div>
                     </div>
@@ -1287,8 +1282,8 @@ export default function PatientForm() {
                 {loading
                   ? "Saving..."
                   : isEdit
-                  ? "Update Patient"
-                  : "Create Patient"}
+                    ? "Update Patient"
+                    : "Create Patient"}
               </Button>
               <Button
                 type="button"

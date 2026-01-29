@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useAuthStore } from "@/stores/authStore"
+import { toast } from "sonner"
 
 type Theme = "dark" | "light" | "system" | "medical-blue" | "high-contrast"
 
@@ -28,7 +29,7 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const { user, updateTheme, isAuthenticated } = useAuthStore()
-  
+
   const [theme, setThemeState] = useState<Theme>(() => {
     // Start with localStorage or default theme
     // User preference will be applied via useEffect when auth initializes
@@ -37,10 +38,10 @@ export function ThemeProvider({
 
   // Apply user's theme preference when authenticated and user data is loaded
   useEffect(() => {
-    console.log('Theme sync effect triggered:', { isAuthenticated, userTheme: user?.themePreference, currentTheme: theme })
+    // console.log('Theme sync effect triggered:', { isAuthenticated, userTheme: user?.themePreference, currentTheme: theme })
     if (isAuthenticated && user?.themePreference) {
       // Always apply user's saved preference from backend
-      console.log('Applying user theme preference:', user.themePreference)
+      // console.log('Applying user theme preference:', user.themePreference)
       setThemeState(user.themePreference as Theme)
       localStorage.setItem(storageKey, user.themePreference)
     }
@@ -76,17 +77,19 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (newTheme: Theme) => {
-      console.log('setTheme called:', { newTheme, isAuthenticated, userId: user?.ID })
+      // console.log('setTheme called:', { newTheme, isAuthenticated, userId: user?.ID })
       localStorage.setItem(storageKey, newTheme)
       setThemeState(newTheme)
-      
+
       // If user is authenticated, save theme preference to backend
       if (isAuthenticated) {
-        console.log('Saving theme to backend...')
+        // console.log('Saving theme to backend...')
         updateTheme(newTheme).then(() => {
-          console.log('Theme saved to backend successfully')
+          // console.log('Theme saved to backend successfully')
+          toast.success('Theme saved successfully')
         }).catch(err => {
-          console.error('Failed to save theme preference:', err)
+          // console.error('Failed to save theme preference:', err)
+          toast.error('Failed to save theme preference', err)
         })
       }
     },

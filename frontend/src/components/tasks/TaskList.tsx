@@ -131,7 +131,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       if (patientId) filters.patientId = patientId
       if (assignedToId) filters.assignedTo = assignedToId
 
-      console.log('Fetching patient', patientId, '...')
+      // console.log('Fetching patient', patientId, '...')
       if (patientId) {
         await fetchTasksByPatient(patientId)
       } else {
@@ -149,10 +149,10 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     dueDateFilter])
 
 
-  useEffect(() => {
-    console.log('TaskList mounted')
-    return () => console.log('TaskList unmounted')
-  }, [])
+  // useEffect(() => {
+  //   console.log('TaskList mounted')
+  //   return () => console.log('TaskList unmounted')
+  // }, [])
 
   // const getDueDateInfo = (dueDate?: string) => {
   //   if (!dueDate) return null
