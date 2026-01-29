@@ -109,7 +109,7 @@ interface TaskStore {
   currentTask: Task | null
   isLoading: boolean
   error: string | null
-  
+
   fetchTasks: (filters?: TaskFilters) => Promise<void>
   fetchTask: (id: number) => Promise<void>
   fetchTasksByPatient: (patientId: number) => Promise<void>
@@ -123,7 +123,7 @@ interface TaskStore {
   clearError: () => void
 }
 
-export const useTaskStore = create<TaskStore>((set) => ({
+export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   currentTask: null,
   isLoading: false,
@@ -140,7 +140,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
       if (filters?.dueDate && filters.dueDate !== 'all') params.append('dueDate', filters.dueDate)
       if (filters?.dueDateFrom) params.append('dueDateFrom', filters.dueDateFrom)
       if (filters?.dueDateTo) params.append('dueDateTo', filters.dueDateTo)
-      
+
       const response = await axios.get(`/tasks?${params.toString()}`)
       set({ tasks: response.data, isLoading: false })
     } catch (error: any) {
@@ -159,6 +159,11 @@ export const useTaskStore = create<TaskStore>((set) => ({
   },
 
   fetchTasksByPatient: async (patientId: number) => {
+    const state = get()
+
+    // Guard: prevent duplicate requests if already loading
+    if (state.isLoading) return
+
     set({ isLoading: true, error: null })
     try {
       const response = await axios.get(`/patients/${patientId}/tasks`)
@@ -168,13 +173,14 @@ export const useTaskStore = create<TaskStore>((set) => ({
     }
   },
 
+
   createTask: async (data: CreateTaskData) => {
     set({ isLoading: true, error: null })
     try {
       const response = await axios.post('/tasks', data)
-      set((state) => ({ 
+      set((state) => ({
         tasks: [...state.tasks, response.data],
-        isLoading: false 
+        isLoading: false
       }))
       return response.data
     } catch (error: any) {
@@ -222,7 +228,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
     try {
       const response = await axios.post(`/tasks/${taskId}/notes`, { content })
       set((state) => ({
-        currentTask: state.currentTask?.id === taskId 
+        currentTask: state.currentTask?.id === taskId
           ? { ...state.currentTask, notes: [...state.currentTask.notes, response.data] }
           : state.currentTask,
         isLoading: false
@@ -242,11 +248,11 @@ export const useTaskStore = create<TaskStore>((set) => ({
       set((state) => ({
         currentTask: state.currentTask?.id === taskId
           ? {
-              ...state.currentTask,
-              notes: state.currentTask.notes.map(note =>
-                note.id === noteId ? { ...note, content } : note
-              )
-            }
+            ...state.currentTask,
+            notes: state.currentTask.notes.map(note =>
+              note.id === noteId ? { ...note, content } : note
+            )
+          }
           : state.currentTask,
         isLoading: false
       }))
@@ -264,9 +270,9 @@ export const useTaskStore = create<TaskStore>((set) => ({
       set((state) => ({
         currentTask: state.currentTask?.id === taskId
           ? {
-              ...state.currentTask,
-              notes: state.currentTask.notes.filter(note => note.id !== noteId)
-            }
+            ...state.currentTask,
+            notes: state.currentTask.notes.filter(note => note.id !== noteId)
+          }
           : state.currentTask,
         isLoading: false
       }))

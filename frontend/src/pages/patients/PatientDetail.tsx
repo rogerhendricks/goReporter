@@ -72,38 +72,28 @@ export default function PatientDetail() {
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
   const [templateDueDate, setTemplateDueDate] = useState<Date | undefined>()
   const [isAssigning, setIsAssigning] = useState(false)
+
   useEffect(() => {
-    loadTags()
-    loadTemplates()
     if (id) {
       fetchPatient(parseInt(id))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  const loadTags = async () => {
-    try {
-      const tags = await tagService.getAll('patient')
-      setAvailableTags(tags)
-    } catch (error) {
-      console.error("Failed to load tags:", error)
-    }
-  }
+  // Debug: Track renders
+  console.log('PatientDetail render - currentPatient:', currentPatient?.id, 'loading:', loading)
 
-  const loadTemplates = async () => {
-    try {
-      const templatesData = await taskTemplateService.getAll()
-      setTemplates(templatesData)
-    } catch (error) {
-      console.error("Failed to load templates:", error)
-    }
-  }
+  // Debug: Track currentPatient.id changes
+  useEffect(() => {
+    console.log('currentPatient.id changed to:', currentPatient?.id)
+  }, [currentPatient?.id])
 
   const handleToggleTag = async (tagId: number) => {
     if (!currentPatient) return
 
     const currentTags = currentPatient.tags || []
     const isSelected = currentTags.some((t: any) => t.ID === tagId)
-    
+
     let newTags: number[]
     if (isSelected) {
       newTags = currentTags.filter((t: any) => t.ID !== tagId).map((t: any) => t.ID)
@@ -177,7 +167,8 @@ export default function PatientDetail() {
     { label: currentPatient ? `${currentPatient.fname} ${currentPatient.lname}` : 'Loading...', current: true }
   ]
 
-  if (loading) {
+  // Only show skeleton on initial load, not when refetching
+  if (loading && !currentPatient) {
     return <DetailPageSkeleton />
   }
 
@@ -196,14 +187,25 @@ export default function PatientDetail() {
 
   const patientTags = currentPatient.tags || []
   const displayedTags = patientTags.slice(0, 2)
-  const remainingTagsCount = patientTags.length -2
+  const remainingTagsCount = patientTags.length - 2
 
   return (
     <div className="container mx-auto">
       <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap gap-2">
-          <Dialog open={openTemplateDialog} onOpenChange={setOpenTemplateDialog}>
+          <Dialog open={openTemplateDialog} onOpenChange={async (open) => {
+            setOpenTemplateDialog(open)
+            // Lazy load templates when dialog opens
+            if (open && templates.length === 0) {
+              try {
+                const templatesData = await taskTemplateService.getAll()
+                setTemplates(templatesData)
+              } catch (error) {
+                console.error("Failed to load templates:", error)
+              }
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <ClipboardList className="mr-2 h-4 w-4" />
@@ -282,8 +284,8 @@ export default function PatientDetail() {
                   Create a new task associated with this patient
                 </DialogDescription>
               </DialogHeader>
-              <TaskForm 
-                patientId={currentPatient.id} 
+              <TaskForm
+                patientId={currentPatient.id}
                 onSuccess={handleTaskCreated}
                 onCancel={() => setOpenTaskDialog(false)}
               />
@@ -322,255 +324,266 @@ export default function PatientDetail() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <strong>MRN:</strong> {currentPatient.mrn}
-            </div>
-            <div>
-              <strong>Date of Birth:</strong> {formatDate(currentPatient.dob)}
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              <span>{currentPatient.phone}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              <span>{currentPatient.email}</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-1" />
-              <div className='text-left leading-tight'>
-                {currentPatient.street}<br />
-                {currentPatient.city}, {currentPatient.state}<br />
-                {currentPatient.country} {currentPatient.postal}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold">Tags</span>
-                <Popover open={openTagSearch} onOpenChange={setOpenTagSearch}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <Plus className="h-4 w-4" />
-                      <span className="sr-only">Add Tag</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0" align="end">
-                    <Command>
-                      <CommandInput placeholder="Search tags..." />
-                      <CommandList>
-                        <CommandEmpty>No tags found.</CommandEmpty>
-                        <CommandGroup>
-                          {availableTags.map((tag) => {
-                            const isSelected = currentPatient.tags?.some((t: any) => t.ID === tag.ID)
-                            return (
-                              <CommandItem
-                                key={tag.ID}
-                                onSelect={() => handleToggleTag(tag.ID)}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <div 
-                                    className="w-3 h-3 rounded-full" 
-                                    style={{ backgroundColor: tag.color }}
-                                  />
-                                  <span>{tag.name}</span>
-                                  {isSelected && <Check className="ml-auto h-4 w-4" />}
-                                </div>
-                              </CommandItem>
-                            )
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="flex flex-wrap gap-2 items-center">
-                {patientTags.length > 0 ? (
-                  <>
-                    {displayedTags.map((tag: any) => (
-                      <Badge
-                        key={tag.ID}
-                        variant="outline"
-                        className="flex items-center gap-1 pr-1"
-                        style={{ 
-                          borderColor: tag.color, 
-                          color: tag.color,
-                          backgroundColor: `${tag.color}10`
-                        }}
-                      >
-                        {tag.name}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-4 w-4 ml-1 hover:bg-transparent text-current"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleToggleTag(tag.ID)
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    ))}
-                    {remainingTagsCount > 0 && (
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <Badge 
-                            variant="secondary" 
-                            className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
-                          >
-                            +{remainingTagsCount} more
-                          </Badge>
-                        </HoverCardTrigger>
-                        <HoverCardContent className="w-80">
-                          <div className="space-y-2">
-                            <h4 className="text-sm font-semibold mb-2">All Tags</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {patientTags.map((tag: any) => (
-                                <Badge
-                                  key={tag.ID}
-                                  variant="outline"
-                                  className="flex items-center gap-1 pr-1"
-                                  style={{ 
-                                    borderColor: tag.color, 
-                                    color: tag.color,
-                                    backgroundColor: `${tag.color}10`
-                                  }}
-                                >
-                                  {tag.name}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 ml-1 hover:bg-transparent text-current"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleToggleTag(tag.ID)
-                                    }}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </HoverCardContent>
-                      </HoverCard>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-sm text-muted-foreground italic">No tags assigned</span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <PatientAppointments
-          patientId={currentPatient.id}
-          patientName={`${currentPatient.fname} ${currentPatient.lname}`}
-        />
-        <Card>
-          <CardHeader>
-            <CardTitle>Assigned Doctors ({currentPatient.patientDoctors?.length || 0})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {currentPatient.patientDoctors && currentPatient.patientDoctors.length > 0 ? (
-              <div className="relative">
-                <div className="max-h-[240px] overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-muted/10">
-                  {currentPatient.patientDoctors.map((patientDoctor) => (
-                    <div key={patientDoctor.id} className="p-3 border rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="font-semibold">{patientDoctor.doctor.fullName}</div>
-                        {patientDoctor.isPrimary && (
-                          <Badge variant="default">Primary</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{patientDoctor.doctor.email}</div>
-                      <div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone}</div>
-                      {patientDoctor.address && (
-                        <div className="text-xs text-muted-foreground">
-                          {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <CardTitle>Patient Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <strong>MRN:</strong> {currentPatient.mrn}
                 </div>
-                {currentPatient.patientDoctors.length > 3 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-                )}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No doctors assigned</p>
-            )}
-          </CardContent>
-        </Card>
+                <div>
+                  <strong>Date of Birth:</strong> {formatDate(currentPatient.dob)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>{currentPatient.phone}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>{currentPatient.email}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-1" />
+                  <div className='text-left leading-tight'>
+                    {currentPatient.street}<br />
+                    {currentPatient.city}, {currentPatient.state}<br />
+                    {currentPatient.country} {currentPatient.postal}
+                  </div>
+                </div>
 
-        {currentPatient.devices && currentPatient.devices.length > 0 && (
-          <Card className="md:col-span-2 bg-sky-500/50">
-            <CardHeader>
-              <CardTitle>Implanted Devices ({currentPatient.devices?.length || 0})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Device</TableHead>
-                    <TableHead className="text-left">Serial</TableHead>
-                    <TableHead className="text-left">Implanted On</TableHead>
-                    <TableHead className="text-left">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentPatient.devices.map((implanted) => {
-                    const hasDeviceAlert = implanted.device?.hasAlert || implanted.hasAlert
-                    return (
-                      <TableRow key={implanted.id} className={hasDeviceAlert ? 'bg-destructive/10' : undefined}>
-                        <TableCell className="text-left">
-                          <div className="flex flex-col gap-1">
-                            <div className="text-sm text-muted-foreground">
-                              {implanted.device.manufacturer} {implanted.device.model}
-                            </div>
-                            <div className="font-medium flex items-center gap-2">
-                              {implanted.device.name}
-                              {hasDeviceAlert && (
-                                <Badge variant="destructive" className="uppercase tracking-wide">
-                                  Alert
-                                </Badge>
-                              )}
-                            </div>
-                            {hasDeviceAlert && (
-                              <div className="text-sm text-destructive font-semibold">
-                                Check notes: this device has known issues.
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">Tags</span>
+                    <Popover open={openTagSearch} onOpenChange={async (open) => {
+                      setOpenTagSearch(open)
+                      // Lazy load tags when popover opens
+                      if (open && availableTags.length === 0) {
+                        try {
+                          const tags = await tagService.getAll('patient')
+                          setAvailableTags(tags)
+                        } catch (error) {
+                          console.error("Failed to load tags:", error)
+                        }
+                      }
+                    }}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Plus className="h-4 w-4" />
+                          <span className="sr-only">Add Tag</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0" align="end">
+                        <Command>
+                          <CommandInput placeholder="Search tags..." />
+                          <CommandList>
+                            <CommandEmpty>No tags found.</CommandEmpty>
+                            <CommandGroup>
+                              {availableTags.map((tag) => {
+                                const isSelected = currentPatient.tags?.some((t: any) => t.ID === tag.ID)
+                                return (
+                                  <CommandItem
+                                    key={tag.ID}
+                                    onSelect={() => handleToggleTag(tag.ID)}
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: tag.color }}
+                                      />
+                                      <span>{tag.name}</span>
+                                      {isSelected && <Check className="ml-auto h-4 w-4" />}
+                                    </div>
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {patientTags.length > 0 ? (
+                      <>
+                        {displayedTags.map((tag: any) => (
+                          <Badge
+                            key={tag.ID}
+                            variant="outline"
+                            className="flex items-center gap-1 pr-1"
+                            style={{
+                              borderColor: tag.color,
+                              color: tag.color,
+                              backgroundColor: `${tag.color}10`
+                            }}
+                          >
+                            {tag.name}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleToggleTag(tag.ID)
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                        {remainingTagsCount > 0 && (
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Badge
+                                variant="secondary"
+                                className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                              >
+                                +{remainingTagsCount} more
+                              </Badge>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="space-y-2">
+                                <h4 className="text-sm font-semibold mb-2">All Tags</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {patientTags.map((tag: any) => (
+                                    <Badge
+                                      key={tag.ID}
+                                      variant="outline"
+                                      className="flex items-center gap-1 pr-1"
+                                      style={{
+                                        borderColor: tag.color,
+                                        color: tag.color,
+                                        backgroundColor: `${tag.color}10`
+                                      }}
+                                    >
+                                      {tag.name}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 ml-1 hover:bg-transparent text-current"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleToggleTag(tag.ID)
+                                        }}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground italic">No tags assigned</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <PatientAppointments
+              patientId={currentPatient.id}
+              patientName={`${currentPatient.fname} ${currentPatient.lname}`}
+            />
+            <Card>
+              <CardHeader>
+                <CardTitle>Assigned Doctors ({currentPatient.patientDoctors?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentPatient.patientDoctors && currentPatient.patientDoctors.length > 0 ? (
+                  <div className="relative">
+                    <div className="max-h-[240px] overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-muted/10">
+                      {currentPatient.patientDoctors.map((patientDoctor) => (
+                        <div key={patientDoctor.id} className="p-3 border rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="font-semibold">{patientDoctor.doctor.fullName}</div>
+                            {patientDoctor.isPrimary && (
+                              <Badge variant="default">Primary</Badge>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-left">{implanted.serial}</TableCell>
-                        <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
-                        <TableCell className="text-left">
-                          <Badge variant={implanted.explantedAt ? "destructive" : "default"}>
-                            {implanted.explantedAt ? "Explanted" : "Active"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                          <div className="text-sm text-muted-foreground">{patientDoctor.doctor.email}</div>
+                          <div className="text-sm text-muted-foreground">{patientDoctor.doctor.phone}</div>
+                          {patientDoctor.address && (
+                            <div className="text-xs text-muted-foreground">
+                              {patientDoctor.address.street}, {patientDoctor.address.city}, {patientDoctor.address.state} {patientDoctor.address.zip}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {currentPatient.patientDoctors.length > 3 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No doctors assigned</p>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="md:col-span-2 bg-fuchsia-500/50">
-          <CardHeader>
-            <CardTitle>Implanted Leads ({currentPatient.leads?.length || 0})</CardTitle>
-          </CardHeader>
-          <CardContent>
+            {currentPatient.devices && currentPatient.devices.length > 0 && (
+              <Card className="md:col-span-2 bg-sky-500/50">
+                <CardHeader>
+                  <CardTitle>Implanted Devices ({currentPatient.devices?.length || 0})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left">Device</TableHead>
+                        <TableHead className="text-left">Serial</TableHead>
+                        <TableHead className="text-left">Implanted On</TableHead>
+                        <TableHead className="text-left">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentPatient.devices.map((implanted) => {
+                        const hasDeviceAlert = implanted.device?.hasAlert || implanted.hasAlert
+                        return (
+                          <TableRow key={implanted.id} className={hasDeviceAlert ? 'bg-destructive/10' : undefined}>
+                            <TableCell className="text-left">
+                              <div className="flex flex-col gap-1">
+                                <div className="text-sm text-muted-foreground">
+                                  {implanted.device.manufacturer} {implanted.device.model}
+                                </div>
+                                <div className="font-medium flex items-center gap-2">
+                                  {implanted.device.name}
+                                  {hasDeviceAlert && (
+                                    <Badge variant="destructive" className="uppercase tracking-wide">
+                                      Alert
+                                    </Badge>
+                                  )}
+                                </div>
+                                {hasDeviceAlert && (
+                                  <div className="text-sm text-destructive font-semibold">
+                                    Check notes: this device has known issues.
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-left">{implanted.serial}</TableCell>
+                            <TableCell className="text-left">{formatDate(implanted.implantedAt)}</TableCell>
+                            <TableCell className="text-left">
+                              <Badge variant={implanted.explantedAt ? "destructive" : "default"}>
+                                {implanted.explantedAt ? "Explanted" : "Active"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="md:col-span-2 bg-fuchsia-500/50">
+              <CardHeader>
+                <CardTitle>Implanted Leads ({currentPatient.leads?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
                 {currentPatient.leads && currentPatient.leads.length > 0 ? (
                   <Table>
                     <TableHeader>
@@ -616,75 +629,75 @@ export default function PatientDetail() {
                   </Table>
                 ) : (
 
-              <p className="text-muted-foreground">No leads implanted</p>
+                  <p className="text-muted-foreground">No leads implanted</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {currentPatient.medications && currentPatient.medications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Medications ({currentPatient.medications.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {currentPatient.medications.map((medication, index) => (
+                      <Badge key={index} variant="outline">
+                        {medication.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
 
-        {currentPatient.medications && currentPatient.medications.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Medications ({currentPatient.medications.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {currentPatient.medications.map((medication, index) => (
-                  <Badge key={index} variant="outline">
-                    {medication.name}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            {/* QRS Duration Chart */}
+            <div className="md:col-span-2">
+              <QRSDurationChart
+                reports={(currentPatient.reports || []).map(r => ({
+                  reportDate: r.reportDate,
+                  qrs_duration: r.qrs_duration ?? null,
+                }))}
+              />
+            </div>
 
-        {/* QRS Duration Chart */}
-        <div className="md:col-span-2">
-          <QRSDurationChart
-            reports={(currentPatient.reports || []).map(r => ({
-              reportDate: r.reportDate,
-              qrs_duration: r.qrs_duration ?? null,
-            }))}
-          />
-        </div>
-
-        {/* Patient Tasks */}
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Tasks</CardTitle>
-                <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
-                  <DialogTrigger asChild>
-                    <Button size="sm">
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Task
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Create Task for {currentPatient.fname} {currentPatient.lname}</DialogTitle>
-                      <DialogDescription>
-                        Create a new task associated with this patient
-                      </DialogDescription>
-                    </DialogHeader>
-                    <TaskForm 
-                      patientId={currentPatient.id} 
-                      onSuccess={handleTaskCreated}
-                      onCancel={() => setOpenTaskDialog(false)}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <TaskList patientId={currentPatient.id} showFilters={false} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="md:col-span-2">
-          <ConsentManager patientId={currentPatient.id} />  
-        </div>
+            {/* Patient Tasks */}
+            <div className="md:col-span-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Tasks</CardTitle>
+                    <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <Plus className="mr-2 h-4 w-4" />
+                          New Task
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Create Task for {currentPatient.fname} {currentPatient.lname}</DialogTitle>
+                          <DialogDescription>
+                            Create a new task associated with this patient
+                          </DialogDescription>
+                        </DialogHeader>
+                        <TaskForm
+                          patientId={currentPatient.id}
+                          onSuccess={handleTaskCreated}
+                          onCancel={() => setOpenTaskDialog(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <TaskList patientId={Number(id)} showFilters={false} />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="md:col-span-2">
+              <ConsentManager patientId={currentPatient.id} />
+            </div>
           </div>
         </TabsContent>
 

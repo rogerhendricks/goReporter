@@ -19,11 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, CheckCircle2, Circle, Clock, User, Users, AlertCircle, Plus, Eye, Trash2, HelpCircle, X, Search, XCircle } from 'lucide-react'
 import { format, isPast, isToday, isTomorrow } from 'date-fns'
 import { CardSkeleton } from '@/components/ui/loading-skeletons'
-import { 
-  findPatientsBySerialNumbers, 
+import {
+  findPatientsBySerialNumbers,
   parseSerialNumbers,
   assignTemplateToPatients,
-  type SerialNumberMatch 
+  type SerialNumberMatch
 } from '@/utils/serialNumberMatcher'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +45,7 @@ import { TaskForm } from '@/components/forms/TaskForm'
 
 interface TaskListProps {
   patientId?: number
-  assignedToId?: number 
+  assignedToId?: number
   showFilters?: boolean
 }
 
@@ -74,7 +74,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
   const [dueDateFilter, setDueDateFilter] = useState<DueDateFilter>('all')
   const [openTemplateDialog, setOpenTemplateDialog] = useState(false)
-   const [openNewTaskDialog, setOpenNewTaskDialog] = useState(false)
+  const [openNewTaskDialog, setOpenNewTaskDialog] = useState(false)
   const [templates, setTemplates] = useState<TaskTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
   const [selectedPatients, setSelectedPatients] = useState<number[]>([])
@@ -124,13 +124,14 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   useEffect(() => {
     const loadTasks = async () => {
       const filters: any = {}
-      
+
       if (statusFilter !== 'all') filters.status = statusFilter
       if (priorityFilter !== 'all') filters.priority = priorityFilter
       if (dueDateFilter !== 'all') filters.dueDate = dueDateFilter
       if (patientId) filters.patientId = patientId
-      if (assignedToId) filters.assignedTo = assignedToId 
+      if (assignedToId) filters.assignedTo = assignedToId
 
+      console.log('Fetching patient', patientId, '...')
       if (patientId) {
         await fetchTasksByPatient(patientId)
       } else {
@@ -139,7 +140,19 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     }
 
     loadTasks()
-  }, [patientId, assignedToId, statusFilter, priorityFilter, dueDateFilter, fetchTasks, fetchTasksByPatient])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    patientId,
+    assignedToId,
+    statusFilter,
+    priorityFilter,
+    dueDateFilter])
+
+
+  useEffect(() => {
+    console.log('TaskList mounted')
+    return () => console.log('TaskList unmounted')
+  }, [])
 
   // const getDueDateInfo = (dueDate?: string) => {
   //   if (!dueDate) return null
@@ -156,7 +169,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
 
   const handleAssigneeChange = async (taskId: number, value: string) => {
     let updateData: any = {}
-    
+
     if (value === "unassigned") {
       updateData = { assignedToId: null, assignedToTeamId: null }
     } else if (value.startsWith('team-')) {
@@ -166,7 +179,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       const userId = parseInt(value)
       updateData = { assignedToId: userId, assignedToTeamId: null }
     }
-    
+
     const success = await updateTask(taskId, updateData)
     if (success) toast.success('Assignee updated')
     else toast.error('Failed to update assignee')
@@ -241,7 +254,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
 
   const handleSearchSerialNumbers = async () => {
     const serialNumbers = parseSerialNumbers(serialNumberText)
-    
+
     if (serialNumbers.length === 0) {
       toast.error('Please enter at least one serial number')
       return
@@ -251,12 +264,12 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     try {
       const result = await findPatientsBySerialNumbers(serialNumbers)
       setSerialMatches(result.matches)
-      
+
       // Auto-select all found patients
       const foundPatientIds = result.matches
         .filter(m => m.found && m.patientId)
         .map(m => m.patientId!)
-      
+
       const foundPatients = result.matches
         .filter(m => m.found && m.patientId)
         .map(m => ({
@@ -265,10 +278,10 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
           lname: m.patientName?.split(' ').slice(1).join(' ') || '',
           mrn: m.serialNumber
         }))
-      
+
       setSelectedPatients(foundPatientIds)
       setSelectedPatientObjects(foundPatients)
-      
+
       toast.success(`Found ${foundPatientIds.length} patient(s)`)
     } catch (error) {
       toast.error('Failed to search serial numbers')
@@ -307,7 +320,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       setSerialNumberText('')
       setSerialMatches([])
       setAssignmentTab('browse')
-      
+
       // Refresh tasks
       const filters: any = {}
       if (statusFilter !== 'all') filters.status = statusFilter
@@ -321,7 +334,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     }
   }
 
-    const handleTaskCreated = async () => {
+  const handleTaskCreated = async () => {
     setOpenNewTaskDialog(false)
     // Refresh tasks
     const filters: any = {}
@@ -352,7 +365,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     completed: filteredTasks.filter(t => t.status === 'completed')
   }
 
-    const commonTableProps = {
+  const commonTableProps = {
     onStatusChange: handleStatusChange,
     onPriorityChange: handlePriorityChange,
     onDueDateChange: handleDueDateChange,
@@ -375,8 +388,8 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
       {/* <BreadcrumbNav items={breadcrumbItems} /> */}
       {/* Header with Filters */}
       {showFilters && (
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2 pb-4">
             <>
               <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TaskStatus | 'all')}>
                 <SelectTrigger className="w-full sm:w-[150px]">
@@ -489,8 +502,8 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                                   Add Patients ({selectedPatients.length} selected)
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent 
-                                className="w-[500px] p-0" 
+                              <PopoverContent
+                                className="w-[500px] p-0"
                                 align="start"
                                 onOpenAutoFocus={(e) => e.preventDefault()}
                               >
@@ -608,7 +621,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                           <Alert>
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
-                              Enter device or lead serial numbers (one per line, or comma/space separated). 
+                              Enter device or lead serial numbers (one per line, or comma/space separated).
                               The system will search for patients with matching devices or leads.
                             </AlertDescription>
                           </Alert>
@@ -724,8 +737,8 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
               </Dialog>
             </>
           </div>
-      </div>
-          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid gap-4">
@@ -803,15 +816,15 @@ interface TaskTableProps {
   isAdmin: boolean
 }
 
-function TaskTable({ 
-  tasks, 
-  onStatusChange, 
-  onPriorityChange, 
-  onDueDateChange, 
+function TaskTable({
+  tasks,
+  onStatusChange,
+  onPriorityChange,
+  onDueDateChange,
   onAssigneeChange,
   onViewTask,
   onDeleteTask,
-  showPatient = true ,
+  showPatient = true,
   users,
   teams,
   isAdmin
@@ -867,18 +880,18 @@ interface TaskRowProps {
   isAdmin: boolean
 }
 
-function TaskRow({ 
-  task, 
-  onStatusChange, 
-  onPriorityChange, 
+function TaskRow({
+  task,
+  onStatusChange,
+  onPriorityChange,
   onDueDateChange,
-  onAssigneeChange, 
+  onAssigneeChange,
   onViewTask,
   onDeleteTask,
   showPatient = true,
   users,
   teams,
-  isAdmin 
+  isAdmin
 }: TaskRowProps) {
   const dueDateInfo = getDueDateInfo(task.dueDate)
   const PriorityIcon = priorityConfig[task.priority].icon
@@ -1076,9 +1089,9 @@ function TaskRow({
         {isAdmin ? (
           <Select
             value={
-              task.assignedToTeamId ? `team-${task.assignedToTeamId}` 
-              : task.assignedToId ? task.assignedToId.toString() 
-              : "unassigned"
+              task.assignedToTeamId ? `team-${task.assignedToTeamId}`
+                : task.assignedToId ? task.assignedToId.toString()
+                  : "unassigned"
             }
             onValueChange={(value) => onAssigneeChange(task.id, value)}
           >
@@ -1094,8 +1107,8 @@ function TaskRow({
                     <SelectItem key={`team-${team.id}`} value={`team-${team.id}`}>
                       <div className="flex items-center gap-2">
                         {team.color && (
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full" 
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
                             style={{ backgroundColor: team.color }}
                           />
                         )}
@@ -1125,8 +1138,8 @@ function TaskRow({
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <div className="flex items-center gap-1.5">
                   {task.assignedToTeam.color && (
-                    <div 
-                      className="w-2.5 h-2.5 rounded-full" 
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: task.assignedToTeam.color }}
                     />
                   )}
