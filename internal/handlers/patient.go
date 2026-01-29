@@ -897,7 +897,7 @@ func SearchPatients(c *fiber.Ctx) error {
 
 	// Admin users can search all patients
 	switch userRole {
-	case "admin", "user":
+	case "admin", "user", "viewer":
 		patients, err = models.SearchPatients(searchQuery)
 		if err != nil {
 			// Check for the specific "too many results" error from the model
