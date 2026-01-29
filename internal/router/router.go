@@ -219,8 +219,8 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	searchGroup := app.Group("/api/search")
 	searchGroup.Get("/filters", middleware.SetUserRole, handlers.GetSavedSearchFilters)
-	searchGroup.Post("/filters", middleware.RequireAdminOrUser, handlers.SaveSearchFilter)
-	searchGroup.Delete("/filters/:id", middleware.RequireAdminOrUser, handlers.DeleteSavedSearchFilter)
+	searchGroup.Post("/filters", middleware.SetUserRole, handlers.SaveSearchFilter)
+	searchGroup.Delete("/filters/:id", middleware.SetUserRole, handlers.DeleteSavedSearchFilter)
 	searchGroup.Get("/history", middleware.SetUserRole, handlers.GetSearchHistory)
 	searchGroup.Get("/suggestions", middleware.SetUserRole, handlers.GetSearchSuggestions)
 
