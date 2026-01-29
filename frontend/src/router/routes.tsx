@@ -5,6 +5,7 @@ import Login from '@/components/auth/Login'
 import Unauthorized from '@/components/auth/Unauthorized'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import DoctorDashboard from '@/pages/DoctorDashboard'
+import ViewerDashboard from '@/pages/ViewerDashboard'
 import PatientIndex from '@/pages/patients/PatientIndex'
 import PatientDetail from '@/pages/patients/PatientDetail'
 import PatientForm from '@/components/forms/PatientForm'
@@ -66,7 +67,7 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default'
   },
-  
+
   // Admin dashboard - admin only
   {
     path: '/admin',
@@ -75,7 +76,7 @@ export const routes: RouteConfig[] = [
     layout: 'default',
     roles: ['admin']
   },
-  
+
   // Doctor dashboard - doctor only
   {
     path: '/doctor',
@@ -83,6 +84,15 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['doctor']
+  },
+
+  // Temp dashboard - tempuser only
+  {
+    path: '/viewer-dashboard',
+    element: <ViewerDashboard />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['viewer']
   },
 
   // Knowledge base (markdown-backed)
@@ -150,7 +160,7 @@ export const routes: RouteConfig[] = [
     layout: 'default',
     roles: ['admin', 'user']
   },
-    {
+  {
     path: '/reports/builder',
     element: <ReportBuilder />,
     requiresAuth: true,
@@ -159,15 +169,16 @@ export const routes: RouteConfig[] = [
 
   },
   {
-    path:'/reports/saved',
-    element:<ReportFormWrapper />,
-    requiresAuth:true,
-    layout:'default',
-    roles:['admin','user'] 
+    path: '/reports/saved',
+    element: <ReportFormWrapper />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin', 'user']
 
   },
-  { path: 'search/patients', 
-    element: <PatientSearch />, 
+  {
+    path: 'search/patients',
+    element: <PatientSearch />,
     requiresAuth: true,
     layout: 'default',
     roles: ['admin', 'doctor', 'user', 'viewer']
@@ -311,7 +322,7 @@ export const routes: RouteConfig[] = [
     layout: 'default',
     roles: ['admin', 'doctor', 'user']
   },
-  
+
   // Webhook routes - admin only
   {
     path: '/webhooks',
