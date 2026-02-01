@@ -101,7 +101,7 @@ interface WorkflowRule {
 ```
 - Automated task creation based on events
 - Email workflows for consent renewals
-- Escalation rules for overdue tasks
+- **TODO ITEM** Escalation rules for overdue tasks
 - Custom workflow builder UI
 
 ### Technical Improvements
@@ -115,8 +115,8 @@ type CacheMiddleware struct {
 ```
 - Redis/in-memory caching for frequent queries
 - Database query optimization with indexes
-- Lazy loading for large datasets
-- Response compression
+- **TODO ITEM** Lazy loading for large datasets
+- **TODO ITEM** Response compression
 - CDN integration for static assets
 
 #### API Enhancements
@@ -183,7 +183,7 @@ func CreateDatabaseBackup() error {
 Enhance your DonutChart.tsx:
 
 - Interactive charts with drill-down
-- Timeline visualizations for patient history
+- **Done** ~~Timeline visualizations for patient history~~
 - Heatmaps for device usage patterns
 - Geographic maps for patient distribution
 - Real-time data streaming for active monitoring
@@ -232,7 +232,7 @@ type RetentionPolicy struct {
 - Data masking for sensitive fields
 -  **Done**  ~~Temporary access grants~~
 - Access request workflow
-# - Permission templates by role
+- **Done** ~~Permission templates by role~~
 
 ### Integration Features
 ####  Third-Party Integrations
@@ -252,7 +252,7 @@ type RetentionPolicy struct {
 ### Workflow & Productivity
 #### Report Review Reminders / Push notifications
 
-- Unsigned reports pending >24/48 hours
+- **TODO ITEM** Unsigned reports pending >24/48 hours
 - Reports awaiting co-signature
 - Escalate to supervisor after threshold
 - Upcoming Appointment Reminders
@@ -293,5 +293,5 @@ type RetentionPolicy struct {
 - **Implement bulk operations** (delete, export, assign)
 - **Add data export to Excel/PDF** for all list views
 - **Create email templates** for common notifications
-- **Add "Recently Viewed"** section to dashboards
+- **TODO ITEM** **Add "Recently Viewed"** section to dashboards
 - **Implement auto-complete** for patient/device search
