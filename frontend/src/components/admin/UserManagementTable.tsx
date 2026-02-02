@@ -48,7 +48,7 @@ export function UserManagementTable() {
 
     const handleEdit = (user: User) => {
         setIsAdding(false);
-        setEditingRowId(user.ID);
+        setEditingRowId(user.ID || null);
         setEditedUser({ ...user, password: '' });
     };
 
@@ -97,7 +97,7 @@ export function UserManagementTable() {
 
     const handleDelete = (user: User) => {
         if (window.confirm(`Are you sure you want to delete the user "${user.username}"?`)) {
-            deleteUser(user.ID);
+            deleteUser(user.ID || '');
         }
     };
 
@@ -235,7 +235,7 @@ export function UserManagementTable() {
                         <Plus className="mr-2 h-4 w-4" /> Add New User
                     </Button>
                 </div>
-                <div className="border rounded-lg">
+                <div className="border rounded-lg ">
                     <Table>
                         <TableHeader>
                             <TableRow>

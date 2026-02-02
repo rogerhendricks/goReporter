@@ -12,6 +12,8 @@ interface User {
   CreatedAt?: string
   UpdatedAt?: string
   DeletedAt?: string | null
+  isTemporary?: boolean
+  expiresAt?: string | null
 }
 
 interface AuthState {
