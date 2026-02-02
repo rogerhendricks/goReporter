@@ -290,7 +290,7 @@ export function TaskDetail() {
                             <SelectContent>
                               <SelectItem value="unassigned">Unassigned</SelectItem>
                               {users.map((u) => (
-                                <SelectItem key={u.ID} value={u.ID.toString()}>
+                                <SelectItem key={u.ID} value={u.ID!.toString()}>
                                   {u.fullName || u.username}
                                 </SelectItem>
                               ))}
