@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { Toaster } from 'sonner'
 import { useAuthStore } from './stores/authStore'
 import ProtectedRoute from './components/auth/ProtectedRoute'
@@ -11,6 +11,34 @@ import './App.css'
 import { fetchCSRFToken } from './utils/axios'
 import { useAdminNotifications } from '@/hooks/useAdminNotifications'
 import { useUserNotifications } from '@/hooks/useUserNotifications'
+
+// Loading fallback component
+function RouteLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
+// Preload critical routes after initial load
+function preloadCriticalRoutes() {
+  // Preload dashboards based on likely user roles
+  const preloadModules = [
+    import('@/pages/patients/PatientIndex'),
+    import('@/pages/patients/PatientDetail'),
+    import('@/pages/admin/AdminDashboard'),
+    import('@/pages/DoctorDashboard'),
+  ]
+  
+  // Fire and forget - these will be cached for instant navigation
+  Promise.all(preloadModules).catch(() => {
+    // Silently fail - not critical
+  })
+}
 
 function AppContent() {
   const { initializeAuth, isInitialized, isAuthenticated } = useAuthStore()
@@ -27,8 +55,17 @@ function AppContent() {
     initializeAuth()
   }, [initializeAuth])
 
+  // Preload critical routes after app initializes
+  useEffect(() => {
+    if (isInitialized && isAuthenticated) {
+      // Small delay to not interfere with initial render
+      const timer = setTimeout(preloadCriticalRoutes, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isInitialized, isAuthenticated])
+
   if (!isInitialized) {
-    return <div>Loading Application...</div> // Or a proper spinner component
+    return <RouteLoader />
   }
 
   return (
@@ -56,35 +93,37 @@ function AppContent() {
       />
       
       <Router>
-        <Routes>
-          {routes.map((route) => (
-            <Route
-              key={route.path}
-              path={route.path}
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+            {routes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={
+                  <LayoutWrapper layout={route.layout}>
+                    {route.requiresAuth ? (
+                      <ProtectedRoute roles={route.roles}>
+                        {route.element}
+                      </ProtectedRoute>
+                    ) : (
+                      route.element
+                    )}
+                  </LayoutWrapper>
+                }
+              />
+            ))}
+            
+            {/* Fallback route */}
+            <Route 
+              path="*" 
               element={
-                <LayoutWrapper layout={route.layout}>
-                  {route.requiresAuth ? (
-                    <ProtectedRoute roles={route.roles}>
-                      {route.element}
-                    </ProtectedRoute>
-                  ) : (
-                    route.element
-                  )}
+                <LayoutWrapper layout="home">
+                  <Navigate to={isAuthenticated ? "/" : "/login"} replace />
                 </LayoutWrapper>
-              }
+              } 
             />
-          ))}
-          
-          {/* Fallback route */}
-          <Route 
-            path="*" 
-            element={
-              <LayoutWrapper layout="home">
-                <Navigate to={isAuthenticated ? "/" : "/login"} replace />
-              </LayoutWrapper>
-            } 
-          />
-        </Routes>
+          </Routes>
+        </Suspense>
       </Router>
     </>
   )

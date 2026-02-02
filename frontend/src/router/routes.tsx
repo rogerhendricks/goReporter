@@ -1,37 +1,40 @@
-import type { ReactNode } from 'react'
-import Home from '@/pages/Home'
+import { lazy, type ReactNode } from 'react'
+
+// Eagerly load critical routes for immediate access
 import Login from '@/components/auth/Login'
-// import Register from '@/components/auth/Register'
 import Unauthorized from '@/components/auth/Unauthorized'
-import AdminDashboard from '@/pages/admin/AdminDashboard'
-import DoctorDashboard from '@/pages/DoctorDashboard'
-import ViewerDashboard from '@/pages/ViewerDashboard'
-import PatientIndex from '@/pages/patients/PatientIndex'
-import PatientDetail from '@/pages/patients/PatientDetail'
-import PatientForm from '@/components/forms/PatientForm'
-import PatientReportList from '@/pages/patients/PatientReportList'
-import { ReportFormWrapper } from '@/components/ReportFormWrapper'
-import DoctorIndex from '@/pages/doctors/DoctorIndex'
-import DoctorDetail from '@/pages/doctors/DoctorDetail'
-import DoctorForm from '@/components/forms/DoctorForm'
-import DeviceIndex from '@/pages/devices/DeviceIndex'
-import DeviceDetail from '@/pages/devices/DeviceDetail'
-import DeviceForm from '@/components/forms/DeviceForm'
-import LeadIndex from '@/pages/leads/LeadIndex'
-import LeadDetail from '@/pages/leads/LeadDetail'
-import LeadForm from '@/components/forms/LeadForm'
-import PatientSearch from '@/pages/search/PatientSearch'
-import { TagManagement } from '@/components/admin/TagManagement'
-import { TaskList } from '@/components/tasks/TaskList'
-import { TaskForm } from '@/components/forms/TaskForm'
-import { TaskDetail } from '@/components/tasks/TaskDetail'
-import { TaskTemplateManager } from '@/components/admin/TaskTemplateManager'
-import { ReportBuilder } from '@/components/report-builder/ReportBuilder'
-import WebhooksPage from '@/pages/WebhooksPage'
-import WebhookFormPage from '@/pages/WebhookFormPage'
-import ProductivityReportPage from '@/pages/ProductivityReportPage'
-import KnowledgeBase from '@/pages/KnowledgeBase'
-import AppointmentCalendarPage from '@/pages/appointments/AppointmentCalendarPage'
+import Home from '@/pages/Home'
+
+// Lazy load all other routes
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
+const DoctorDashboard = lazy(() => import('@/pages/DoctorDashboard'))
+const ViewerDashboard = lazy(() => import('@/pages/ViewerDashboard'))
+const PatientIndex = lazy(() => import('@/pages/patients/PatientIndex'))
+const PatientDetail = lazy(() => import('@/pages/patients/PatientDetail'))
+const PatientForm = lazy(() => import('@/components/forms/PatientForm'))
+const PatientReportList = lazy(() => import('@/pages/patients/PatientReportList'))
+const ReportFormWrapper = lazy(() => import('@/components/ReportFormWrapper').then(m => ({ default: m.ReportFormWrapper })))
+const DoctorIndex = lazy(() => import('@/pages/doctors/DoctorIndex'))
+const DoctorDetail = lazy(() => import('@/pages/doctors/DoctorDetail'))
+const DoctorForm = lazy(() => import('@/components/forms/DoctorForm'))
+const DeviceIndex = lazy(() => import('@/pages/devices/DeviceIndex'))
+const DeviceDetail = lazy(() => import('@/pages/devices/DeviceDetail'))
+const DeviceForm = lazy(() => import('@/components/forms/DeviceForm'))
+const LeadIndex = lazy(() => import('@/pages/leads/LeadIndex'))
+const LeadDetail = lazy(() => import('@/pages/leads/LeadDetail'))
+const LeadForm = lazy(() => import('@/components/forms/LeadForm'))
+const PatientSearch = lazy(() => import('@/pages/search/PatientSearch'))
+const TagManagement = lazy(() => import('@/components/admin/TagManagement').then(m => ({ default: m.TagManagement })))
+const TaskList = lazy(() => import('@/components/tasks/TaskList').then(m => ({ default: m.TaskList })))
+const TaskForm = lazy(() => import('@/components/forms/TaskForm').then(m => ({ default: m.TaskForm })))
+const TaskDetail = lazy(() => import('@/components/tasks/TaskDetail').then(m => ({ default: m.TaskDetail })))
+const TaskTemplateManager = lazy(() => import('@/components/admin/TaskTemplateManager').then(m => ({ default: m.TaskTemplateManager })))
+const ReportBuilder = lazy(() => import('@/components/report-builder/ReportBuilder').then(m => ({ default: m.ReportBuilder })))
+const WebhooksPage = lazy(() => import('@/pages/WebhooksPage'))
+const WebhookFormPage = lazy(() => import('@/pages/WebhookFormPage'))
+const ProductivityReportPage = lazy(() => import('@/pages/ProductivityReportPage'))
+const KnowledgeBase = lazy(() => import('@/pages/KnowledgeBase'))
+const AppointmentCalendarPage = lazy(() => import('@/pages/appointments/AppointmentCalendarPage'))
 
 
 export interface RouteConfig {
