@@ -70,7 +70,7 @@ export function TaskTemplateManager() {
   const [isSearching, setIsSearching] = useState(false)
   const [assignmentTab, setAssignmentTab] = useState<'browse' | 'serial'>('browse')
   
-  const { patients, fetchPatients, searchPatients } = usePatientStore()
+  const { patients, searchResults, fetchPatients, searchPatients } = usePatientStore()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -206,11 +206,10 @@ export function TaskTemplateManager() {
 
   const handlePatientSearch = async (query: string) => {
     setPatientSearch(query)
-    if (query.length > 2) {
+    if (query.trim().length > 0) {
       await searchPatients(query)
-    } else {
-      await fetchPatients()
     }
+    // If query is empty, we'll just show all patients from the patients array
   }
 
   const selectPatient = (patient: any) => {
@@ -399,8 +398,11 @@ export function TaskTemplateManager() {
   };
 
   const getPatientsWithTemplateList = () => {
-    return patients.filter(p => patientsWithTemplate.includes(p.id))
+    return selectedPatientObjects.filter(p => patientsWithTemplate.includes(p.id))
   }
+
+  // Only show patients when actively searching, not all patients by default
+  const displayedPatients = patientSearch.trim().length > 0 ? searchResults : []
 
   return (
     <>
@@ -780,13 +782,13 @@ export function TaskTemplateManager() {
                           />
                         </div>
                         <div className="max-h-[300px] overflow-y-auto">
-                          {patients.filter(p => !selectedPatients.includes(p.id) && !patientsWithTemplate.includes(p.id)).length === 0 ? (
+                          {displayedPatients.filter(p => !selectedPatients.includes(p.id) && !patientsWithTemplate.includes(p.id)).length === 0 ? (
                             <div className="p-8 text-center text-sm text-muted-foreground">
-                              {patientSearch ? 'No patients found.' : 'All available patients selected.'}
+                              {patientSearch ? 'No patients found.' : 'Start typing to search for patients...'}
                             </div>
                           ) : (
                             <div className="divide-y">
-                              {patients
+                              {displayedPatients
                                 .filter(p => !selectedPatients.includes(p.id) && !patientsWithTemplate.includes(p.id))
                                 .map((patient) => (
                                   <div

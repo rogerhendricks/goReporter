@@ -136,7 +136,7 @@ export default function AdminDashboard() {
           api.get<RecentReport[]>("/reports/recent", {
             params: { limit: 10, incomplete: true, offset: 0 },
           }),
-          api.get<Tag[]>("/tags"),
+          api.get<Tag[]>("/tags", { params: { type: "patient" } }),
         ]);
         if (!mounted) return;
         if (a.status === "fulfilled") setData(a.value.data);

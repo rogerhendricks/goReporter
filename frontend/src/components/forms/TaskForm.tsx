@@ -41,7 +41,7 @@ interface TaskFormProps {
 export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const navigate = useNavigate()
   const { createTask, isLoading } = useTaskStore()
-  const { patients, fetchPatients, searchPatients } = usePatientStore()
+  const { patients, searchResults, fetchPatients, searchPatients } = usePatientStore()
   const { users, fetchUsers } = useUserStore()
   const { teams, fetchTeams } = useTeamStore()
   const { user } = useAuthStore()
@@ -96,11 +96,10 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
 
   const handlePatientSearch = async (query: string) => {
     setPatientSearch(query)
-    if (query.length > 2) {
+    if (query.trim().length > 0) {
       await searchPatients(query)
-    } else {
-      await fetchPatients()
     }
+    // If query is empty, we'll just show all patients from the patients array
   }
 
   const selectPatient = (patient: any) => {
@@ -114,6 +113,9 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     setSelectedPatient(null)
     setFormData({ ...formData, patientId: undefined })
   }
+
+  // Only show patients when actively searching, not all patients by default
+  const displayedPatients = patientSearch.trim().length > 0 ? searchResults : []
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -404,7 +406,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                       <CommandList>
                         <CommandEmpty>No patients found.</CommandEmpty>
                         <CommandGroup>
-                          {patients.map((patient) => (
+                          {displayedPatients.map((patient) => (
                             <CommandItem
                               key={patient.id}
                               onSelect={() => selectPatient(patient)}

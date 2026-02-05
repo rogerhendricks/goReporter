@@ -88,6 +88,16 @@ func GetPatientTagStats(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "tagId query parameter is required"})
 	}
 
+	// Get tag and verify it's a patient tag
+	var tag models.Tag
+	if err := config.DB.First(&tag, tagID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Tag not found"})
+	}
+
+	if tag.Type != "patient" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "This endpoint only supports patient tags"})
+	}
+
 	// Get total number of patients
 	var totalPatients int64
 	if err := config.DB.Model(&models.Patient{}).Count(&totalPatients).Error; err != nil {
@@ -106,12 +116,6 @@ func GetPatientTagStats(c *fiber.Ctx) error {
 	}
 
 	patientsWithoutTag := totalPatients - patientsWithTag
-
-	// Get tag name
-	var tag models.Tag
-	if err := config.DB.First(&tag, tagID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Tag not found"})
-	}
 
 	return c.JSON(fiber.Map{
 		"tagId":              tag.ID,
