@@ -99,17 +99,21 @@ const SidebarProvider = React.forwardRef<
         // Adds a keyboard shortcut to toggle the sidebar.
         React.useEffect(() => {
             const handleKeyDown = (event: KeyboardEvent) => {
+                // Check for Ctrl+B or Cmd+B
                 if (
-                    event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-                    (event.metaKey || event.ctrlKey)
+                    (event.key === SIDEBAR_KEYBOARD_SHORTCUT || event.key === SIDEBAR_KEYBOARD_SHORTCUT.toUpperCase()) &&
+                    (event.metaKey || event.ctrlKey) &&
+                    !event.shiftKey &&
+                    !event.altKey
                 ) {
                     event.preventDefault()
+                    event.stopPropagation()
                     toggleSidebar()
                 }
             }
 
-            window.addEventListener("keydown", handleKeyDown)
-            return () => window.removeEventListener("keydown", handleKeyDown)
+            window.addEventListener("keydown", handleKeyDown, { capture: true })
+            return () => window.removeEventListener("keydown", handleKeyDown, { capture: true })
         }, [toggleSidebar])
 
         // We add a state so that we can use it to style components based on the sidebar state.

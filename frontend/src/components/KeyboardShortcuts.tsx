@@ -14,11 +14,13 @@ import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog"
-import { 
-  UserPlus, 
-  CheckSquare, 
-  Search, 
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
+import {
+  UserPlus,
+  CheckSquare,
+  Search,
   Keyboard,
   Home,
   User,
@@ -133,12 +135,15 @@ export function KeyboardShortcuts() {
     }
   }
 
- return (
+  return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="overflow-hidden shadow-lg p-2 border-5 border-color-primary/20 radius-xl">
+        <VisuallyHidden>
+          <DialogTitle>Command Palette</DialogTitle>
+        </VisuallyHidden>
         <Command shouldFilter={false}>
-          <CommandInput 
-            placeholder="Search for patients, devices, reports, tasks..." 
+          <CommandInput
+            placeholder="Search for patients, devices, reports, tasks..."
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
@@ -157,12 +162,12 @@ export function KeyboardShortcuts() {
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 )}
-                
+
                 {searchQuery.trim().length >= 3 && !isSearching && searchResults.length === 0 && (
                   <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
                 )}
 
-                {searchQuery.trim().length >= 3  && !isSearching && searchResults.length > 0 && (
+                {searchQuery.trim().length >= 3 && !isSearching && searchResults.length > 0 && (
                   <CommandGroup heading="Search Results">
                     {searchResults.map((result) => (
                       <CommandItem

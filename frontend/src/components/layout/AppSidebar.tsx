@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/stores/authStore"
 import { useTheme } from "@/components/theme-provider"
-import logoUrl from "../../assets/rpm-fusion-logo.min.svg"
+// import logoUrl from "../../assets/rpm-fusion-logo.min.svg"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { user, logout, hasAccess } = useAuthStore()
