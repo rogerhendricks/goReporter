@@ -23,7 +23,6 @@ import {
 import {
     Collapsible,
     CollapsibleContent,
-    CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
     Sidebar,
@@ -222,13 +221,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 className="group/collapsible"
                             >
                                 <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton tooltip={group.label}>
-                                            <group.icon />
-                                            <span>{group.label}</span>
-                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <SidebarMenuButton tooltip={group.label}>
+                                                <group.icon />
+                                                <span>{group.label}</span>
+                                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                            </SidebarMenuButton>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            side="right"
+                                            align="start"
+                                            className="w-48 ml-1"
+                                        >
+                                            <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {group.items.map((item) => (
+                                                <DropdownMenuItem key={item.href} asChild>
+                                                    <Link to={item.href} className="flex items-center gap-2">
+                                                        <item.icon className="h-4 w-4" />
+                                                        <span>{item.label}</span>
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                     <CollapsibleContent>
                                         <SidebarMenuSub>
                                             {group.items.map((item) => (
