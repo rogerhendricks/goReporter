@@ -248,6 +248,9 @@ export default function AdminDashboard() {
                       <CardDescription className="text-xs">
                         View how many patients have a specific tag
                       </CardDescription>
+
+                    </CardHeader>
+                    <CardContent>
                       {tags.length > 0 ? (
                         <Select
                           value={selectedTagId}
@@ -257,7 +260,7 @@ export default function AdminDashboard() {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full mt-2">
+                          <SelectTrigger className="w-full mb-2">
                             <SelectValue placeholder="Select a tag to analyze" />
                           </SelectTrigger>
                           <SelectContent>
@@ -276,8 +279,6 @@ export default function AdminDashboard() {
                           No tags available
                         </div>
                       )}
-                    </CardHeader>
-                    <CardContent>
                       {tagStatsLoading ? (
                         <div className="flex justify-center py-6">
                           <div className="h-48 w-48 rounded-full bg-accent animate-pulse" />
