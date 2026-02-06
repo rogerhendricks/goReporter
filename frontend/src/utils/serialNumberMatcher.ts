@@ -4,7 +4,8 @@ export interface SerialNumberMatch {
   serialNumber: string
   patientId?: number
   patientName?: string
-  deviceType?: string
+  deviceName?: string
+  manufacturer?: string
   found: boolean
   error?: string
 }
@@ -48,19 +49,30 @@ export async function findPatientsBySerialNumbers(
         // Found patient(s) with this serial number
         const patient = patients[0] // Take first match if multiple
         
-        // Determine device type by checking which field matched
-        let deviceType = 'Unknown'
-        if (patient.implanted_devices?.some((d: any) => d.serial_number === serialNumber)) {
-          deviceType = 'Device'
-        } else if (patient.implanted_leads?.some((l: any) => l.serial_number === serialNumber)) {
-          deviceType = 'Lead'
+        // Determine device type and name by checking which field matched
+        let deviceName = 'Unknown'
+        let manufacturer = 'Unknown'
+
+        // Check if it's a device serial
+        const matchedDevice = patient.devices?.find((d: any) => d.serial === serialNumber)
+        if (matchedDevice) {
+          manufacturer = matchedDevice.device?.manufacturer || 'Manufacturer'
+          deviceName = matchedDevice.device?.name || 'Device'
+        } else {
+          // Check if it's a lead serial
+          const matchedLead = patient.leads?.find((l: any) => l.serial === serialNumber)
+          if (matchedLead) {
+            manufacturer = matchedLead.lead?.manufacturer || 'Manufacturer'
+            deviceName = matchedLead.lead?.name || 'Lead'
+          }
         }
 
         matches.push({
           serialNumber,
           patientId: patient.id,
           patientName: `${patient.fname} ${patient.lname}`,
-          deviceType,
+          deviceName,
+          manufacturer,
           found: true
         })
         totalFound++

@@ -663,7 +663,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                                           <div className="flex-1">
                                             <p className="font-medium">{match.patientName}</p>
                                             <p className="text-sm text-muted-foreground">
-                                              Serial: {match.serialNumber} ({match.deviceType})
+                                              Serial: {match.serialNumber} ({match.manufacturer}, {match.deviceName})
                                             </p>
                                           </div>
                                         </>

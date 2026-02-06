@@ -70,7 +70,7 @@ export function TaskTemplateManager() {
   const [isSearching, setIsSearching] = useState(false)
   const [assignmentTab, setAssignmentTab] = useState<'browse' | 'serial'>('browse')
   
-  const { patients, searchResults, fetchPatients, searchPatients } = usePatientStore()
+  const { searchResults, fetchPatients, searchPatients } = usePatientStore()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -940,7 +940,7 @@ export function TaskTemplateManager() {
                                   <div className="flex-1">
                                     <p className="font-medium">{match.patientName}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      Serial: {match.serialNumber} ({match.deviceType})
+                                      Serial: {match.serialNumber} ({match.manufacturer}, {match.deviceName})
                                     </p>
                                   </div>
                                 </>

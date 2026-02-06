@@ -416,6 +416,8 @@ func SearchPatientsComplex(params PatientSearchParams) ([]Patient, error) {
 	// Group by patient fields to get distinct patients and preload necessary data
 	err := tx.Preload("PatientDoctors.Doctor").
 		Preload("PatientDoctors.Address").
+		Preload("ImplantedDevices.Device").
+		Preload("ImplantedLeads.Lead").
 		Preload("Tags").
 		Group("patients.id, patients.created_at, patients.updated_at, patients.deleted_at, patients.mrn, patients.first_name, patients.last_name, patients.dob, patients.gender, patients.email, patients.phone, patients.street, patients.city, patients.state, patients.country, patients.postal").
 		Find(&patients).Error
