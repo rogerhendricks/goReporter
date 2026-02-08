@@ -191,7 +191,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto">
-      <Tabs defaultValue="overview" className="mt-6">
+      <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
