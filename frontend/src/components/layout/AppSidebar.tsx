@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/stores/authStore"
 import { useTheme } from "@/components/theme-provider"
-// import logoUrl from "../../assets/rpm-fusion-logo.min.svg"
+import logoUrl from "@/assets/heart.svg"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { user, logout, hasAccess } = useAuthStore()
@@ -180,9 +180,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link to="/">
-                                {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg  text-sidebar-primary-foreground">
                                     <img src={logoUrl} alt="Logo" className="size-6" />
-                                </div> */}
+                                </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-semibold text-primary">PMS Fusion</span>
                                     <span className="truncate text-xs text-muted-foreground">Internal Dashboard</span>
