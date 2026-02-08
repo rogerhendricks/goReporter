@@ -1,12 +1,19 @@
 import { Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
-import { Kbd, KbdGroup } from "@/components/ui/kbd"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav"
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
+import { resolveBreadcrumbsForPath } from "@/router/breadcrumbs";
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();
+  const location = useLocation();
+  const { items } = useBreadcrumbs();
+  const breadcrumbItems =
+    items.length > 0 ? items : resolveBreadcrumbsForPath(location.pathname);
 
   const handleSearchClick = () => {
     document.dispatchEvent(new Event("toggle-command-palette"));
@@ -23,7 +30,7 @@ export function Navbar() {
         <SidebarTrigger className="-ml-1 flex-shrink-0" />
         <div className="h-4 w-[1px] bg-border mx-1 hidden sm:block" />
         <div className="hidden sm:block truncate">
-          <BreadcrumbNav items={[]} />
+          <BreadcrumbNav items={breadcrumbItems} />
         </div>
       </div>
 

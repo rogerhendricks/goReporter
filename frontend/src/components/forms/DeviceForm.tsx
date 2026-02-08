@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
 import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 import { toast } from "sonner";
 
@@ -32,6 +32,7 @@ export default function DeviceForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = id !== undefined;
+  const { setItems } = useBreadcrumbs();
 
   const {
     currentDevice,
@@ -73,6 +74,18 @@ export default function DeviceForm() {
     }
   }, [currentDevice, isEdit]);
 
+  useEffect(() => {
+    const label = isEdit
+      ? `Edit ${currentDevice?.name || (loading ? "Loading..." : "Device")}`
+      : "New Device";
+
+    setItems([
+      { label: "Home", href: "/" },
+      { label: "Devices", href: "/devices" },
+      { label, current: true },
+    ]);
+  }, [currentDevice, isEdit, loading, setItems]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -109,18 +122,8 @@ export default function DeviceForm() {
 
   useFormShortcuts(handleSubmit);
 
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Devices", href: "/devices" },
-    {
-      label: isEdit ? `Edit ${currentDevice?.name || "Device"}` : "New Device",
-      current: true,
-    },
-  ];
-
   return (
     <div className="container mx-auto py-6">
-      <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {isEdit ? "Edit Device" : "Create New Device"}

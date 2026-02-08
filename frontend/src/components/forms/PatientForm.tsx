@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
 import { X, Plus } from "lucide-react";
 import {
   Command,
@@ -33,14 +33,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { useFormShortcuts } from '@/hooks/useFormShortcuts'
+import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 interface PatientFormData {
   mrn: string;
@@ -64,6 +64,7 @@ export default function PatientForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = id !== undefined;
+  const { setItems } = useBreadcrumbs();
 
   const {
     currentPatient,
@@ -129,11 +130,11 @@ export default function PatientForm() {
   const [openLeadSearch, setOpenLeadSearch] = useState(false);
 
   const toDateInput = (v?: string | null) => {
-    if (!v) return ''
-    const d = new Date(v)
-    if (isNaN(d.getTime())) return ''
-    return d.toISOString().slice(0, 10) // YYYY-MM-DD
-  }
+    if (!v) return "";
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  };
 
   useEffect(() => {
     fetchDoctors();
@@ -147,7 +148,7 @@ export default function PatientForm() {
 
   const loadTags = async () => {
     try {
-      const tags = await tagService.getAll('patient');
+      const tags = await tagService.getAll("patient");
       setAvailableTags(tags);
     } catch (error) {
       console.error("Failed to load tags:", error);
@@ -195,12 +196,10 @@ export default function PatientForm() {
     return iso.split("T")[0];
   };
 
-
-
   const handleImplantedDataChange = (
     type: "devices" | "leads",
     index: number,
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target as HTMLInputElement | HTMLSelectElement;
     const isDate = name === "implantedAt" || name === "explantedAt";
@@ -257,7 +256,7 @@ export default function PatientForm() {
 
     // Check if doctor is already assigned
     const existingDoctor = formData.patientDoctors.find(
-      (pd) => pd.doctorId === selectedDoctor.id
+      (pd) => pd.doctorId === selectedDoctor.id,
     );
     if (existingDoctor) {
       toast.error("This doctor is already assigned to the patient");
@@ -337,7 +336,6 @@ export default function PatientForm() {
       leads: [
         ...prev.leads,
         {
-
           leadId: leadId,
           serial: "",
           chamber: "",
@@ -360,7 +358,7 @@ export default function PatientForm() {
     setFormData((prev) => ({
       ...prev,
       patientDoctors: prev.patientDoctors.filter(
-        (pd) => pd.doctorId !== doctorId
+        (pd) => pd.doctorId !== doctorId,
       ),
     }));
   };
@@ -402,17 +400,25 @@ export default function PatientForm() {
     setFieldErrors({}); // Clear any previous field errors
 
     // Validate devices have valid deviceIds
-    const invalidDevices = formData.devices.filter(d => !d.deviceId || d.deviceId === 0);
+    const invalidDevices = formData.devices.filter(
+      (d) => !d.deviceId || d.deviceId === 0,
+    );
     if (invalidDevices.length > 0) {
-      toast.error("Some devices don't have a valid device selected. Please remove them or select a valid device.");
+      toast.error(
+        "Some devices don't have a valid device selected. Please remove them or select a valid device.",
+      );
       console.error("Invalid devices:", invalidDevices);
       return;
     }
 
     // Validate leads have valid leadIds
-    const invalidLeads = formData.leads.filter(l => !l.leadId || l.leadId === 0);
+    const invalidLeads = formData.leads.filter(
+      (l) => !l.leadId || l.leadId === 0,
+    );
     if (invalidLeads.length > 0) {
-      toast.error("Some leads don't have a valid lead selected. Please remove them or select a valid lead.");
+      toast.error(
+        "Some leads don't have a valid lead selected. Please remove them or select a valid lead.",
+      );
       console.error("Invalid leads:", invalidLeads);
       return;
     }
@@ -450,19 +456,19 @@ export default function PatientForm() {
       if (isEdit && id) {
         const updatedPatient = await updatePatient(
           parseInt(id),
-          backendPayload as unknown as Partial<Patient>
+          backendPayload as unknown as Partial<Patient>,
         );
         patientId = updatedPatient.id;
       } else {
         const newPatient = await createPatient(
-          backendPayload as unknown as Partial<Patient>
+          backendPayload as unknown as Partial<Patient>,
         );
         patientId = newPatient.id;
       }
       toast.success(
         isEdit
           ? "Patient updated successfully!"
-          : "Patient created successfully!"
+          : "Patient created successfully!",
       );
       // Redirect to the patient details page after saving
       navigate(`/patients/${patientId}`);
@@ -472,11 +478,16 @@ export default function PatientForm() {
       console.error("Error saving patient:", error);
 
       // Set field-specific error for duplicate MRN
-      if (error.response?.status === 409 && error.response?.data?.code === 'DUPLICATE_MRN') {
+      if (
+        error.response?.status === 409 &&
+        error.response?.data?.code === "DUPLICATE_MRN"
+      ) {
         setFieldErrors({ mrn: error.response.data.error });
         // Scroll to the MRN field
-        document.getElementById('mrn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        document.getElementById('mrn')?.focus();
+        document
+          .getElementById("mrn")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById("mrn")?.focus();
       } else {
         // Store already shows toast, but we can log additional context
         console.error("Failed to save patient details:", error.response?.data);
@@ -486,26 +497,26 @@ export default function PatientForm() {
 
   useFormShortcuts(handleSubmit);
 
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Patients", href: "/patients" },
-    {
-      label: isEdit
-        ? `Edit ${[currentPatient?.fname, currentPatient?.lname]
-          .filter(Boolean)
-          .join(" ") || "Patient"
+  useEffect(() => {
+    const label = isEdit
+      ? `Edit ${
+          [currentPatient?.fname, currentPatient?.lname]
+            .filter(Boolean)
+            .join(" ") || (loading ? "Loading..." : "Patient")
         }`
-        : "New Patient",
-      current: true,
-    },
-  ];
+      : "New Patient";
+
+    setItems([
+      { label: "Home", href: "/" },
+      { label: "Patients", href: "/patients" },
+      { label, current: true },
+    ]);
+  }, [currentPatient, isEdit, loading, setItems]);
 
   // console.log("Form Data:", formData);
 
   return (
     <div className="container mx-auto">
-      <BreadcrumbNav items={breadcrumbItems} />
-
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {isEdit ? "Edit Patient" : "Create New Patient"}
@@ -531,7 +542,10 @@ export default function PatientForm() {
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="mrn" className={fieldErrors.mrn ? "text-destructive" : ""}>
+                <Label
+                  htmlFor="mrn"
+                  className={fieldErrors.mrn ? "text-destructive" : ""}
+                >
                   Medical Record Number
                 </Label>
                 <Input
@@ -543,14 +557,16 @@ export default function PatientForm() {
                     handleInputChange(e);
                     // Clear MRN error when user starts typing
                     if (fieldErrors.mrn) {
-                      setFieldErrors(prev => ({ ...prev, mrn: '' }));
+                      setFieldErrors((prev) => ({ ...prev, mrn: "" }));
                     }
                   }}
                   className={fieldErrors.mrn ? "border-destructive" : ""}
                   required
                 />
                 {fieldErrors.mrn && (
-                  <p className="text-sm text-destructive mt-1">{fieldErrors.mrn}</p>
+                  <p className="text-sm text-destructive mt-1">
+                    {fieldErrors.mrn}
+                  </p>
                 )}
               </div>
               <div>
@@ -676,7 +692,10 @@ export default function PatientForm() {
                       className="cursor-pointer select-none"
                       style={
                         isSelected
-                          ? { backgroundColor: tag.color, borderColor: tag.color }
+                          ? {
+                              backgroundColor: tag.color,
+                              borderColor: tag.color,
+                            }
                           : { borderColor: tag.color, color: tag.color }
                       }
                       onClick={() => toggleTag(tag.ID)}
@@ -706,7 +725,7 @@ export default function PatientForm() {
                   </Badge>
                 ))}
               </div>
-              
+
               <Popover open={openDoctorSearch} onOpenChange={setOpenDoctorSearch}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
@@ -838,7 +857,7 @@ export default function PatientForm() {
                                       (address) => ({
                                         ...address,
                                         id: address.id || 0, // Ensure `id` is a number
-                                      })
+                                      }),
                                     ),
                                   })
                                 }
@@ -888,8 +907,9 @@ export default function PatientForm() {
                           <Label>Select Address (Optional)</Label>
                           <div className="space-y-2 max-h-32 overflow-y-auto">
                             <div
-                              className={`p-2 border rounded cursor-pointer ${!selectedAddress ? "bg-accent" : ""
-                                }`}
+                              className={`p-2 border rounded cursor-pointer ${
+                                !selectedAddress ? "bg-accent" : ""
+                              }`}
                               onClick={() => setSelectedAddress(null)}
                             >
                               <div className="text-sm">No specific address</div>
@@ -897,10 +917,11 @@ export default function PatientForm() {
                             {selectedDoctor.addresses.map((address) => (
                               <div
                                 key={address.id}
-                                className={`p-2 border rounded cursor-pointer ${selectedAddress?.id === address.id
+                                className={`p-2 border rounded cursor-pointer ${
+                                  selectedAddress?.id === address.id
                                     ? "bg-accent"
                                     : ""
-                                  }`}
+                                }`}
                                 onClick={() => setSelectedAddress(address)}
                               >
                                 <div className="text-sm">
@@ -961,10 +982,11 @@ export default function PatientForm() {
                 {formData.devices.map((implanted, index) => (
                   <div
                     key={index}
-                    className={`p-4 border rounded-md space-y-4 relative ${!implanted.deviceId || implanted.deviceId === 0
+                    className={`p-4 border rounded-md space-y-4 relative ${
+                      !implanted.deviceId || implanted.deviceId === 0
                         ? "border-red-500 bg-red-50"
                         : ""
-                      }`}
+                    }`}
                   >
                     <Button
                       type="button"
@@ -1115,10 +1137,11 @@ export default function PatientForm() {
                 {formData.leads.map((implanted, index) => (
                   <div
                     key={index}
-                    className={`p-4 border rounded-md space-y-4 relative ${!implanted.leadId || implanted.leadId === 0
+                    className={`p-4 border rounded-md space-y-4 relative ${
+                      !implanted.leadId || implanted.leadId === 0
                         ? "border-red-500 bg-red-50"
                         : ""
-                      }`}
+                    }`}
                   >
                     <Button
                       type="button"
@@ -1229,7 +1252,6 @@ export default function PatientForm() {
                           onChange={(e) =>
                             handleImplantedDataChange("leads", index, e)
                           }
-
                         />
                       </div>
                     </div>

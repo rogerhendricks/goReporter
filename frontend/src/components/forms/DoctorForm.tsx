@@ -1,53 +1,67 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { useDoctorStore } from '@/stores/doctorStore'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Plus, X } from 'lucide-react'
-import { toast } from 'sonner'
-
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useDoctorStore } from "@/stores/doctorStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
+import { Plus, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Address {
-  street: string
-  city: string
-  state: string
-  country: string
-  zip: string
+  street: string;
+  city: string;
+  state: string;
+  country: string;
+  zip: string;
 }
 
 interface DoctorFormData {
-  fullName: string
-  email: string
-  phone: string
-  specialty: string
-  addresses: Address[]
+  fullName: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  addresses: Address[];
 }
 
 export default function DoctorForm() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const isEdit = id !== undefined
-  
-  const { currentDoctor, loading, error, fetchDoctor, createDoctor, updateDoctor, clearError } = useDoctorStore()
-  
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const isEdit = id !== undefined;
+  const { setItems } = useBreadcrumbs();
+
+  const {
+    currentDoctor,
+    loading,
+    error,
+    fetchDoctor,
+    createDoctor,
+    updateDoctor,
+    clearError,
+  } = useDoctorStore();
+
   const [formData, setFormData] = useState<DoctorFormData>({
-    fullName: '',
-    email: '',
-    phone: '',
-    specialty: '',
-    addresses: []
-  })
+    fullName: "",
+    email: "",
+    phone: "",
+    specialty: "",
+    addresses: [],
+  });
 
   useEffect(() => {
     if (isEdit && id) {
-      fetchDoctor(parseInt(id))
+      fetchDoctor(parseInt(id));
     }
-  }, [isEdit, id, fetchDoctor])
+  }, [isEdit, id, fetchDoctor]);
 
   useEffect(() => {
     if (isEdit && currentDoctor) {
@@ -55,73 +69,87 @@ export default function DoctorForm() {
         fullName: currentDoctor.fullName,
         email: currentDoctor.email,
         phone: currentDoctor.phone,
-        specialty: (currentDoctor as any).specialty || '',
-        addresses: currentDoctor.addresses && currentDoctor.addresses.length > 0 ? currentDoctor.addresses : []
-      })
+        specialty: (currentDoctor as any).specialty || "",
+        addresses:
+          currentDoctor.addresses && currentDoctor.addresses.length > 0
+            ? currentDoctor.addresses
+            : [],
+      });
     }
-  }, [currentDoctor, isEdit])
+  }, [currentDoctor, isEdit]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const handleAddressChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    const addresses = [...formData.addresses]
-    addresses[index] = { ...addresses[index], [name]: value }
-    setFormData(prev => ({ ...prev, addresses }))
-  }
+  const handleAddressChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { name, value } = e.target;
+    const addresses = [...formData.addresses];
+    addresses[index] = { ...addresses[index], [name]: value };
+    setFormData((prev) => ({ ...prev, addresses }));
+  };
 
   const addAddress = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      addresses: [...prev.addresses, { street: '', city: '', state: '', country: '', zip: '' }]
-    }))
-  }
+      addresses: [
+        ...prev.addresses,
+        { street: "", city: "", state: "", country: "", zip: "" },
+      ],
+    }));
+  };
 
   const removeAddress = (index: number) => {
-    const addresses = [...formData.addresses]
-    addresses.splice(index, 1)
-    setFormData(prev => ({ ...prev, addresses }))
-  }
+    const addresses = [...formData.addresses];
+    addresses.splice(index, 1);
+    setFormData((prev) => ({ ...prev, addresses }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    clearError()
+    e.preventDefault();
+    clearError();
     try {
       if (isEdit && id) {
-        await updateDoctor(parseInt(id), formData)
-        toast.success('Doctor updated successfully')
+        await updateDoctor(parseInt(id), formData);
+        toast.success("Doctor updated successfully");
       } else {
-        await createDoctor(formData)
-        toast.success('Doctor created successfully')
+        await createDoctor(formData);
+        toast.success("Doctor created successfully");
       }
-      navigate('/doctors')
+      navigate("/doctors");
     } catch (err) {
-      toast.error('An error occurred while saving the doctor')
-      console.error(err)
+      toast.error("An error occurred while saving the doctor");
+      console.error(err);
       // error is handled in the store
     }
-  }
+  };
 
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Doctors', href: '/doctors' },
-    { label: isEdit ? `Edit ${currentDoctor?.fullName || 'Doctor'}` : 'New Doctor', current: true }
-  ]
+  useEffect(() => {
+    const label = isEdit
+      ? `Edit ${currentDoctor?.fullName || (loading ? "Loading..." : "Doctor")}`
+      : "New Doctor";
+
+    setItems([
+      { label: "Home", href: "/" },
+      { label: "Doctors", href: "/doctors" },
+      { label, current: true },
+    ]);
+  }, [currentDoctor, isEdit, loading, setItems]);
 
   return (
     <div className="container mx-auto py-6">
-      <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
-
-        <h1 className="text-3xl font-bold">{isEdit ? 'Edit Doctor' : 'Create New Doctor'}</h1>
+        <h1 className="text-3xl font-bold">
+          {isEdit ? "Edit Doctor" : "Create New Doctor"}
+        </h1>
       </div>
 
       <Card>
@@ -133,53 +161,152 @@ export default function DoctorForm() {
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label htmlFor="fullName">Full Name</Label><Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="phone">Primary Phone</Label><Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required /></div>
-              <div><Label htmlFor="specialty">Specialty</Label>
-              <Select
-                name="specialty"
-                value={formData.specialty || ''}
-                onValueChange={(value) => handleSelectChange('specialty', value)}
-              >
-                <SelectTrigger><SelectValue placeholder="Select a specialty" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cardiologist">Cardiologist</SelectItem>
-                  <SelectItem value="surgeon">Surgeon</SelectItem>
-                  <SelectItem value="general">General Practitioner</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Primary Phone</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="specialty">Specialty</Label>
+                <Select
+                  name="specialty"
+                  value={formData.specialty || ""}
+                  onValueChange={(value) =>
+                    handleSelectChange("specialty", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a specialty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cardiologist">Cardiologist</SelectItem>
+                    <SelectItem value="surgeon">Surgeon</SelectItem>
+                    <SelectItem value="general">
+                      General Practitioner
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Addresses</h3>
               {formData.addresses.map((address, index) => (
-                <div key={index} className="p-4 border rounded-md space-y-4 relative">
+                <div
+                  key={index}
+                  className="p-4 border rounded-md space-y-4 relative"
+                >
                   {formData.addresses.length > 0 && (
-                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeAddress(index)}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeAddress(index)}
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   )}
-                  <div><Label htmlFor={`street-${index}`}>Street</Label><Input id={`street-${index}`} name="street" value={address.street} onChange={e => handleAddressChange(index, e)} /></div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div><Label htmlFor={`city-${index}`}>City</Label><Input id={`city-${index}`} name="city" value={address.city} onChange={e => handleAddressChange(index, e)} /></div>
-                    <div><Label htmlFor={`state-${index}`}>State</Label><Input id={`state-${index}`} name="state" value={address.state} onChange={e => handleAddressChange(index, e)} /></div>
-                    <div><Label htmlFor={`zip-${index}`}>Zip/Postal Code</Label><Input id={`zip-${index}`} name="zip" value={address.zip} onChange={e => handleAddressChange(index, e)} /></div>
+                  <div>
+                    <Label htmlFor={`street-${index}`}>Street</Label>
+                    <Input
+                      id={`street-${index}`}
+                      name="street"
+                      value={address.street}
+                      onChange={(e) => handleAddressChange(index, e)}
+                    />
                   </div>
-                  <div><Label htmlFor={`country-${index}`}>Country</Label><Input id={`country-${index}`} name="country" value={address.country} onChange={e => handleAddressChange(index, e)} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor={`city-${index}`}>City</Label>
+                      <Input
+                        id={`city-${index}`}
+                        name="city"
+                        value={address.city}
+                        onChange={(e) => handleAddressChange(index, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`state-${index}`}>State</Label>
+                      <Input
+                        id={`state-${index}`}
+                        name="state"
+                        value={address.state}
+                        onChange={(e) => handleAddressChange(index, e)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`zip-${index}`}>Zip/Postal Code</Label>
+                      <Input
+                        id={`zip-${index}`}
+                        name="zip"
+                        value={address.zip}
+                        onChange={(e) => handleAddressChange(index, e)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor={`country-${index}`}>Country</Label>
+                    <Input
+                      id={`country-${index}`}
+                      name="country"
+                      value={address.country}
+                      onChange={(e) => handleAddressChange(index, e)}
+                    />
+                  </div>
                 </div>
               ))}
-              <Button type="button" variant="outline" onClick={addAddress}><Plus className="h-4 w-4 mr-2" />Add Address</Button>
+              <Button type="button" variant="outline" onClick={addAddress}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Address
+              </Button>
             </div>
 
             <div className="flex gap-4">
-              <Button type="submit" disabled={loading}>{loading ? 'Saving...' : (isEdit ? 'Update Doctor' : 'Create Doctor')}</Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/doctors')}>Cancel</Button>
+              <Button type="submit" disabled={loading}>
+                {loading
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update Doctor"
+                    : "Create Doctor"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/doctors")}
+              >
+                Cancel
+              </Button>
             </div>
           </form>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

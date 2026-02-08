@@ -1,43 +1,38 @@
-import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Fragment } from "react";
+import { Link } from "react-router-dom";
+import type { BreadcrumbItem } from "@/components/ui/breadcrumb-context";
 import {
   Breadcrumb,
-  BreadcrumbItem,
+  BreadcrumbItem as BreadcrumbListItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-
-interface BreadcrumbItem {
-  label: string
-  href?: string
-  current?: boolean
-}
+} from "@/components/ui/breadcrumb";
 
 interface BreadcrumbNavProps {
-  items: BreadcrumbItem[]
+  items: BreadcrumbItem[];
 }
 
 export function BreadcrumbNav({ items }: BreadcrumbNavProps) {
   return (
-    <Breadcrumb className="mb-6">
+    <Breadcrumb>
       <BreadcrumbList>
         {items.map((item, index) => (
           <Fragment key={index}>
-            <BreadcrumbItem>
+            <BreadcrumbListItem>
               {item.current ? (
                 <BreadcrumbPage>{item.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>
-                  <Link to={item.href || '#'}>{item.label}</Link>
+                  <Link to={item.href || "#"}>{item.label}</Link>
                 </BreadcrumbLink>
               )}
-            </BreadcrumbItem>
+            </BreadcrumbListItem>
             {index < items.length - 1 && <BreadcrumbSeparator />}
           </Fragment>
         ))}
       </BreadcrumbList>
     </Breadcrumb>
-  )
+  );
 }

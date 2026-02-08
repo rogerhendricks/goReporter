@@ -1,104 +1,130 @@
-import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/stores/authStore'
-import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DonutChart } from '@/components/charts/DonutChart'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, TrendingUp, Clock, CheckCircle2, Users } from 'lucide-react'
-import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
-import { cn } from '@/lib/utils'
-import type { ProductivityReport, TeamProductivityReport } from '@/services/productivityService'
-import { productivityService } from '@/services/productivityService'
-import { DonutChartSkeleton } from '@/components/ui/loading-skeletons'
-import { toast } from 'sonner'
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/stores/authStore";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { DonutChart } from "@/components/charts/DonutChart";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  CalendarIcon,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  Users,
+} from "lucide-react";
+import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
+import { cn } from "@/lib/utils";
+import type {
+  ProductivityReport,
+  TeamProductivityReport,
+} from "@/services/productivityService";
+import { productivityService } from "@/services/productivityService";
+import { DonutChartSkeleton } from "@/components/ui/loading-skeletons";
+import { toast } from "sonner";
 
 type DateRange = {
-  from: Date
-  to: Date
-}
+  from: Date;
+  to: Date;
+};
 
 export default function ProductivityReportPage() {
-  const { user } = useAuthStore()
-  const [loading, setLoading] = useState(true)
-  const [myReport, setMyReport] = useState<ProductivityReport | null>(null)
-  const [teamReport, setTeamReport] = useState<TeamProductivityReport | null>(null)
-  const [allTeamsReports, setAllTeamsReports] = useState<TeamProductivityReport[]>([])
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [myReport, setMyReport] = useState<ProductivityReport | null>(null);
+  const [teamReport, setTeamReport] = useState<TeamProductivityReport | null>(
+    null,
+  );
+  const [allTeamsReports, setAllTeamsReports] = useState<
+    TeamProductivityReport[]
+  >([]);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfWeek(new Date()),
-    to: endOfWeek(new Date())
-  })
-  const [viewMode, setViewMode] = useState<'my' | 'team' | 'teams'>('my')
+    to: endOfWeek(new Date()),
+  });
+  const [viewMode, setViewMode] = useState<"my" | "team" | "teams">("my");
 
-  const isManager = user?.role === 'admin'
+  const isManager = user?.role === "admin";
 
   useEffect(() => {
-    loadReports()
-  }, [dateRange, viewMode])
+    loadReports();
+  }, [dateRange, viewMode]);
 
   const loadReports = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const params = {
-        startDate: format(dateRange.from, 'yyyy-MM-dd'),
-        endDate: format(dateRange.to, 'yyyy-MM-dd')
-      }
+        startDate: format(dateRange.from, "yyyy-MM-dd"),
+        endDate: format(dateRange.to, "yyyy-MM-dd"),
+      };
 
-      if (viewMode === 'my') {
-        const report = await productivityService.getMyReport(params)
-        setMyReport(report)
-      } else if (viewMode === 'team' && isManager) {
-        const report = await productivityService.getTeamReport(params)
-        setTeamReport(report)
-      } else if (viewMode === 'teams' && isManager) {
-        const reports = await productivityService.getAllTeamsProductivity(params)
-        setAllTeamsReports(reports)
+      if (viewMode === "my") {
+        const report = await productivityService.getMyReport(params);
+        setMyReport(report);
+      } else if (viewMode === "team" && isManager) {
+        const report = await productivityService.getTeamReport(params);
+        setTeamReport(report);
+      } else if (viewMode === "teams" && isManager) {
+        const reports =
+          await productivityService.getAllTeamsProductivity(params);
+        setAllTeamsReports(reports);
       }
     } catch (error) {
-      console.error('Failed to load productivity report:', error)
-      toast.error('Failed to load productivity report')
+      console.error("Failed to load productivity report:", error);
+      toast.error("Failed to load productivity report");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const setQuickDateRange = (days: number) => {
-    const to = new Date()
-    const from = subDays(to, days)
-    setDateRange({ from, to })
-  }
+    const to = new Date();
+    const from = subDays(to, days);
+    setDateRange({ from, to });
+  };
 
   const formatHours = (hours: number) => {
     if (hours < 24) {
-      return `${hours.toFixed(1)} hrs`
+      return `${hours.toFixed(1)} hrs`;
     }
-    const days = Math.floor(hours / 24)
-    const remainingHours = hours % 24
-    return `${days}d ${remainingHours.toFixed(1)}h`
-  }
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours.toFixed(1)}h`;
+  };
 
   const calculateOnTimeRate = (report: ProductivityReport) => {
-    const total = report.onTimeCompletions + report.lateCompletions
-    if (total === 0) return 0
-    return ((report.onTimeCompletions / total) * 100).toFixed(1)
-  }
+    const total = report.onTimeCompletions + report.lateCompletions;
+    if (total === 0) return 0;
+    return ((report.onTimeCompletions / total) * 100).toFixed(1);
+  };
 
   return (
     <div className="container mx-auto space-y-6">
-      <BreadcrumbNav
-        items={[
-          { label: 'Home', href: '/' },
-          { label: 'Productivity Reports' }
-        ]}
-      />
-
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Productivity Reports</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Productivity Reports
+          </h1>
           <p className="text-muted-foreground">
             Track task completion and performance metrics
           </p>
@@ -108,21 +134,21 @@ export default function ProductivityReportPage() {
         {isManager && (
           <div className="flex gap-2">
             <Button
-              variant={viewMode === 'my' ? 'default' : 'outline'}
-              onClick={() => setViewMode('my')}
+              variant={viewMode === "my" ? "default" : "outline"}
+              onClick={() => setViewMode("my")}
             >
               My Report
             </Button>
             <Button
-              variant={viewMode === 'team' ? 'default' : 'outline'}
-              onClick={() => setViewMode('team')}
+              variant={viewMode === "team" ? "default" : "outline"}
+              onClick={() => setViewMode("team")}
             >
               <Users className="w-4 h-4 mr-2" />
               Team Report
             </Button>
             <Button
-              variant={viewMode === 'teams' ? 'default' : 'outline'}
-              onClick={() => setViewMode('teams')}
+              variant={viewMode === "teams" ? "default" : "outline"}
+              onClick={() => setViewMode("teams")}
             >
               <Users className="w-4 h-4 mr-2" />
               All Teams
@@ -164,19 +190,19 @@ export default function ProductivityReportPage() {
               <Button
                 variant="outline"
                 className={cn(
-                  'justify-start text-left font-normal',
-                  !dateRange && 'text-muted-foreground'
+                  "justify-start text-left font-normal",
+                  !dateRange && "text-muted-foreground",
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, 'LLL dd, y')} -{' '}
-                      {format(dateRange.to, 'LLL dd, y')}
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
                     </>
                   ) : (
-                    format(dateRange.from, 'LLL dd, y')
+                    format(dateRange.from, "LLL dd, y")
                   )
                 ) : (
                   <span>Pick a date</span>
@@ -191,7 +217,7 @@ export default function ProductivityReportPage() {
                 selected={{ from: dateRange.from, to: dateRange.to }}
                 onSelect={(range) => {
                   if (range?.from && range?.to) {
-                    setDateRange({ from: range.from, to: range.to })
+                    setDateRange({ from: range.from, to: range.to });
                   }
                 }}
                 numberOfMonths={2}
@@ -202,7 +228,7 @@ export default function ProductivityReportPage() {
       </Card>
 
       {/* My Report View */}
-      {viewMode === 'my' && myReport && !loading && (
+      {viewMode === "my" && myReport && !loading && (
         <>
           {/* Summary Stats */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -214,7 +240,9 @@ export default function ProductivityReportPage() {
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{myReport.totalTasksCompleted}</div>
+                <div className="text-2xl font-bold">
+                  {myReport.totalTasksCompleted}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {myReport.tasksCreated} tasks created
                 </p>
@@ -229,9 +257,12 @@ export default function ProductivityReportPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{myReport.reportsCompleted}</div>
+                <div className="text-2xl font-bold">
+                  {myReport.reportsCompleted}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {myReport.reportsCreated} created, {myReport.reportsPending} pending
+                  {myReport.reportsCreated} created, {myReport.reportsPending}{" "}
+                  pending
                 </p>
               </CardContent>
             </Card>
@@ -244,9 +275,12 @@ export default function ProductivityReportPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{calculateOnTimeRate(myReport)}%</div>
+                <div className="text-2xl font-bold">
+                  {calculateOnTimeRate(myReport)}%
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {myReport.onTimeCompletions} on time, {myReport.lateCompletions} late
+                  {myReport.onTimeCompletions} on time,{" "}
+                  {myReport.lateCompletions} late
                 </p>
               </CardContent>
             </Card>
@@ -278,11 +312,15 @@ export default function ProductivityReportPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Pending</span>
-                    <span className="font-medium">{myReport.tasksByStatus.pending}</span>
+                    <span className="font-medium">
+                      {myReport.tasksByStatus.pending}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">In Progress</span>
-                    <span className="font-medium">{myReport.tasksByStatus.inProgress}</span>
+                    <span className="font-medium">
+                      {myReport.tasksByStatus.inProgress}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -295,22 +333,31 @@ export default function ProductivityReportPage() {
               <DonutChart
                 title="Tasks by Priority"
                 slices={[
-                  { label: 'Urgent', count: myReport.tasksByPriority.urgent },
-                  { label: 'High', count: myReport.tasksByPriority.high },
-                  { label: 'Medium', count: myReport.tasksByPriority.medium },
-                  { label: 'Low', count: myReport.tasksByPriority.low }
-                ].filter(s => s.count > 0)}
+                  { label: "Urgent", count: myReport.tasksByPriority.urgent },
+                  { label: "High", count: myReport.tasksByPriority.high },
+                  { label: "Medium", count: myReport.tasksByPriority.medium },
+                  { label: "Low", count: myReport.tasksByPriority.low },
+                ].filter((s) => s.count > 0)}
               />
             </div>
             <div className="h-[300px]">
               <DonutChart
                 title="Tasks by Status"
                 slices={[
-                  { label: 'Completed', count: myReport.tasksByStatus.completed },
-                  { label: 'In Progress', count: myReport.tasksByStatus.inProgress },
-                  { label: 'Pending', count: myReport.tasksByStatus.pending },
-                  { label: 'Cancelled', count: myReport.tasksByStatus.cancelled }
-                ].filter(s => s.count > 0)}
+                  {
+                    label: "Completed",
+                    count: myReport.tasksByStatus.completed,
+                  },
+                  {
+                    label: "In Progress",
+                    count: myReport.tasksByStatus.inProgress,
+                  },
+                  { label: "Pending", count: myReport.tasksByStatus.pending },
+                  {
+                    label: "Cancelled",
+                    count: myReport.tasksByStatus.cancelled,
+                  },
+                ].filter((s) => s.count > 0)}
               />
             </div>
           </div>
@@ -329,7 +376,9 @@ export default function ProductivityReportPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Patient Name</TableHead>
-                      <TableHead className="text-right">Tasks Completed</TableHead>
+                      <TableHead className="text-right">
+                        Tasks Completed
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -352,7 +401,7 @@ export default function ProductivityReportPage() {
       )}
 
       {/* Team Report View */}
-      {viewMode === 'team' && teamReport && !loading && (
+      {viewMode === "team" && teamReport && !loading && (
         <>
           {/* Team Summary Stats */}
           <div className="grid gap-4 md:grid-cols-3">
@@ -364,7 +413,9 @@ export default function ProductivityReportPage() {
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{teamReport.totalTasksCompleted}</div>
+                <div className="text-2xl font-bold">
+                  {teamReport.totalTasksCompleted}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {teamReport.totalTasksCreated} tasks created
                 </p>
@@ -378,9 +429,12 @@ export default function ProductivityReportPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{teamReport.totalReportsCompleted}</div>
+                <div className="text-2xl font-bold">
+                  {teamReport.totalReportsCompleted}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {teamReport.totalReportsCreated} created, {teamReport.totalReportsPending} pending
+                  {teamReport.totalReportsCreated} created,{" "}
+                  {teamReport.totalReportsPending} pending
                 </p>
               </CardContent>
             </Card>
@@ -392,7 +446,9 @@ export default function ProductivityReportPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{teamReport.teamMembers.length}</div>
+                <div className="text-2xl font-bold">
+                  {teamReport.teamMembers.length}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Active team members
                 </p>
@@ -410,9 +466,7 @@ export default function ProductivityReportPage() {
                 <div className="text-2xl font-bold">
                   {formatHours(teamReport.teamAverageCompletionTime)}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Team average
-                </p>
+                <p className="text-xs text-muted-foreground">Team average</p>
               </CardContent>
             </Card>
           </div>
@@ -431,7 +485,9 @@ export default function ProductivityReportPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Username</TableHead>
-                    <TableHead className="text-right">Tasks Completed</TableHead>
+                    <TableHead className="text-right">
+                      Tasks Completed
+                    </TableHead>
                     <TableHead className="text-right">On-Time Rate</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -443,11 +499,17 @@ export default function ProductivityReportPage() {
                       </TableCell>
                       <TableCell>{performer.username}</TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="secondary">{performer.totalTasksCompleted}</Badge>
+                        <Badge variant="secondary">
+                          {performer.totalTasksCompleted}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge
-                          variant={performer.onTimeRate >= 80 ? 'default' : 'destructive'}
+                          variant={
+                            performer.onTimeRate >= 80
+                              ? "default"
+                              : "destructive"
+                          }
                         >
                           {performer.onTimeRate.toFixed(1)}%
                         </Badge>
@@ -510,7 +572,7 @@ export default function ProductivityReportPage() {
       )}
 
       {/* All Teams Comparison View */}
-      {viewMode === 'teams' && allTeamsReports && !loading && (
+      {viewMode === "teams" && allTeamsReports && !loading && (
         <>
           <Card>
             <CardHeader>
@@ -524,24 +586,38 @@ export default function ProductivityReportPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Team Name</TableHead>
-                    <TableHead className="text-right">Tasks Completed</TableHead>
-                    <TableHead className="text-right">Reports Completed</TableHead>
+                    <TableHead className="text-right">
+                      Tasks Completed
+                    </TableHead>
+                    <TableHead className="text-right">
+                      Reports Completed
+                    </TableHead>
                     <TableHead className="text-right">Team Members</TableHead>
-                    <TableHead className="text-right">Avg Completion Time</TableHead>
+                    <TableHead className="text-right">
+                      Avg Completion Time
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allTeamsReports.map((report) => (
                     <TableRow key={report.managerId}>
-                      <TableCell className="font-medium">{report.managerName}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary">{report.totalTasksCompleted}</Badge>
+                      <TableCell className="font-medium">
+                        {report.managerName}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="default">{report.totalReportsCompleted}</Badge>
+                        <Badge variant="secondary">
+                          {report.totalTasksCompleted}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline">{report.teamMembers.length}</Badge>
+                        <Badge variant="default">
+                          {report.totalReportsCompleted}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="outline">
+                          {report.teamMembers.length}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         {formatHours(report.teamAverageCompletionTime)}
@@ -566,18 +642,32 @@ export default function ProductivityReportPage() {
                 <div className="grid gap-4 md:grid-cols-3 mb-6">
                   <div className="border rounded-lg p-4">
                     <div className="text-sm text-muted-foreground">Tasks</div>
-                    <div className="text-2xl font-bold">{report.totalTasksCompleted}</div>
-                    <div className="text-xs text-muted-foreground">{report.totalTasksCreated} created</div>
+                    <div className="text-2xl font-bold">
+                      {report.totalTasksCompleted}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {report.totalTasksCreated} created
+                    </div>
                   </div>
                   <div className="border rounded-lg p-4">
                     <div className="text-sm text-muted-foreground">Reports</div>
-                    <div className="text-2xl font-bold">{report.totalReportsCompleted}</div>
-                    <div className="text-xs text-muted-foreground">{report.totalReportsPending} pending</div>
+                    <div className="text-2xl font-bold">
+                      {report.totalReportsCompleted}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {report.totalReportsPending} pending
+                    </div>
                   </div>
                   <div className="border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground">Avg Time</div>
-                    <div className="text-2xl font-bold">{formatHours(report.teamAverageCompletionTime)}</div>
-                    <div className="text-xs text-muted-foreground">Per task</div>
+                    <div className="text-sm text-muted-foreground">
+                      Avg Time
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {formatHours(report.teamAverageCompletionTime)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Per task
+                    </div>
                   </div>
                 </div>
 
@@ -594,9 +684,15 @@ export default function ProductivityReportPage() {
                   <TableBody>
                     {report.teamMembers.map((member) => (
                       <TableRow key={member.userId}>
-                        <TableCell className="font-medium">{member.fullName}</TableCell>
-                        <TableCell className="text-right">{member.totalTasksCompleted}</TableCell>
-                        <TableCell className="text-right">{member.reportsCompleted}</TableCell>
+                        <TableCell className="font-medium">
+                          {member.fullName}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {member.totalTasksCompleted}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {member.reportsCompleted}
+                        </TableCell>
                         <TableCell className="text-right">
                           <span className="text-green-600 dark:text-green-400">
                             {member.onTimeCompletions}
@@ -640,5 +736,5 @@ export default function ProductivityReportPage() {
         </>
       )}
     </div>
-  )
+  );
 }

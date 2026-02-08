@@ -1,152 +1,164 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { toast } from 'sonner'
-import { Info, AlertTriangle } from 'lucide-react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
-import { Checkbox } from '../components/ui/checkbox'
-import { Switch } from '../components/ui/switch'
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Info, AlertTriangle } from "lucide-react";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
+import { Switch } from "../components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select'
-import { webhookService, AVAILABLE_EVENTS, type CreateWebhookRequest } from '../services/webhookService'
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
-import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
+} from "../components/ui/select";
+import {
+  webhookService,
+  AVAILABLE_EVENTS,
+  type CreateWebhookRequest,
+} from "../services/webhookService";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 
 export default function WebhookFormPage() {
-  const navigate = useNavigate()
-  const { id } = useParams()
-  const isEdit = !!id
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const isEdit = !!id;
 
   const [formData, setFormData] = useState<CreateWebhookRequest>({
-    name: '',
-    url: '',
+    name: "",
+    url: "",
     events: [],
-    secret: '',
-    description: '',
+    secret: "",
+    description: "",
     active: true,
-    integrationType: 'generic',
-    epicClientId: '',
-    epicPrivateKey: '',
-    epicTokenUrl: '',
-    epicFhirBase: '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [loadingData, setLoadingData] = useState(isEdit)
+    integrationType: "generic",
+    epicClientId: "",
+    epicPrivateKey: "",
+    epicTokenUrl: "",
+    epicFhirBase: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(isEdit);
 
   useEffect(() => {
     if (isEdit && id) {
-      loadWebhook(parseInt(id))
+      loadWebhook(parseInt(id));
     }
-  }, [isEdit, id])
+  }, [isEdit, id]);
 
   const loadWebhook = async (webhookId: number) => {
     try {
-      const webhook = await webhookService.getById(webhookId)
+      const webhook = await webhookService.getById(webhookId);
       setFormData({
         name: webhook.name,
-        integrationType: webhook.integrationType || 'generic',
-        epicClientId: webhook.epicClientId || '',
-        epicPrivateKey: webhook.epicPrivateKey || '',
-        epicTokenUrl: webhook.epicTokenUrl || '',
-        epicFhirBase: webhook.epicFhirBase || '',
+        integrationType: webhook.integrationType || "generic",
+        epicClientId: webhook.epicClientId || "",
+        epicPrivateKey: webhook.epicPrivateKey || "",
+        epicTokenUrl: webhook.epicTokenUrl || "",
+        epicFhirBase: webhook.epicFhirBase || "",
         url: webhook.url,
         events: webhook.events,
-        secret: webhook.secret || '',
-        description: webhook.description || '',
+        secret: webhook.secret || "",
+        description: webhook.description || "",
         active: webhook.active,
-      })
+      });
     } catch (error) {
-      console.error('Failed to load webhook:', error)
-      toast.error('Failed to load webhook')
-      navigate('/webhooks')
+      console.error("Failed to load webhook:", error);
+      toast.error("Failed to load webhook");
+      navigate("/webhooks");
     } finally {
-      setLoadingData(false)
+      setLoadingData(false);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!formData.name) {
-      toast.error('Please enter a webhook name')
-      return
+      toast.error("Please enter a webhook name");
+      return;
     }
 
     if (!formData.url) {
-      toast.error('Please enter a webhook URL')
-      return
+      toast.error("Please enter a webhook URL");
+      return;
     }
 
-    if (!formData.url.startsWith('http://') && !formData.url.startsWith('https://')) {
-      toast.error('Webhook URL must start with http:// or https://')
-      return
+    if (
+      !formData.url.startsWith("http://") &&
+      !formData.url.startsWith("https://")
+    ) {
+      toast.error("Webhook URL must start with http:// or https://");
+      return;
     }
 
     if (formData.events.length === 0) {
-      toast.error('Please select at least one event')
-      return
+      toast.error("Please select at least one event");
+      return;
     }
 
     // Validate Epic configuration if Epic integration type
-    if (formData.integrationType === 'epic') {
+    if (formData.integrationType === "epic") {
       if (!formData.epicClientId) {
-        toast.error('Epic Client ID is required for Epic integration')
-        return
+        toast.error("Epic Client ID is required for Epic integration");
+        return;
       }
       if (!formData.epicPrivateKey) {
-        toast.error('Epic Private Key is required for Epic integration')
-        return
+        toast.error("Epic Private Key is required for Epic integration");
+        return;
       }
       if (!formData.epicTokenUrl) {
-        toast.error('Epic Token URL is required for Epic integration')
-        return
+        toast.error("Epic Token URL is required for Epic integration");
+        return;
       }
       if (!formData.epicFhirBase) {
-        toast.error('Epic FHIR Base URL is required for Epic integration')
-        return
+        toast.error("Epic FHIR Base URL is required for Epic integration");
+        return;
       }
       // Validate private key format
-      if (!formData.epicPrivateKey.includes('BEGIN PRIVATE KEY')) {
-        toast.error('Epic Private Key must be in PEM format')
-        return
+      if (!formData.epicPrivateKey.includes("BEGIN PRIVATE KEY")) {
+        toast.error("Epic Private Key must be in PEM format");
+        return;
       }
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       if (isEdit && id) {
-        await webhookService.update(parseInt(id), formData)
-        toast.success('Webhook updated successfully')
+        await webhookService.update(parseInt(id), formData);
+        toast.success("Webhook updated successfully");
       } else {
-        await webhookService.create(formData)
-        toast.success('Webhook created successfully')
+        await webhookService.create(formData);
+        toast.success("Webhook created successfully");
       }
-      navigate('/webhooks')
+      navigate("/webhooks");
     } catch (error) {
-      console.error('Failed to save webhook:', error)
-      toast.error(`Failed to ${isEdit ? 'update' : 'create'} webhook`)
+      console.error("Failed to save webhook:", error);
+      toast.error(`Failed to ${isEdit ? "update" : "create"} webhook`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleEvent = (eventValue: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       events: prev.events.includes(eventValue)
-        ? prev.events.filter(e => e !== eventValue)
-        : [...prev.events, eventValue]
-    }))
-  }
+        ? prev.events.filter((e) => e !== eventValue)
+        : [...prev.events, eventValue],
+    }));
+  };
 
   if (loadingData) {
     return (
@@ -156,20 +168,14 @@ export default function WebhookFormPage() {
           <div className="h-96 bg-muted rounded" />
         </div>
       </div>
-    )
+    );
   }
 
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Webhooks', href: '/webhooks' },
-    { label: isEdit ? 'Edit Webhook' : 'New Webhook', href: isEdit ? `/webhooks/${id}` : '/webhooks/new', current: true }
-  ]
   return (
     <div className="container mx-auto">
-        <BreadcrumbNav items={breadcrumbItems} />
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">
-          {isEdit ? 'Edit Webhook' : 'Create Webhook'}
+          {isEdit ? "Edit Webhook" : "Create Webhook"}
         </h1>
         <p className="text-muted-foreground mt-1">
           Configure a webhook endpoint to receive real-time notifications
@@ -191,7 +197,9 @@ export default function WebhookFormPage() {
                 id="name"
                 placeholder="e.g., Slack Battery Alerts"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
               />
             </div>
 
@@ -202,7 +210,9 @@ export default function WebhookFormPage() {
                 type="url"
                 placeholder="https://hooks.slack.com/services/..."
                 value={formData.url}
-                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, url: e.target.value }))
+                }
               />
               <p className="text-xs text-muted-foreground">
                 The endpoint that will receive POST requests when events occur
@@ -215,7 +225,12 @@ export default function WebhookFormPage() {
                 id="description"
                 placeholder="Optional description of what this webhook is for"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 rows={3}
               />
             </div>
@@ -227,10 +242,13 @@ export default function WebhookFormPage() {
                 type="password"
                 placeholder="Shared secret for signature verification"
                 value={formData.secret}
-                onChange={(e) => setFormData(prev => ({ ...prev, secret: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, secret: e.target.value }))
+                }
               />
               <p className="text-xs text-muted-foreground">
-                If provided, requests will include an X-Webhook-Signature header with HMAC-SHA256 signature
+                If provided, requests will include an X-Webhook-Signature header
+                with HMAC-SHA256 signature
               </p>
             </div>
 
@@ -244,7 +262,9 @@ export default function WebhookFormPage() {
               <Switch
                 id="active"
                 checked={formData.active}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, active: checked }))
+                }
               />
             </div>
           </CardContent>
@@ -262,17 +282,19 @@ export default function WebhookFormPage() {
               <Label htmlFor="integrationType">Type</Label>
               <Select
                 value={formData.integrationType}
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  integrationType: value,
-                  // Clear Epic fields when switching away from Epic
-                  ...(value !== 'epic' && {
-                    epicClientId: '',
-                    epicPrivateKey: '',
-                    epicTokenUrl: '',
-                    epicFhirBase: ''
-                  })
-                }))}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    integrationType: value,
+                    // Clear Epic fields when switching away from Epic
+                    ...(value !== "epic" && {
+                      epicClientId: "",
+                      epicPrivateKey: "",
+                      epicTokenUrl: "",
+                      epicFhirBase: "",
+                    }),
+                  }))
+                }
               >
                 <SelectTrigger id="integrationType">
                   <SelectValue />
@@ -285,21 +307,29 @@ export default function WebhookFormPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.integrationType === 'epic' && 'Sends FHIR R4 DiagnosticReports with OAuth 2.0 authentication'}
-                {formData.integrationType === 'teams' && 'Automatically formats messages as Adaptive Cards'}
-                {formData.integrationType === 'slack' && 'Sends JSON payloads to Slack webhook'}
-                {formData.integrationType === 'generic' && 'Standard JSON webhook payload'}
+                {formData.integrationType === "epic" &&
+                  "Sends FHIR R4 DiagnosticReports with OAuth 2.0 authentication"}
+                {formData.integrationType === "teams" &&
+                  "Automatically formats messages as Adaptive Cards"}
+                {formData.integrationType === "slack" &&
+                  "Sends JSON payloads to Slack webhook"}
+                {formData.integrationType === "generic" &&
+                  "Standard JSON webhook payload"}
               </p>
             </div>
 
-            {formData.integrationType === 'epic' && (
+            {formData.integrationType === "epic" && (
               <>
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Epic FHIR Configuration Required</AlertTitle>
                   <AlertDescription>
-                    Configure your Epic App Orchard credentials below. The private key must be in PEM format (PKCS8).
-                    See the <a href="/docs/epic-integration" className="underline">Epic Integration Guide</a> for setup instructions.
+                    Configure your Epic App Orchard credentials below. The
+                    private key must be in PEM format (PKCS8). See the{" "}
+                    <a href="/docs/epic-integration" className="underline">
+                      Epic Integration Guide
+                    </a>{" "}
+                    for setup instructions.
                   </AlertDescription>
                 </Alert>
 
@@ -310,7 +340,12 @@ export default function WebhookFormPage() {
                       id="epicClientId"
                       placeholder="your-epic-client-id"
                       value={formData.epicClientId}
-                      onChange={(e) => setFormData(prev => ({ ...prev, epicClientId: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          epicClientId: e.target.value,
+                        }))
+                      }
                     />
                     <p className="text-xs text-muted-foreground">
                       Client ID from Epic App Orchard registration
@@ -318,12 +353,19 @@ export default function WebhookFormPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="epicPrivateKey">Epic Private Key (PEM) *</Label>
+                    <Label htmlFor="epicPrivateKey">
+                      Epic Private Key (PEM) *
+                    </Label>
                     <Textarea
                       id="epicPrivateKey"
                       placeholder="-----BEGIN PRIVATE KEY-----&#10;MIIEvQIBADANBgk...&#10;-----END PRIVATE KEY-----"
                       value={formData.epicPrivateKey}
-                      onChange={(e) => setFormData(prev => ({ ...prev, epicPrivateKey: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          epicPrivateKey: e.target.value,
+                        }))
+                      }
                       rows={8}
                       className="font-mono text-xs"
                     />
@@ -338,7 +380,12 @@ export default function WebhookFormPage() {
                       id="epicTokenUrl"
                       placeholder="https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
                       value={formData.epicTokenUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, epicTokenUrl: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          epicTokenUrl: e.target.value,
+                        }))
+                      }
                     />
                     <p className="text-xs text-muted-foreground">
                       Epic OAuth 2.0 token endpoint
@@ -351,7 +398,12 @@ export default function WebhookFormPage() {
                       id="epicFhirBase"
                       placeholder="https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4"
                       value={formData.epicFhirBase}
-                      onChange={(e) => setFormData(prev => ({ ...prev, epicFhirBase: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          epicFhirBase: e.target.value,
+                        }))
+                      }
                     />
                     <p className="text-xs text-muted-foreground">
                       Base URL for Epic FHIR R4 API
@@ -375,17 +427,25 @@ export default function WebhookFormPage() {
               <Info className="h-4 w-4" />
               <AlertTitle>Event Payload</AlertTitle>
               <AlertDescription>
-                Each webhook will receive a JSON payload with event type, timestamp, and relevant data
+                Each webhook will receive a JSON payload with event type,
+                timestamp, and relevant data
               </AlertDescription>
             </Alert>
 
             <div className="space-y-4">
               {/* Group events by category */}
               <div>
-                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">Report Events</h3>
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  Report Events
+                </h3>
                 <div className="space-y-3">
-                  {AVAILABLE_EVENTS.filter(e => e.value.startsWith('report.')).map((event) => (
-                    <div key={event.value} className="flex items-start space-x-3">
+                  {AVAILABLE_EVENTS.filter((e) =>
+                    e.value.startsWith("report."),
+                  ).map((event) => (
+                    <div
+                      key={event.value}
+                      className="flex items-start space-x-3"
+                    >
                       <Checkbox
                         id={event.value}
                         checked={formData.events.includes(event.value)}
@@ -408,10 +468,17 @@ export default function WebhookFormPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">Battery Events</h3>
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  Battery Events
+                </h3>
                 <div className="space-y-3">
-                  {AVAILABLE_EVENTS.filter(e => e.value.startsWith('battery.')).map((event) => (
-                    <div key={event.value} className="flex items-start space-x-3">
+                  {AVAILABLE_EVENTS.filter((e) =>
+                    e.value.startsWith("battery."),
+                  ).map((event) => (
+                    <div
+                      key={event.value}
+                      className="flex items-start space-x-3"
+                    >
                       <Checkbox
                         id={event.value}
                         checked={formData.events.includes(event.value)}
@@ -434,10 +501,17 @@ export default function WebhookFormPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">Task Events</h3>
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  Task Events
+                </h3>
                 <div className="space-y-3">
-                  {AVAILABLE_EVENTS.filter(e => e.value.startsWith('task.')).map((event) => (
-                    <div key={event.value} className="flex items-start space-x-3">
+                  {AVAILABLE_EVENTS.filter((e) =>
+                    e.value.startsWith("task."),
+                  ).map((event) => (
+                    <div
+                      key={event.value}
+                      className="flex items-start space-x-3"
+                    >
                       <Checkbox
                         id={event.value}
                         checked={formData.events.includes(event.value)}
@@ -460,10 +534,17 @@ export default function WebhookFormPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">Consent Events</h3>
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  Consent Events
+                </h3>
                 <div className="space-y-3">
-                  {AVAILABLE_EVENTS.filter(e => e.value.startsWith('consent.')).map((event) => (
-                    <div key={event.value} className="flex items-start space-x-3">
+                  {AVAILABLE_EVENTS.filter((e) =>
+                    e.value.startsWith("consent."),
+                  ).map((event) => (
+                    <div
+                      key={event.value}
+                      className="flex items-start space-x-3"
+                    >
                       <Checkbox
                         id={event.value}
                         checked={formData.events.includes(event.value)}
@@ -486,10 +567,17 @@ export default function WebhookFormPage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">Device Events</h3>
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">
+                  Device Events
+                </h3>
                 <div className="space-y-3">
-                  {AVAILABLE_EVENTS.filter(e => e.value.startsWith('device.')).map((event) => (
-                    <div key={event.value} className="flex items-start space-x-3">
+                  {AVAILABLE_EVENTS.filter((e) =>
+                    e.value.startsWith("device."),
+                  ).map((event) => (
+                    <div
+                      key={event.value}
+                      className="flex items-start space-x-3"
+                    >
                       <Checkbox
                         id={event.value}
                         checked={formData.events.includes(event.value)}
@@ -518,15 +606,19 @@ export default function WebhookFormPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/webhooks')}
+            onClick={() => navigate("/webhooks")}
           >
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : isEdit ? 'Update Webhook' : 'Create Webhook'}
+            {loading
+              ? "Saving..."
+              : isEdit
+                ? "Update Webhook"
+                : "Create Webhook"}
           </Button>
         </div>
       </form>
     </div>
-  )
+  );
 }

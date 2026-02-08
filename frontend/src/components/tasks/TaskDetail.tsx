@@ -1,54 +1,82 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useTaskStore } from '@/stores/taskStore'
-import { useUserStore } from '@/stores/userStore'
-import { useTeamStore } from '@/stores/teamStore'
-import type { UpdateTaskData } from '@/stores/taskStore'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Calendar as CalendarIcon, User, Users, Clock, Edit2, Trash2, Save, X, MessageSquare, Edit, Check } from 'lucide-react'
-import { format } from 'date-fns'
-import { toast } from 'sonner'
-import { BreadcrumbNav } from '@/components/ui/breadcrumb-nav'
-import { useAuthStore } from '@/stores/authStore'
-import { DetailPageSkeleton } from '@/components/ui/loading-skeletons'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useTaskStore } from "@/stores/taskStore";
+import { useUserStore } from "@/stores/userStore";
+import { useTeamStore } from "@/stores/teamStore";
+import type { UpdateTaskData } from "@/stores/taskStore";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Calendar as CalendarIcon,
+  User,
+  Users,
+  Clock,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  MessageSquare,
+  Edit,
+  Check,
+} from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
+import { useAuthStore } from "@/stores/authStore";
+import { DetailPageSkeleton } from "@/components/ui/loading-skeletons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function TaskDetail() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { currentTask, fetchTask, updateTask, deleteTask, addNote, updateNote, deleteNote, isLoading } = useTaskStore()
-  const { users, fetchUsers } = useUserStore()
-  const { teams, fetchTeams } = useTeamStore()
-  const { user } = useAuthStore()
-  const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
-  const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<UpdateTaskData>({})
-  const [newNote, setNewNote] = useState('')
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
-  const [editingNoteContent, setEditingNoteContent] = useState('')
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const {
+    currentTask,
+    fetchTask,
+    updateTask,
+    deleteTask,
+    addNote,
+    updateNote,
+    deleteNote,
+    isLoading,
+  } = useTaskStore();
+  const { users, fetchUsers } = useUserStore();
+  const { teams, fetchTeams } = useTeamStore();
+  const { user } = useAuthStore();
+  const [assignmentType, setAssignmentType] = useState<"user" | "team">("user");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<UpdateTaskData>({});
+  const [newNote, setNewNote] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState("");
+  const { setItems } = useBreadcrumbs();
 
-  const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
+  const isAdminOrDoctor = user?.role === "admin" || user?.role === "doctor";
 
   useEffect(() => {
     const loadData = async () => {
       if (id) {
-        fetchTask(parseInt(id))
-        fetchUsers()
-        
+        fetchTask(parseInt(id));
+        fetchUsers();
+
         if (isAdminOrDoctor) {
-          fetchTeams()
+          fetchTeams();
         }
       }
-    }
-    loadData()
-  }, [id, fetchTask, fetchUsers, fetchTeams, isAdminOrDoctor])
+    };
+    loadData();
+  }, [id, fetchTask, fetchUsers, fetchTeams, isAdminOrDoctor]);
 
   useEffect(() => {
     if (currentTask && !isEditing) {
@@ -59,107 +87,112 @@ export function TaskDetail() {
         priority: currentTask.priority,
         assignedToId: currentTask.assignedToId,
         assignedToTeamId: currentTask.assignedToTeamId,
-      })
+      });
       // Set assignment type based on current task
       if (currentTask.assignedToTeamId) {
-        setAssignmentType('team')
+        setAssignmentType("team");
       } else {
-        setAssignmentType('user')
+        setAssignmentType("user");
       }
     }
-  }, [currentTask, isEditing])
+  }, [currentTask, isEditing]);
+
+  useEffect(() => {
+    const label = currentTask?.title || "Task Details";
+    setItems([
+      { label: "Home", href: "/" },
+      { label: "Tasks", href: "/tasks" },
+      { label, current: true },
+    ]);
+  }, [currentTask, setItems]);
 
   const handleUpdate = async () => {
-    if (!currentTask) return
+    if (!currentTask) return;
 
-    const result = await updateTask(currentTask.id, editData)
+    const result = await updateTask(currentTask.id, editData);
     if (result) {
-      toast.success('Task updated successfully')
-      setIsEditing(false)
+      toast.success("Task updated successfully");
+      setIsEditing(false);
     } else {
-      toast.error('Failed to update task')
+      toast.error("Failed to update task");
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!currentTask) return
+    if (!currentTask) return;
 
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      const result = await deleteTask(currentTask.id)
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      const result = await deleteTask(currentTask.id);
       if (result) {
-        toast.success('Task deleted successfully')
-        navigate('/tasks')
+        toast.success("Task deleted successfully");
+        navigate("/tasks");
       } else {
-        toast.error('Failed to delete task')
+        toast.error("Failed to delete task");
       }
     }
-  }
+  };
 
   const handleAddNote = async () => {
-    if (!currentTask || !newNote.trim()) return
+    if (!currentTask || !newNote.trim()) return;
 
-    const result = await addNote(currentTask.id, newNote.trim())
+    const result = await addNote(currentTask.id, newNote.trim());
     if (result) {
-      toast.success('Note added successfully')
-      setNewNote('')
-      fetchTask(currentTask.id) // Refresh to get updated notes
+      toast.success("Note added successfully");
+      setNewNote("");
+      fetchTask(currentTask.id); // Refresh to get updated notes
     } else {
-      toast.error('Failed to add note')
+      toast.error("Failed to add note");
     }
-  }
+  };
 
   const handleEditNote = (noteId: number, content: string) => {
-    setEditingNoteId(noteId)
-    setEditingNoteContent(content)
-  }
+    setEditingNoteId(noteId);
+    setEditingNoteContent(content);
+  };
 
   const handleUpdateNote = async (noteId: number) => {
-    if (!currentTask || !editingNoteContent.trim()) return
-    const result = await updateNote(currentTask.id, noteId, editingNoteContent.trim())
+    if (!currentTask || !editingNoteContent.trim()) return;
+    const result = await updateNote(
+      currentTask.id,
+      noteId,
+      editingNoteContent.trim(),
+    );
     if (result) {
-      toast.success('Note updated successfully')
-      setEditingNoteId(null)
-      setEditingNoteContent('')
+      toast.success("Note updated successfully");
+      setEditingNoteId(null);
+      setEditingNoteContent("");
     } else {
-      toast.error('Failed to update note')
+      toast.error("Failed to update note");
     }
-  }
+  };
 
   const handleDeleteNote = async (noteId: number) => {
-    if (!currentTask) return
-    if (window.confirm('Are you sure you want to delete this note?')) {
-      const result = await deleteNote(currentTask.id, noteId)
+    if (!currentTask) return;
+    if (window.confirm("Are you sure you want to delete this note?")) {
+      const result = await deleteNote(currentTask.id, noteId);
       if (result) {
-        toast.success('Note deleted successfully')
+        toast.success("Note deleted successfully");
       } else {
-        toast.error('Failed to delete note')
+        toast.error("Failed to delete note");
       }
     }
-  }
+  };
 
   const handleCancelEditNote = () => {
-    setEditingNoteId(null)
-    setEditingNoteContent('')
-  }
+    setEditingNoteId(null);
+    setEditingNoteContent("");
+  };
 
   if (isLoading && !currentTask) {
-    return <DetailPageSkeleton />
+    return <DetailPageSkeleton />;
   }
 
   if (!currentTask) {
-    return <div className="container mx-auto py-6">Task not found</div>
+    return <div className="container mx-auto py-6">Task not found</div>;
   }
-
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Tasks', href: '/tasks' },
-    { label: currentTask.title, current: true }
-  ]
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <BreadcrumbNav items={breadcrumbItems} />
-
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Task Details</h1>
         <div className="flex gap-2">
@@ -203,7 +236,9 @@ export function TaskDetail() {
                     <Label>Title</Label>
                     <Input
                       value={editData.title}
-                      onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({ ...editData, title: e.target.value })
+                      }
                     />
                   </div>
 
@@ -211,7 +246,12 @@ export function TaskDetail() {
                     <Label>Description</Label>
                     <Textarea
                       value={editData.description}
-                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          description: e.target.value,
+                        })
+                      }
                       rows={4}
                     />
                   </div>
@@ -221,14 +261,18 @@ export function TaskDetail() {
                       <Label>Status</Label>
                       <Select
                         value={editData.status}
-                        onValueChange={(value: any) => setEditData({ ...editData, status: value })}
+                        onValueChange={(value: any) =>
+                          setEditData({ ...editData, status: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="in_progress">
+                            In Progress
+                          </SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
@@ -239,7 +283,9 @@ export function TaskDetail() {
                       <Label>Priority</Label>
                       <Select
                         value={editData.priority}
-                        onValueChange={(value: any) => setEditData({ ...editData, priority: value })}
+                        onValueChange={(value: any) =>
+                          setEditData({ ...editData, priority: value })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -257,14 +303,23 @@ export function TaskDetail() {
                   {isAdminOrDoctor && (
                     <div className="space-y-2">
                       <Label>Assign To</Label>
-                      <Tabs value={assignmentType} onValueChange={(v) => {
-                        setAssignmentType(v as 'user' | 'team')
-                        if (v === 'user') {
-                          setEditData({ ...editData, assignedToTeamId: undefined })
-                        } else {
-                          setEditData({ ...editData, assignedToId: undefined })
-                        }
-                      }}>
+                      <Tabs
+                        value={assignmentType}
+                        onValueChange={(v) => {
+                          setAssignmentType(v as "user" | "team");
+                          if (v === "user") {
+                            setEditData({
+                              ...editData,
+                              assignedToTeamId: undefined,
+                            });
+                          } else {
+                            setEditData({
+                              ...editData,
+                              assignedToId: undefined,
+                            });
+                          }
+                        }}
+                      >
                         <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="user">
                             <User className="h-4 w-4 mr-2" />
@@ -277,18 +332,27 @@ export function TaskDetail() {
                         </TabsList>
                         <TabsContent value="user" className="mt-2">
                           <Select
-                            value={editData.assignedToId?.toString() || "unassigned"}
-                            onValueChange={(value) => setEditData({
-                              ...editData,
-                              assignedToId: value === "unassigned" ? undefined : parseInt(value),
-                              assignedToTeamId: undefined
-                            })}
+                            value={
+                              editData.assignedToId?.toString() || "unassigned"
+                            }
+                            onValueChange={(value) =>
+                              setEditData({
+                                ...editData,
+                                assignedToId:
+                                  value === "unassigned"
+                                    ? undefined
+                                    : parseInt(value),
+                                assignedToTeamId: undefined,
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Unassigned" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              <SelectItem value="unassigned">
+                                Unassigned
+                              </SelectItem>
                               {users.map((u) => (
                                 <SelectItem key={u.ID} value={u.ID!.toString()}>
                                   {u.fullName || u.username}
@@ -299,24 +363,37 @@ export function TaskDetail() {
                         </TabsContent>
                         <TabsContent value="team" className="mt-2">
                           <Select
-                            value={editData.assignedToTeamId?.toString() || "unassigned"}
-                            onValueChange={(value) => setEditData({
-                              ...editData,
-                              assignedToTeamId: value === "unassigned" ? undefined : parseInt(value),
-                              assignedToId: undefined
-                            })}
+                            value={
+                              editData.assignedToTeamId?.toString() ||
+                              "unassigned"
+                            }
+                            onValueChange={(value) =>
+                              setEditData({
+                                ...editData,
+                                assignedToTeamId:
+                                  value === "unassigned"
+                                    ? undefined
+                                    : parseInt(value),
+                                assignedToId: undefined,
+                              })
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a team" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                              <SelectItem value="unassigned">
+                                Unassigned
+                              </SelectItem>
                               {teams.map((team) => (
-                                <SelectItem key={team.id} value={team.id.toString()}>
+                                <SelectItem
+                                  key={team.id}
+                                  value={team.id.toString()}
+                                >
                                   <div className="flex items-center gap-2">
                                     {team.color && (
-                                      <div 
-                                        className="w-3 h-3 rounded-full" 
+                                      <div
+                                        className="w-3 h-3 rounded-full"
                                         style={{ backgroundColor: team.color }}
                                       />
                                     )}
@@ -334,7 +411,9 @@ export function TaskDetail() {
               ) : (
                 <>
                   <div>
-                    <h2 className="text-2xl font-semibold mb-2">{currentTask.title}</h2>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      {currentTask.title}
+                    </h2>
                     {currentTask.description && (
                       <p className="text-muted-foreground whitespace-pre-wrap">
                         {currentTask.description}
@@ -346,7 +425,9 @@ export function TaskDetail() {
                     <Badge className={getPriorityColor(currentTask.priority)}>
                       {currentTask.priority}
                     </Badge>
-                    <Badge variant="outline">{currentTask.status.replace('_', ' ')}</Badge>
+                    <Badge variant="outline">
+                      {currentTask.status.replace("_", " ")}
+                    </Badge>
                   </div>
 
                   {currentTask.tags && currentTask.tags.length > 0 && (
@@ -398,15 +479,24 @@ export function TaskDetail() {
                         <div className="space-y-2">
                           <Textarea
                             value={editingNoteContent}
-                            onChange={(e) => setEditingNoteContent(e.target.value)}
+                            onChange={(e) =>
+                              setEditingNoteContent(e.target.value)
+                            }
                             rows={3}
                           />
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleUpdateNote(note.id)}>
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdateNote(note.id)}
+                            >
                               <Check className="h-4 w-4 mr-1" />
                               Save
                             </Button>
-                            <Button size="sm" variant="outline" onClick={handleCancelEditNote}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEditNote}
+                            >
                               <X className="h-4 w-4 mr-1" />
                               Cancel
                             </Button>
@@ -414,23 +504,28 @@ export function TaskDetail() {
                         </div>
                       ) : (
                         <>
-                          <p className="whitespace-pre-wrap mb-2">{note.content}</p>
+                          <p className="whitespace-pre-wrap mb-2">
+                            {note.content}
+                          </p>
                           <div className="flex items-center justify-between">
                             <div className="text-sm text-muted-foreground">
                               <span className="font-semibold">
                                 {note.createdBy.username}
                               </span>
-                              {' • '}
-                              {format(new Date(note.createdAt), 'PPp')}
-                              {note.updatedAt && note.updatedAt !== note.createdAt && (
-                                <>
-                                  {' • '}
-                                  <span className="italic">
-                                    Edited {format(new Date(note.updatedAt), 'PPp')}
-                                    {note.updatedByUser && ` by ${note.updatedByUser.username}`}
-                                  </span>
-                                </>
-                              )}
+                              {" • "}
+                              {format(new Date(note.createdAt), "PPp")}
+                              {note.updatedAt &&
+                                note.updatedAt !== note.createdAt && (
+                                  <>
+                                    {" • "}
+                                    <span className="italic">
+                                      Edited{" "}
+                                      {format(new Date(note.updatedAt), "PPp")}
+                                      {note.updatedByUser &&
+                                        ` by ${note.updatedByUser.username}`}
+                                    </span>
+                                  </>
+                                )}
                             </div>
                             {user && Number(user.ID) === note.createdBy.ID && (
                               // display the note.createdBy.id
@@ -440,7 +535,9 @@ export function TaskDetail() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => handleEditNote(note.id, note.content)}
+                                  onClick={() =>
+                                    handleEditNote(note.id, note.content)
+                                  }
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -482,7 +579,7 @@ export function TaskDetail() {
                   <div>
                     <p className="text-sm font-medium">Due Date</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(currentTask.dueDate), 'PPP')}
+                      {format(new Date(currentTask.dueDate), "PPP")}
                     </p>
                   </div>
                 </div>
@@ -497,7 +594,9 @@ export function TaskDetail() {
                       variant="link"
                       size="sm"
                       className="p-0 h-auto"
-                      onClick={() => navigate(`/patients/${currentTask.patient?.id}`)}
+                      onClick={() =>
+                        navigate(`/patients/${currentTask.patient?.id}`)
+                      }
                     >
                       <p className="text-sm text-muted-foreground">
                         {currentTask.patient.fname} {currentTask.patient.lname}
@@ -516,15 +615,20 @@ export function TaskDetail() {
                         <p className="text-sm font-medium">Assigned to Team</p>
                         <div className="flex items-center gap-1.5 mt-1">
                           {currentTask.assignedToTeam.color && (
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: currentTask.assignedToTeam.color }}
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  currentTask.assignedToTeam.color,
+                              }}
                             />
                           )}
                           <p className="text-sm text-muted-foreground font-medium">
                             {currentTask.assignedToTeam.name}
                           </p>
-                          <Badge variant="outline" className="text-xs ml-1">Team</Badge>
+                          <Badge variant="outline" className="text-xs ml-1">
+                            Team
+                          </Badge>
                         </div>
                       </div>
                     </>
@@ -542,14 +646,13 @@ export function TaskDetail() {
                 </div>
               )}
 
-
-
               <div className="flex items-start gap-2">
                 <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Created</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(currentTask.createdAt), 'PPp')} by {currentTask.createdBy.username}
+                    {format(new Date(currentTask.createdAt), "PPp")} by{" "}
+                    {currentTask.createdBy.username}
                   </p>
                 </div>
               </div>
@@ -560,7 +663,7 @@ export function TaskDetail() {
                   <div>
                     <p className="text-sm font-medium">Completed</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(currentTask.completedAt), 'PPp')}
+                      {format(new Date(currentTask.completedAt), "PPp")}
                     </p>
                   </div>
                 </div>
@@ -570,15 +673,15 @@ export function TaskDetail() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function getPriorityColor(priority: string) {
   const colors = {
-    low: 'bg-blue-500',
-    medium: 'bg-yellow-500',
-    high: 'bg-orange-500',
-    urgent: 'bg-red-500'
-  }
-  return colors[priority as keyof typeof colors] || 'bg-gray-500'
+    low: "bg-blue-500",
+    medium: "bg-yellow-500",
+    high: "bg-orange-500",
+    urgent: "bg-red-500",
+  };
+  return colors[priority as keyof typeof colors] || "bg-gray-500";
 }

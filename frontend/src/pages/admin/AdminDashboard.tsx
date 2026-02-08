@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CheckSquare } from "lucide-react";
-import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+
 import { UserManagementTable } from "@/components/admin/UserManagementTable";
 import { TagManagement } from "@/components/admin/TagManagement";
 import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
@@ -121,11 +121,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Admin Dashboard", current: true },
-  ];
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -196,8 +191,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto">
-      <BreadcrumbNav items={breadcrumbItems} />
-
       <Tabs defaultValue="overview" className="mt-6">
         <TabsList>
           <TabsTrigger value="overview">My Overview</TabsTrigger>
@@ -248,7 +241,6 @@ export default function AdminDashboard() {
                       <CardDescription className="text-xs">
                         View how many patients have a specific tag
                       </CardDescription>
-
                     </CardHeader>
                     <CardContent>
                       {tags.length > 0 ? (

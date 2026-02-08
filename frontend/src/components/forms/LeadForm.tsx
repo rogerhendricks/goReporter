@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
 import { toast } from "sonner";
 import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 
@@ -32,6 +32,7 @@ export default function LeadForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = id !== undefined;
+  const { setItems } = useBreadcrumbs();
 
   const {
     currentLead,
@@ -73,6 +74,18 @@ export default function LeadForm() {
     }
   }, [currentLead, isEdit]);
 
+  useEffect(() => {
+    const label = isEdit
+      ? `Edit ${currentLead?.name || (loading ? "Loading..." : "Lead")}`
+      : "New Lead";
+
+    setItems([
+      { label: "Home", href: "/" },
+      { label: "Leads", href: "/leads" },
+      { label, current: true },
+    ]);
+  }, [currentLead, isEdit, loading, setItems]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -103,18 +116,8 @@ export default function LeadForm() {
 
   useFormShortcuts(handleSubmit);
 
-  const breadcrumbItems = [
-    { label: "Home", href: "/" },
-    { label: "Leads", href: "/leads" },
-    {
-      label: isEdit ? `Edit ${currentLead?.name || "Lead"}` : "New Lead",
-      current: true,
-    },
-  ];
-
   return (
     <div className="container mx-auto py-6">
-      <BreadcrumbNav items={breadcrumbItems} />
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">
           {isEdit ? "Edit Lead" : "Create New Lead"}
