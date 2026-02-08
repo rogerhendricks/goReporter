@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { globalSearchService, type GlobalSearchResult, type EntityType } from "@/services/globalSearchService"
 import { useDebounce } from "@/hooks/useDebounce"
+import { Kbd, KbdGroup } from "@/components/ui/kbd"
 
 export function KeyboardShortcuts() {
   const [open, setOpen] = React.useState(false)
@@ -91,6 +92,10 @@ export function KeyboardShortcuts() {
       if (e.key === "T" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault()
         navigate("/tasks/new")
+      }
+        if (e.key === "A" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault()
+        navigate("/appointments")
       }
       if (e.key === "?" && e.shiftKey) {
         e.preventDefault()
@@ -232,6 +237,11 @@ export function KeyboardShortcuts() {
                   <CommandItem onSelect={() => runCommand(() => navigate("/appointments"))}>
                     <Calendar className="mr-2 h-4 w-4" />
                     <span>Appointments</span>
+                      <CommandShortcut>
+                        <KbdGroup>                        
+                        <Kbd>Ctrl⇧A</Kbd>
+                        </KbdGroup>
+                      </CommandShortcut>
                   </CommandItem>
                   <CommandItem onSelect={() => runCommand(() => navigate("/search/patients"))}>
                     <Search className="mr-2 h-4 w-4" />
@@ -243,12 +253,20 @@ export function KeyboardShortcuts() {
                   <CommandItem onSelect={() => runCommand(() => navigate("/patients/new"))}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     <span>New Patient</span>
-                    <CommandShortcut>⌘⇧P</CommandShortcut>
+                    <CommandShortcut>
+                      <KbdGroup>                        
+                      <Kbd>⌘⇧P</Kbd>
+                      </KbdGroup>
+                      </CommandShortcut>
                   </CommandItem>
                   <CommandItem onSelect={() => runCommand(() => navigate("/tasks/new"))}>
                     <CheckSquare className="mr-2 h-4 w-4" />
                     <span>New Task</span>
-                    <CommandShortcut>⌘⇧T</CommandShortcut>
+                    <CommandShortcut>
+                      <KbdGroup>                        
+                      <Kbd>⌘⇧T</Kbd>
+                      </KbdGroup>
+                    </CommandShortcut>
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
@@ -261,7 +279,11 @@ export function KeyboardShortcuts() {
                   <CommandItem onSelect={() => runCommand(() => navigate("/knowledge-base"))}>
                     <Keyboard className="mr-2 h-4 w-4" />
                     <span>Knowledge Base</span>
-                    <CommandShortcut>?</CommandShortcut>
+                    <CommandShortcut>
+                      <KbdGroup>
+                        <Kbd>?</Kbd>
+                      </KbdGroup>
+                    </CommandShortcut>
                   </CommandItem>
                 </CommandGroup>
               </>
