@@ -157,6 +157,11 @@ func CreateAppointment(c *fiber.Ctx) error {
 		return err
 	}
 
+	// Doctors cannot create appointments
+	if userRole == "doctor" {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Doctors are not authorized to create appointments"})
+	}
+
 	var payload appointmentRequest
 	if err := c.BodyParser(&payload); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
@@ -279,6 +284,11 @@ func UpdateAppointment(c *fiber.Ctx) error {
 	userID, userRole, err := resolveUserContext(c)
 	if err != nil {
 		return err
+	}
+
+	// Doctors cannot update appointments
+	if userRole == "doctor" {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Doctors are not authorized to update appointments"})
 	}
 
 	appointmentID, err := strconv.Atoi(c.Params("id"))
@@ -554,6 +564,11 @@ func DeleteAppointment(c *fiber.Ctx) error {
 	userID, userRole, err := resolveUserContext(c)
 	if err != nil {
 		return err
+	}
+
+	// Doctors cannot delete appointments
+	if userRole == "doctor" {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Doctors are not authorized to delete appointments"})
 	}
 
 	appointmentID, err := strconv.Atoi(c.Params("id"))

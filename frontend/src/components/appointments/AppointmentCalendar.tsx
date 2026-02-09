@@ -34,6 +34,7 @@ import { type Appointment, type AppointmentPayload, type AppointmentStatus } fro
 import { AppointmentFormDialog, type PatientOption } from '@/components/appointments/AppointmentFormDialog'
 import { useAppointments } from '@/hooks/useAppointments'
 import { usePatientStore } from '@/stores/patientStore'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 
 interface AppointmentCalendarProps {
@@ -78,6 +79,9 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
   const fetchPatients = usePatientStore(state => state.fetchPatients)
   const searchPatients = usePatientStore(state => state.searchPatients)
   const searchResults = usePatientStore(state => state.searchResults)
+
+  const user = useAuthStore(state => state.user)
+  const isDoctor = user?.role === 'doctor'
 
   useEffect(() => {
     if (!patients.length) {
@@ -198,8 +202,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
     const appointmentsHtml = selectedDayAppointments
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
       .map(appt => {
-        const patient = appt.patient?.fname 
-          ? `${appt.patient.fname} ${appt.patient.lname}` 
+        const patient = appt.patient?.fname
+          ? `${appt.patient.fname} ${appt.patient.lname}`
           : `Patient #${appt.patientId}`
         const time = `${format(new Date(appt.startAt), 'p')}${appt.endAt ? ` – ${format(new Date(appt.endAt), 'p')}` : ''}`
         return `
@@ -208,13 +212,11 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
             <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${appt.title}</td>
             <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${patient}</td>
             <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-              <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${
-                appt.status === 'scheduled' ? '#e0f2fe' : 
-                appt.status === 'completed' ? '#d1fae5' : '#fee2e2'
-              }; color: ${
-                appt.status === 'scheduled' ? '#0369a1' : 
-                appt.status === 'completed' ? '#065f46' : '#991b1b'
-              };">
+              <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${appt.status === 'scheduled' ? '#e0f2fe' :
+            appt.status === 'completed' ? '#d1fae5' : '#fee2e2'
+          }; color: ${appt.status === 'scheduled' ? '#0369a1' :
+            appt.status === 'completed' ? '#065f46' : '#991b1b'
+          };">
                 ${appt.status}
               </span>
             </td>
@@ -349,14 +351,14 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
             </PopoverTrigger>
             <PopoverContent className="w-[220px] p-0" align="start">
               <Command shouldFilter={false}>
-                <CommandInput 
-                  placeholder="Search patients..." 
+                <CommandInput
+                  placeholder="Search patients..."
                   value={filterSearchQuery}
                   onValueChange={setFilterSearchQuery}
                 />
                 <CommandList>
                   <CommandEmpty>
-                    {filterSearchQuery.length < 2 
+                    {filterSearchQuery.length < 2
                       ? "Type to search patients"
                       : "No patients found"
                     }
@@ -446,8 +448,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
             </PopoverContent>
           </Popover>
           {filterPatientId !== 'all' && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => handleFilterSelect('all')}
               className="h-10 w-10"
@@ -456,18 +458,20 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
               <span className="sr-only">Clear filter</span>
             </Button>
           )}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handlePrint}
             disabled={selectedDayAppointments.length === 0}
           >
             <Printer className="mr-2 h-4 w-4" />
             Print List
           </Button>
-          <Button onClick={() => openCreateDialog(selectedDate)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Appointment
-          </Button>
+          {!isDoctor && (
+            <Button onClick={() => openCreateDialog(selectedDate)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Appointment
+            </Button>
+          )}
         </div>
       </div>
 
@@ -512,7 +516,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                         {(() => {
                           const clinicAppts = dayAppointments.filter(a => a.location === 'clinic')
                           const otherAppts = dayAppointments.filter(a => a.location !== 'clinic')
-                          
+
                           // Group clinic appointments by rounded time (15-min slots)
                           const slotGroups: Record<string, Appointment[]> = {}
                           clinicAppts.forEach(appt => {
@@ -545,7 +549,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                                   </div>
                                 </div>
                               ))}
-                              
+
                               {/* Show other appointment dots as before */}
                               {otherAppts.length > 0 && (
                                 <div className="flex flex-wrap gap-1 pt-1">
@@ -586,9 +590,11 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                 {selectedDayAppointments.length} appointment{selectedDayAppointments.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => openCreateDialog(selectedDate)}>
-              <CalendarDays className="h-5 w-5" />
-            </Button>
+            {!isDoctor && (
+              <Button variant="ghost" size="icon" onClick={() => openCreateDialog(selectedDate)}>
+                <CalendarDays className="h-5 w-5" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {selectedDayAppointments.length === 0 && (
@@ -598,8 +604,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
               {paginatedAppointments.map(appt => (
                 <div
                   key={appt.id}
-                  className="cursor-pointer rounded-lg border p-2.5 hover:border-primary transition-colors"
-                  onClick={() => openEditDialog(appt)}
+                  className={isDoctor ? "rounded-lg border p-2.5" : "cursor-pointer rounded-lg border p-2.5 hover:border-primary transition-colors"}
+                  onClick={isDoctor ? undefined : () => openEditDialog(appt)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -634,7 +640,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                 </div>
               ))}
             </div>
-            
+
             {totalAppointmentPages > 1 && (
               <div className="mt-4 flex items-center justify-between border-t pt-3">
                 <p className="text-xs text-muted-foreground">
@@ -666,17 +672,21 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
         </Card>
       </div>
 
-      <AppointmentFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        mode={dialogMode}
-        appointment={activeAppointment}
-        patientId={patientId ?? (filterPatientId === 'all' ? undefined : filterPatientId)}
-        patients={patientOptions}
-        defaultDate={dialogDate ?? selectedDate}
-        onSubmit={handleSubmit}
-        onDelete={handleDelete}
-      />
-    </div>
+      {
+        !isDoctor && (
+          <AppointmentFormDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            mode={dialogMode}
+            appointment={activeAppointment}
+            patientId={patientId ?? (filterPatientId === 'all' ? undefined : filterPatientId)}
+            patients={patientOptions}
+            defaultDate={dialogDate ?? selectedDate}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+          />
+        )
+      }
+    </div >
   )
 }
