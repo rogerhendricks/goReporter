@@ -100,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/doctors",
                     label: "Doctors",
                     icon: Stethoscope,
-                    roles: ["admin", "doctor", "viewer", "user"],
+                    roles: ["admin", "doctor", "user"],
                 },
             ],
         },

@@ -191,7 +191,8 @@ export const routes: RouteConfig[] = [
     path: '/doctors',
     element: <DoctorIndex />,
     requiresAuth: true,
-    layout: 'default'
+    layout: 'default',
+    roles: ['admin', 'doctor', 'user']
   },
   {
     path: '/doctors/new',
