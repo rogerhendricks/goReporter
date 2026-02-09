@@ -23,6 +23,7 @@ import {
 import {
     Collapsible,
     CollapsibleContent,
+    CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
     Sidebar,
@@ -38,6 +39,7 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
     SidebarRail,
+    useSidebar,
 } from "@/components/ui/sidebar"
 import {
     DropdownMenu,
@@ -56,6 +58,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const { theme, setTheme } = useTheme()
     const location = useLocation()
     const navigate = useNavigate()
+    const { state } = useSidebar()
+    const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({})
 
     const handleLogout = async () => {
         await logout()
@@ -171,6 +175,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         }))
         .filter((group) => group.items.length > 0)
 
+    // Update open state when location changes
+    React.useEffect(() => {
+        const newOpenGroups: Record<string, boolean> = {}
+        visibleNavGroups.forEach((group) => {
+            newOpenGroups[group.label] = group.items.some((item) =>
+                location.pathname.startsWith(item.href)
+            )
+        })
+        setOpenGroups(newOpenGroups)
+    }, [location.pathname])
+
     const displayName = user?.username || "Account"
 
     return (
@@ -215,37 +230,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             <Collapsible
                                 key={group.label}
                                 asChild
-                                defaultOpen={group.items.some((item) =>
-                                    location.pathname.startsWith(item.href)
-                                )}
+                                open={openGroups[group.label]}
+                                onOpenChange={(isOpen) =>
+                                    setOpenGroups((prev) => ({ ...prev, [group.label]: isOpen }))
+                                }
                                 className="group/collapsible"
                             >
                                 <SidebarMenuItem>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
+                                    {state === "collapsed" ? (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <SidebarMenuButton tooltip={group.label}>
+                                                    <group.icon />
+                                                    <span>{group.label}</span>
+                                                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                                </SidebarMenuButton>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                                side="right"
+                                                align="start"
+                                                className="w-48 ml-1"
+                                            >
+                                                <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {group.items.map((item) => (
+                                                    <DropdownMenuItem key={item.href} asChild>
+                                                        <Link to={item.href} className="flex items-center gap-2">
+                                                            <item.icon className="h-4 w-4" />
+                                                            <span>{item.label}</span>
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    ) : (
+                                        <CollapsibleTrigger asChild>
                                             <SidebarMenuButton tooltip={group.label}>
                                                 <group.icon />
                                                 <span>{group.label}</span>
                                                 <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                             </SidebarMenuButton>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            side="right"
-                                            align="start"
-                                            className="w-48 ml-1"
-                                        >
-                                            <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {group.items.map((item) => (
-                                                <DropdownMenuItem key={item.href} asChild>
-                                                    <Link to={item.href} className="flex items-center gap-2">
-                                                        <item.icon className="h-4 w-4" />
-                                                        <span>{item.label}</span>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                        </CollapsibleTrigger>
+                                    )}
                                     <CollapsibleContent>
                                         <SidebarMenuSub>
                                             {group.items.map((item) => (
