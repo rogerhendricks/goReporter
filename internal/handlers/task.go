@@ -165,7 +165,12 @@ func GetTasks(c *fiber.Ctx) error {
 	}
 
 	// Role-based filtering
-	if userRole != "admin" && userRole != "doctor" && userRole != "viewer" {
+	if userRole == "doctor" {
+		// Doctors only see tasks for their associated patients
+		query = query.Joins("JOIN patient_doctors ON patient_doctors.patient_id = tasks.patient_id").
+			Joins("JOIN doctors ON doctors.id = patient_doctors.doctor_id").
+			Where("doctors.user_id = ?", userID)
+	} else if userRole != "admin" && userRole != "viewer" {
 		// Regular users see tasks assigned to them, created by them, or assigned to their teams
 		query = query.Where(
 			config.DB.Where("assigned_to_id = ?", userID).
@@ -295,6 +300,13 @@ func CreateTask(c *fiber.Ctx) error {
 		})
 	}
 
+	// Doctors cannot create tasks
+	if userRole == "doctor" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Doctors are not authorized to create tasks",
+		})
+	}
+
 	var req CreateTaskRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -419,9 +431,15 @@ func UpdateTask(c *fiber.Ctx) error {
 
 	wasCompleted := task.Status == models.TaskStatusCompleted
 
-	// Check permissions - Allow admins, doctors, task creator, or assigned user/team member
+	// Doctors cannot update tasks
+	if userRole == "doctor" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Doctors are not authorized to update tasks",
+		})
+	}
+
+	// Check permissions - Allow admins, task creator, or assigned user/team member
 	canUpdate := userRole == "admin" ||
-		userRole == "doctor" ||
 		task.CreatedByID == userID ||
 		(task.AssignedToID != nil && *task.AssignedToID == userID)
 
@@ -558,6 +576,13 @@ func DeleteTask(c *fiber.Ctx) error {
 	if err := config.DB.First(&task, id).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Task not found",
+		})
+	}
+
+	// Doctors cannot delete tasks
+	if userRole == "doctor" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Doctors are not authorized to delete tasks",
 		})
 	}
 
@@ -781,9 +806,14 @@ func GetTasksByPatient(c *fiber.Ctx) error {
 	var tasks []models.Task
 	query := config.DB.Where("patient_id = ?", patientID).
 		Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").
-		Order("due_date ASC NULLS LAST, priority DESC, created_at DESC")
+		Order("due_date ASC NULLS LAST, priority DESC, tasks.created_at DESC")
 
-	if userRole != "admin" && userRole != "doctor" && userRole != "viewer" {
+	if userRole == "doctor" {
+		// Doctors only see tasks for their associated patients
+		query = query.Joins("JOIN patient_doctors ON patient_doctors.patient_id = tasks.patient_id").
+			Joins("JOIN doctors ON doctors.id = patient_doctors.doctor_id").
+			Where("doctors.user_id = ?", userID)
+	} else if userRole != "admin" && userRole != "viewer" {
 		query = query.Where(
 			config.DB.Where("assigned_to_id = ?", userID).
 				Or("created_by_id = ?", userID).
