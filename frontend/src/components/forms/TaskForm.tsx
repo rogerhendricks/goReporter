@@ -47,7 +47,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   const { user } = useAuthStore()
   const [availableTags, setAvailableTags] = useState<any[]>([])
   const [assignmentType, setAssignmentType] = useState<'user' | 'team'>('user')
-  const isAdminOrDoctor = user?.role === 'admin' || user?.role === 'doctor'
+  const isAdmin = user?.role === 'admin'
 
   const [formData, setFormData] = useState<CreateTaskData>({
     title: '',
@@ -56,7 +56,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     priority: 'medium',
     dueDate: undefined,
     patientId: patientId,
-    assignedToId: isAdminOrDoctor ? undefined : Number(user?.ID),
+    assignedToId: isAdmin ? undefined : Number(user?.ID),
     assignedToTeamId: undefined,
     tagIds: []
   })
@@ -73,7 +73,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         const tags = await tagService.getAll()
         setAvailableTags(tags)
 
-        if (isAdminOrDoctor) {
+        if (isAdmin) {
           await fetchUsers()
           fetchTeams()
         }
@@ -92,7 +92,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
         setSelectedPatient(patient)
       }
     }
-  }, [patientId, patients.length, fetchPatients, isAdminOrDoctor, fetchUsers, fetchTeams])
+  }, [patientId, patients.length, fetchPatients, isAdmin, fetchUsers, fetchTeams])
 
   const handlePatientSearch = async (query: string) => {
     setPatientSearch(query)
@@ -132,7 +132,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
     }
 
     const result = await createTask(submitData)
-    
+
     if (result) {
       toast.success('Task created successfully')
       if (onSuccess) {
@@ -146,7 +146,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
   }
 
   useFormShortcuts(handleSubmit);
-  
+
   const toggleTag = (tag: any) => {
     setSelectedTags(prev => {
       const exists = prev.find(t => t.ID === tag.ID)
@@ -257,8 +257,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
             </Popover>
           </div>
 
-          {/* Assign To - Only show for admin/doctor */}
-          {isAdminOrDoctor && (
+          {/* Assign To - Only show for admin */}
+          {isAdmin && (
             <div className="space-y-2">
               <Label>Assign To</Label>
               <Tabs value={assignmentType} onValueChange={(v) => {
@@ -282,8 +282,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 <TabsContent value="user" className="mt-2">
                   <Select
                     value={formData.assignedToId?.toString() || "self"}
-                    onValueChange={(value) => setFormData({ 
-                      ...formData, 
+                    onValueChange={(value) => setFormData({
+                      ...formData,
                       assignedToId: value === "self" ? Number(user?.ID) : parseInt(value),
                       assignedToTeamId: undefined
                     })}
@@ -304,8 +304,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                 <TabsContent value="team" className="mt-2">
                   <Select
                     value={formData.assignedToTeamId?.toString() || ""}
-                    onValueChange={(value) => setFormData({ 
-                      ...formData, 
+                    onValueChange={(value) => setFormData({
+                      ...formData,
                       assignedToTeamId: value ? parseInt(value) : undefined,
                       assignedToId: undefined
                     })}
@@ -318,8 +318,8 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
                         <SelectItem key={team.id} value={team.id.toString()}>
                           <div className="flex items-center gap-2">
                             {team.color && (
-                              <div 
-                                className="w-3 h-3 rounded-full" 
+                              <div
+                                className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: team.color }}
                               />
                             )}
@@ -335,7 +335,7 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
           )}
 
           {/* Show assigned user for regular users (read-only) */}
-          {!isAdminOrDoctor && user && (
+          {!isAdmin && user && (
             <div className="p-4 border rounded-lg bg-muted">
               <div className="flex items-center gap-3">
                 <User className="h-5 w-5 text-muted-foreground" />
@@ -348,13 +348,13 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
               </div>
             </div>
           )}
-        
+
 
           {/* Patient Selection (if not provided via prop) */}
           {!patientId && (
             <div className="space-y-2">
               <Label>Patient (Optional)</Label>
-              
+
               {selectedPatient ? (
                 <div className="p-4 border rounded-lg bg-muted">
                   <div className="flex items-center justify-between">
@@ -515,9 +515,9 @@ export function TaskForm({ patientId, onSuccess, onCancel }: TaskFormProps) {
             <Button type="submit" disabled={isLoading}>
               {isLoading ? 'Creating...' : 'Create Task'}
             </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => {
                 if (onCancel) {
                   onCancel()

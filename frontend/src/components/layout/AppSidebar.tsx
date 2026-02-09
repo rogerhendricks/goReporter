@@ -146,7 +146,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/productivity",
                     label: "Productivity",
                     icon: BarChart3,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "user"],
                 },
             ],
         },

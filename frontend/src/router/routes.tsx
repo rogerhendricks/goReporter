@@ -356,6 +356,6 @@ export const routes: RouteConfig[] = [
     element: <ProductivityReportPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'user']
   }
 ]

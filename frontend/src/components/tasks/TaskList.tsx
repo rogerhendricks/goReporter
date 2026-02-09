@@ -68,6 +68,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const { tasks, fetchTasks, fetchTasksByPatient, updateTask, deleteTask, isLoading } = useTaskStore()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
+  const isDoctor = user?.role === 'doctor'
   const { users, fetchUsers } = useUserStore()
   const { teams, fetchTeams } = useTeamStore()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
@@ -377,7 +378,8 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
     showPatient: !patientId,
     users,
     teams,
-    isAdmin
+    isAdmin,
+    isDoctor
   }
 
   // const breadcrumbItems = [
@@ -716,27 +718,29 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
                 </Dialog>
               )}
 
-              <Dialog open={openNewTaskDialog} onOpenChange={setOpenNewTaskDialog}>
-                <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Task
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Create New Task</DialogTitle>
-                    <DialogDescription>
-                      Add a new task{patientId ? ' for this patient' : ''}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <TaskForm
-                    patientId={patientId}
-                    onSuccess={handleTaskCreated}
-                    onCancel={() => setOpenNewTaskDialog(false)}
-                  />
-                </DialogContent>
-              </Dialog>
+              {!isDoctor && (
+                <Dialog open={openNewTaskDialog} onOpenChange={setOpenNewTaskDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full sm:w-auto">
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create New Task</DialogTitle>
+                      <DialogDescription>
+                        Add a new task{patientId ? ' for this patient' : ''}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <TaskForm
+                      patientId={patientId}
+                      onSuccess={handleTaskCreated}
+                      onCancel={() => setOpenNewTaskDialog(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
             </>
           </div>
         </div>
@@ -816,6 +820,7 @@ interface TaskTableProps {
   users: any[]
   teams: Team[]
   isAdmin: boolean
+  isDoctor: boolean
 }
 
 function TaskTable({
@@ -829,7 +834,8 @@ function TaskTable({
   showPatient = true,
   users,
   teams,
-  isAdmin
+  isAdmin,
+  isDoctor
 }: TaskTableProps) {
   return (
     <Card>
@@ -860,6 +866,7 @@ function TaskTable({
               users={users}
               teams={teams}
               isAdmin={isAdmin}
+              isDoctor={isDoctor}
             />
           ))}
         </TableBody>
@@ -880,6 +887,7 @@ interface TaskRowProps {
   users: any[]
   teams: Team[]
   isAdmin: boolean
+  isDoctor: boolean
 }
 
 function TaskRow({
@@ -893,7 +901,8 @@ function TaskRow({
   showPatient = true,
   users,
   teams,
-  isAdmin
+  isAdmin,
+  isDoctor
 }: TaskRowProps) {
   const dueDateInfo = getDueDateInfo(task.dueDate)
   const PriorityIcon = priorityConfig[task.priority].icon
@@ -966,6 +975,7 @@ function TaskRow({
         <Select
           value={task.priority}
           onValueChange={(value: TaskPriority) => onPriorityChange(task.id, value)}
+          disabled={isDoctor}
         >
           <SelectTrigger className="w-[130px]">
             <SelectValue>
@@ -1009,6 +1019,7 @@ function TaskRow({
         <Select
           value={task.status}
           onValueChange={(value: TaskStatus) => onStatusChange(task.id, value)}
+          disabled={isDoctor}
         >
           <SelectTrigger className="w-[150px]">
             <SelectValue>
@@ -1049,41 +1060,48 @@ function TaskRow({
 
       {/* Due Date - Editable */}
       <TableCell className="text-left">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[150px] justify-start text-left font-normal",
-                !task.dueDate && "text-muted-foreground",
-                dueDateInfo?.isOverdue && "border-red-500 text-red-600"
+        {isDoctor ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            {dueDateInfo ? dueDateInfo.text : 'No date'}
+          </div>
+        ) : (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[150px] justify-start text-left font-normal",
+                  !task.dueDate && "text-muted-foreground",
+                  dueDateInfo?.isOverdue && "border-red-500 text-red-600"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dueDateInfo ? dueDateInfo.text : 'Set date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                onSelect={(date) => onDueDateChange(task.id, date)}
+                initialFocus
+              />
+              {task.dueDate && (
+                <div className="p-3 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => onDueDateChange(task.id, undefined)}
+                  >
+                    Clear date
+                  </Button>
+                </div>
               )}
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              {dueDateInfo ? dueDateInfo.text : 'Set date'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={task.dueDate ? new Date(task.dueDate) : undefined}
-              onSelect={(date) => onDueDateChange(task.id, date)}
-              initialFocus
-            />
-            {task.dueDate && (
-              <div className="p-3 border-t">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => onDueDateChange(task.id, undefined)}
-                >
-                  Clear date
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        )}
       </TableCell>
 
       {/* Assigned To */}
@@ -1179,14 +1197,16 @@ function TaskRow({
             <Eye className="h-4 w-4 mr-1" />
             View
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDeleteTask(task.id)}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {!isDoctor && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDeleteTask(task.id)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
