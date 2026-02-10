@@ -352,14 +352,13 @@ export default function PatientDetail() {
                   />
                 </DialogContent>
               </Dialog>
-              <Button asChild>
-                <Link to={`/patients/${currentPatient.id}/reports/new`}>
-                  <Plus className="mr-2 h-4 w-4" /> Create New Report
-                </Link>
-              </Button>
-
             </>
           )}
+          <Button asChild>
+            <Link to={`/patients/${currentPatient.id}/reports/new`}>
+              <Plus className="mr-2 h-4 w-4" /> Create New Report
+            </Link>
+          </Button>
           <Button asChild variant="secondary">
             <Link
               to={`/patients/${currentPatient.id}/reports`}
