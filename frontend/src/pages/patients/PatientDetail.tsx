@@ -77,6 +77,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +98,8 @@ export default function PatientDetail() {
   const [templateDueDate, setTemplateDueDate] = useState<Date | undefined>();
   const [isAssigning, setIsAssigning] = useState(false);
   const { setItems } = useBreadcrumbs();
+  const { user } = useAuthStore();
+  const isDoctor = user?.role === "doctor";
 
   useEffect(() => {
     if (id) {
@@ -230,149 +233,159 @@ export default function PatientDetail() {
     <div className="container mx-auto">
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap gap-2">
-          <Dialog
-            open={openTemplateDialog}
-            onOpenChange={async (open) => {
-              setOpenTemplateDialog(open);
-              // Lazy load templates when dialog opens
-              if (open && templates.length === 0) {
-                try {
-                  const templatesData = await taskTemplateService.getAll();
-                  setTemplates(templatesData);
-                } catch (error) {
-                  console.error("Failed to load templates:", error);
-                }
-              }
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                Assign Template
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Assign Task Template</DialogTitle>
-                <DialogDescription>
-                  Select a task template to assign to {currentPatient.fname}{" "}
-                  {currentPatient.lname}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Template</Label>
-                  <Select
-                    value={selectedTemplate?.toString()}
-                    onValueChange={(v) => setSelectedTemplate(parseInt(v))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem
-                          key={template.id}
-                          value={template.id.toString()}
-                        >
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {!isDoctor && (
+            <>
+              <Dialog
+                open={openTemplateDialog}
+                onOpenChange={async (open) => {
+                  setOpenTemplateDialog(open);
+                  // Lazy load templates when dialog opens
+                  if (open && templates.length === 0) {
+                    try {
+                      const templatesData = await taskTemplateService.getAll();
+                      setTemplates(templatesData);
+                    } catch (error) {
+                      console.error("Failed to load templates:", error);
+                    }
+                  }
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Assign Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Assign Task Template</DialogTitle>
+                    <DialogDescription>
+                      Select a task template to assign to {currentPatient.fname}{" "}
+                      {currentPatient.lname}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Template</Label>
+                      <Select
+                        value={selectedTemplate?.toString()}
+                        onValueChange={(v) => setSelectedTemplate(parseInt(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((template) => (
+                            <SelectItem
+                              key={template.id}
+                              value={template.id.toString()}
+                            >
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Due Date (Optional)</Label>
-                  <Popover modal={true}>
-                    <PopoverTrigger asChild>
+                    <div className="space-y-2">
+                      <Label>Due Date (Optional)</Label>
+                      <Popover modal={true}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {templateDueDate
+                              ? format(templateDueDate, "PPP")
+                              : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={templateDueDate}
+                            onSelect={setTemplateDueDate}
+                            autoFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        onClick={handleAssignTemplate}
+                        disabled={isAssigning || !selectedTemplate}
+                      >
+                        {isAssigning ? "Assigning..." : "Assign Template"}
+                      </Button>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        onClick={() => setOpenTemplateDialog(false)}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {templateDueDate
-                          ? format(templateDueDate, "PPP")
-                          : "Pick a date"}
+                        Cancel
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={templateDueDate}
-                        onSelect={setTemplateDueDate}
-                        autoFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    onClick={handleAssignTemplate}
-                    disabled={isAssigning || !selectedTemplate}
-                  >
-                    {isAssigning ? "Assigning..." : "Assign Template"}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    New Task
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setOpenTemplateDialog(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={openTaskDialog} onOpenChange={setOpenTaskDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                New Task
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>
+                      Create Task for {currentPatient.fname} {currentPatient.lname}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Create a new task associated with this patient
+                    </DialogDescription>
+                  </DialogHeader>
+                  <TaskForm
+                    patientId={currentPatient.id}
+                    onSuccess={handleTaskCreated}
+                    onCancel={() => setOpenTaskDialog(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+              <Button asChild>
+                <Link to={`/patients/${currentPatient.id}/reports/new`}>
+                  <Plus className="mr-2 h-4 w-4" /> Create New Report
+                </Link>
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  Create Task for {currentPatient.fname} {currentPatient.lname}
-                </DialogTitle>
-                <DialogDescription>
-                  Create a new task associated with this patient
-                </DialogDescription>
-              </DialogHeader>
-              <TaskForm
-                patientId={currentPatient.id}
-                onSuccess={handleTaskCreated}
-                onCancel={() => setOpenTaskDialog(false)}
-              />
-            </DialogContent>
-          </Dialog>
-          <Button asChild>
-            <Link to={`/patients/${currentPatient.id}/reports/new`}>
-              <Plus className="mr-2 h-4 w-4" /> Create New Report
-            </Link>
-          </Button>
+
+            </>
+          )}
           <Button asChild variant="secondary">
             <Link
               to={`/patients/${currentPatient.id}/reports`}
               className="flex items-center gap-2"
             >
-              View All
+              Reports
               <Badge variant="outline" className="bg-background">
                 {currentPatient.reportCount || 0}
               </Badge>
             </Link>
           </Button>
+
+          {!isDoctor && (
+            <>
           <Button
-            onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
+                onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
           <Button variant="destructive" onClick={handleDelete}>
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -565,6 +578,7 @@ export default function PatientDetail() {
             <PatientAppointments
               patientId={currentPatient.id}
               patientName={`${currentPatient.fname} ${currentPatient.lname}`}
+              isDoctor={isDoctor}
             />
             <Card>
               <CardHeader>
@@ -812,33 +826,35 @@ export default function PatientDetail() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Tasks</CardTitle>
-                    <Dialog
-                      open={openTaskDialog}
-                      onOpenChange={setOpenTaskDialog}
-                    >
-                      <DialogTrigger asChild>
-                        <Button size="sm">
-                          <Plus className="mr-2 h-4 w-4" />
-                          New Task
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>
-                            Create Task for {currentPatient.fname}{" "}
-                            {currentPatient.lname}
-                          </DialogTitle>
-                          <DialogDescription>
-                            Create a new task associated with this patient
-                          </DialogDescription>
-                        </DialogHeader>
-                        <TaskForm
-                          patientId={currentPatient.id}
-                          onSuccess={handleTaskCreated}
-                          onCancel={() => setOpenTaskDialog(false)}
-                        />
-                      </DialogContent>
-                    </Dialog>
+                    {!isDoctor && (
+                      <Dialog
+                        open={openTaskDialog}
+                        onOpenChange={setOpenTaskDialog}
+                      >
+                        <DialogTrigger asChild>
+                          <Button size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Task
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>
+                              Create Task for {currentPatient.fname}{" "}
+                              {currentPatient.lname}
+                            </DialogTitle>
+                            <DialogDescription>
+                              Create a new task associated with this patient
+                            </DialogDescription>
+                          </DialogHeader>
+                          <TaskForm
+                            patientId={currentPatient.id}
+                            onSuccess={handleTaskCreated}
+                            onCancel={() => setOpenTaskDialog(false)}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>

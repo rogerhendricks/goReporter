@@ -13,6 +13,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 interface PatientAppointmentsProps {
   patientId: number
   patientName: string
+  isDoctor?: boolean
 }
 
 const statusVariantMap: Record<string, string> = {
@@ -21,7 +22,7 @@ const statusVariantMap: Record<string, string> = {
   cancelled: 'bg-rose-100 text-rose-700 border border-rose-200',
 }
 
-export function PatientAppointments({ patientId, patientName }: PatientAppointmentsProps) {
+export function PatientAppointments({ patientId, patientName, isDoctor = false }: PatientAppointmentsProps) {
   const { appointments, loading, createAppointment, updateAppointment, deleteAppointment } = useAppointments({
     patientId,
   })
@@ -32,12 +33,14 @@ export function PatientAppointments({ patientId, patientName }: PatientAppointme
   const upcomingAppointments = useMemo(() => appointments.slice(0, 5), [appointments])
 
   const openCreate = () => {
+    if (isDoctor) return
     setDialogMode('create')
     setActiveAppointment(undefined)
     setDialogOpen(true)
   }
 
   const openEdit = (appointment: Appointment) => {
+    if (isDoctor) return
     setDialogMode('edit')
     setActiveAppointment(appointment)
     setDialogOpen(true)
@@ -67,10 +70,12 @@ export function PatientAppointments({ patientId, patientName }: PatientAppointme
               <ExternalLink className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={openCreate}>
-            <CalendarPlus className="mr-2 h-4 w-4" />
-            Schedule
-          </Button>
+          {!isDoctor && (
+            <Button variant="outline" size="sm" onClick={openCreate}>
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              Schedule
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -85,40 +90,54 @@ export function PatientAppointments({ patientId, patientName }: PatientAppointme
         )}
 
         <div className="space-y-3">
-          {upcomingAppointments.map(appointment => (
-            <button
-              key={appointment.id}
-              type="button"
-              onClick={() => openEdit(appointment)}
-              className="w-full rounded-xl border p-3 text-left transition hover:border-primary/60"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{appointment.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(new Date(appointment.startAt), 'MMM d, yyyy')} · {format(new Date(appointment.startAt), 'p')}
-                  </p>
+          {upcomingAppointments.map(appointment => {
+            const content = (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{appointment.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(appointment.startAt), 'MMM d, yyyy')} · {format(new Date(appointment.startAt), 'p')}
+                    </p>
+                  </div>
+                  <Badge className={statusVariantMap[appointment.status] ?? ''}>{appointment.status}</Badge>
                 </div>
-                <Badge className={statusVariantMap[appointment.status] ?? ''}>{appointment.status}</Badge>
+                {appointment.location && <p className="text-xs text-muted-foreground">{appointment.location}</p>}
+                {appointment.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{appointment.description}</p>
+                )}
+              </>
+            )
+
+            return isDoctor ? (
+              <div key={appointment.id} className="w-full rounded-xl border p-3 text-left">
+                {content}
               </div>
-              {appointment.location && <p className="text-xs text-muted-foreground">{appointment.location}</p>}
-              {appointment.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{appointment.description}</p>
-              )}
-            </button>
-          ))}
+            ) : (
+              <button
+                key={appointment.id}
+                type="button"
+                onClick={() => openEdit(appointment)}
+                className="w-full rounded-xl border p-3 text-left transition hover:border-primary/60"
+              >
+                {content}
+              </button>
+            )
+          })}
         </div>
       </CardContent>
 
-      <AppointmentFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        mode={dialogMode}
-        appointment={activeAppointment}
-        patientId={patientId}
-        onSubmit={handleSubmit}
-        onDelete={handleDelete}
-      />
+      {!isDoctor && (
+        <AppointmentFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          mode={dialogMode}
+          appointment={activeAppointment}
+          patientId={patientId}
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+        />
+      )}
     </Card>
   )
 }
