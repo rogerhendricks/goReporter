@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBreadcrumbs } from "@/components/ui/breadcrumb-context";
 import { Edit, Trash2, Phone, Mail, MapPin } from "lucide-react";
 import { DetailPageSkeleton } from "@/components/ui/loading-skeletons";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function DoctorDetail() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,9 @@ export default function DoctorDetail() {
   const { currentDoctor, loading, fetchDoctor, deleteDoctor } =
     useDoctorStore();
   const { setItems } = useBreadcrumbs();
+
+  const { user } = useAuthStore();
+  const isDoctor = user?.role === "doctor";
 
   useEffect(() => {
     if (id) {
@@ -58,6 +62,7 @@ export default function DoctorDetail() {
     <div className="container mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">{currentDoctor.fullName}</h1>
+        {!isDoctor && (
         <div className="ml-auto flex gap-2">
           <Button onClick={() => navigate(`/doctors/${currentDoctor.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" /> Edit
@@ -66,6 +71,7 @@ export default function DoctorDetail() {
             <Trash2 className="h-4 w-4 mr-2" /> Delete
           </Button>
         </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

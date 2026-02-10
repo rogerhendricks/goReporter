@@ -36,7 +36,7 @@ export default function DoctorIndex() {
 
   const { user } = useAuthStore();
   const isDoctor = user?.role === "doctor";
-  console.log("Is Doctor:", isDoctor);
+  
   const {
     doctors,
     pagination,
