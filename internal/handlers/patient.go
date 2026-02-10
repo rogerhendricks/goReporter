@@ -1114,9 +1114,9 @@ func GetOverduePatients(c *fiber.Ctx) error {
 
 	// Check if user is a doctor and filter by their patients
 	var doctorID *uint
-	userRole, _ := c.Locals("user_role").(string)
+	userRole, _ := c.Locals("userRole").(string)
 	if userRole == "doctor" {
-		userIDStr, _ := c.Locals("user_id").(string)
+		userIDStr, _ := c.Locals("userID").(string)
 		if userIDStr != "" {
 			// Get doctor record by user ID
 			var doctor models.Doctor

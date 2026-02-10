@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDoctorStore } from "@/stores/doctorStore";
+import { useAuthStore } from "@/stores/authStore";
 
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -33,6 +34,9 @@ export default function DoctorIndex() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 25;
 
+  const { user } = useAuthStore();
+  const isDoctor = user?.role === "doctor";
+  console.log("Is Doctor:", isDoctor);
   const {
     doctors,
     pagination,
@@ -168,9 +172,11 @@ export default function DoctorIndex() {
         <CardContent>
           <div className="flex justify-center">
             <div className="flex gap-2 w-full max-w-2xl">
-              <Button onClick={() => navigate('/doctors/new')} className="flex items-center gap-2">
-                New Doctor
+              {!isDoctor && (
+                <Button onClick={() => navigate('/doctors/new')} className="flex items-center gap-2">
+                  New Doctor
                 </Button>
+              )}
               <form onSubmit={handleSearch} className="flex flex-1">
                 <ButtonGroup className="w-full">
                   <Input
@@ -197,7 +203,7 @@ export default function DoctorIndex() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <TableSkeleton rows={10} columns={5} />
+            <TableSkeleton rows={10} columns={isDoctor ? 4 : 5} />
           ) : doctors.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No doctors found.
@@ -211,7 +217,7 @@ export default function DoctorIndex() {
                     <TableHead className="text-left">Email</TableHead>
                     <TableHead className="text-left">Phone</TableHead>
                     <TableHead className="text-left">Specialty</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {!isDoctor && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -237,28 +243,30 @@ export default function DoctorIndex() {
                             doctor.specialty.slice(1)
                           : "-"}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/doctors/${doctor.id}/edit`)
-                            }
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() =>
-                              handleDelete(doctor.id, doctor.fullName)
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {!isDoctor && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                navigate(`/doctors/${doctor.id}/edit`)
+                              }
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() =>
+                                handleDelete(doctor.id, doctor.fullName)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
