@@ -154,14 +154,14 @@ export const routes: RouteConfig[] = [
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin', 'user', 'doctor']
   },
   {
     path: '/reports/:reportId/edit',
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin', 'user', 'doctor']
   },
   {
     path: '/reports/builder',
