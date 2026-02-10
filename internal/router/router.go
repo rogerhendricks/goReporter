@@ -206,12 +206,12 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Patient consent routes
 	app.Get("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientConsents)
 	app.Get("/api/patients/:patientId/consents/active", middleware.AuthorizeDoctorPatientAccess, handlers.GetActiveConsents)
-	app.Post("/api/patients/:patientId/consents", middleware.RequireAdminOrUser, handlers.CreateConsent)
-	app.Put("/api/consents/:id", middleware.RequireAdminOrUser, handlers.UpdateConsent)
-	app.Post("/api/consents/:id/reaccept-terms", middleware.RequireAdminOrUser, handlers.ReacceptTerms)
-	app.Post("/api/consents/:id/revoke", middleware.RequireAdminOrUser, handlers.RevokeConsent)
+	app.Post("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.CreateConsent)
+	app.Put("/api/consents/:id", handlers.UpdateConsent)
+	app.Post("/api/consents/:id/reaccept-terms", handlers.ReacceptTerms)
+	app.Post("/api/consents/:id/revoke", handlers.RevokeConsent)
 	app.Get("/api/patients/:patientId/consents/check", middleware.AuthorizeDoctorPatientAccess, handlers.CheckConsentStatus)
-	app.Delete("/api/consents/:id", middleware.RequireAdmin, handlers.DeleteConsent)
+	app.Delete("/api/consents/:id", handlers.DeleteConsent)
 
 	// Admin consent management
 	app.Get("/api/admin/consents/stats", middleware.RequireAdmin, handlers.GetConsentStats)
