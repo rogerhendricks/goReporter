@@ -303,14 +303,14 @@ export const routes: RouteConfig[] = [
     element: <TaskForm />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'user']
   },
   {
     path: '/tasks/:id',
     element: <TaskDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'user']
   },
   {
     path: '/task-templates',
@@ -324,7 +324,7 @@ export const routes: RouteConfig[] = [
     element: <TaskForm />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'user']
   },
 
   // Webhook routes - admin only

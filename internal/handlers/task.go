@@ -181,7 +181,7 @@ func GetTasks(c *fiber.Ctx) error {
 		)
 	}
 
-	if err := query.Order("due_date ASC NULLS LAST, priority DESC, created_at DESC").Find(&tasks).Error; err != nil {
+	if err := query.Order("tasks.due_date ASC NULLS LAST, tasks.priority DESC, tasks.created_at DESC").Find(&tasks).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve tasks",
 		})
@@ -806,7 +806,7 @@ func GetTasksByPatient(c *fiber.Ctx) error {
 	var tasks []models.Task
 	query := config.DB.Where("patient_id = ?", patientID).
 		Preload("AssignedTo").Preload("AssignedToTeam").Preload("CreatedBy").Preload("Tags").Preload("Notes.CreatedBy").
-		Order("due_date ASC NULLS LAST, priority DESC, tasks.created_at DESC")
+		Order("tasks.due_date ASC NULLS LAST, tasks.priority DESC, tasks.created_at DESC")
 
 	if userRole == "doctor" {
 		// Doctors only see tasks for their associated patients

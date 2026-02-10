@@ -848,7 +848,7 @@ function TaskTable({
             <TableHead className="w-[15%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>
             <TableHead className="w-[15%]">Assigned to</TableHead>
-            <TableHead className="w-[5%]">Actions</TableHead>
+            {!isDoctor && <TableHead className="w-[5%]">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1187,17 +1187,17 @@ function TaskRow({
       </TableCell>
 
       {/* Actions */}
-      <TableCell>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewTask(task.id)}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            View
-          </Button>
-          {!isDoctor && (
+      {!isDoctor && (
+        <TableCell>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewTask(task.id)}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -1206,9 +1206,9 @@ function TaskRow({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-      </TableCell>
+          </div>
+        </TableCell>
+      )}
     </TableRow>
   )
 }

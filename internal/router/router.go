@@ -176,7 +176,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// Task routes
 	app.Get("/api/tasks", middleware.SetUserRole, handlers.GetTasks)
 	app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
-	app.Get("/api/tasks/:id", middleware.SetUserRole, handlers.GetTask)
+	app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
 	app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
 	app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
 	app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
