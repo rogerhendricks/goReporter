@@ -8,6 +8,10 @@
 - Decide how to store AF episodes
   - AF episode seperate / AF burden %
   - AF episode in arrhythmias without burden or only burden.
+
+## Doctor Dashboard
+  - Include upcoming appointments for their patients
+  - Include not completed reports / patient list with uncompleted reports.
 ### Database encryption
  - Encrypted on server
  - No need as of yet for per column postgres encryption
