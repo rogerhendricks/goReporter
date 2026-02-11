@@ -1,6 +1,8 @@
 ## TODO
 
 
+In my app I need to have a table similar like my overdue patients card (OverduePatientsCard.tsx) table but it shows patients with reports that are not completed which is is a boolean on the report model called "isCompleted" on my golang fiber model that uses GORM. Can you create this card for me for the AdminDashboard (for a user that hase role "admin"), Home.tsx file for regular users , The viewerDashboard for viewers and finally the DoctorsDashboard but they should only see the their patients they have a relationship with.
+
 ## Fix arrhythmias
 - The backend and frontend is different.
   - Name, Type, Duration, Count in backend
