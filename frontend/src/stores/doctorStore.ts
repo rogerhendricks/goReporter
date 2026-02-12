@@ -11,13 +11,15 @@ interface Address {
 }
 
 export interface Doctor {
-  id: number
-  fullName: string
-  email: string
-  phone: string
-  specialty: string
-  addresses: Address[]
-  patients?: any[]
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  specialty: string;
+  addresses: Address[];
+  patients?: any[];
+  createUser?: boolean;
+  password?: string;
 }
 
 interface PaginationInfo {
@@ -101,19 +103,19 @@ export const useDoctorStore = create<DoctorState>((set) => ({
     }
   },
 
-  createDoctor: async (data: Partial<Doctor>) => {
-    set({ loading: true, error: null })
+  createDoctor: async (data: Partial<Doctor> & { createUser?: boolean; password?: string }) => {
+    set({ loading: true, error: null });
     try {
-      const response = await api.post('/doctors', data)
-      const newDoctor = response.data
+      const response = await api.post('/doctors', data);
+      const newDoctor = response.data;
       set(state => ({
         doctors: [newDoctor, ...state.doctors],
         loading: false
-      }))
-      return newDoctor
+      }));
+      return newDoctor;
     } catch (error: any) {
-      set({ error: error.response?.data?.error || 'Failed to create doctor', loading: false })
-      throw error
+      set({ error: error.response?.data?.error || 'Failed to create doctor', loading: false });
+      throw error;
     }
   },
 

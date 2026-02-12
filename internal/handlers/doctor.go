@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/models"
 	"github.com/rogerhendricks/goReporter/internal/utils"
+	"github.com/rogerhendricks/goReporter/internal/validation"
 	"gorm.io/gorm"
 )
 
@@ -281,19 +282,28 @@ func SearchDoctors(c *fiber.Ctx) error {
 
 }
 
+
 // CreateDoctor creates a new doctor with addresses
 func CreateDoctor(c *fiber.Ctx) error {
-	var newDoctor models.Doctor
-	if err := c.BodyParser(&newDoctor); err != nil {
+	var req struct {
+		models.Doctor
+		CreateUser bool   `json:"createUser"`
+		Password   string `json:"password"`
+		Username   string `json:"username"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid JSON format"})
 	}
 
-	// Validate input
+	newDoctor := req.Doctor
+
+	// Validate doctor input
 	if err := validateDoctor(&newDoctor); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// Sanitize input
+	// Sanitize doctor input
 	sanitizeDoctor(&newDoctor)
 
 	// Validate and sanitize addresses
@@ -302,13 +312,34 @@ func CreateDoctor(c *fiber.Ctx) error {
 	}
 	sanitizeAddresses(newDoctor.Addresses)
 
-	// Create doctor in database
-	if err := models.CreateDoctor(&newDoctor); err != nil {
-		log.Printf("Error creating doctor: %v", err)
-		if strings.Contains(err.Error(), "duplicate") {
-			return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Doctor with this email already exists"})
+	if req.CreateUser {
+		// Validate user input
+		user := &models.User{
+			Username: req.Username,
+			Email:    req.Doctor.Email,
+			FullName: req.Doctor.FullName,
+			Role:     "doctor",
+			Password: req.Password,
 		}
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor"})
+		if err := validation.ValidateUserUpdate(user, true); err != nil { // true because an admin is creating this
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		if err := models.CreateDoctorWithUser(&newDoctor, req.Password, req.Username); err != nil {
+			log.Printf("Error creating doctor with user: %v", err)
+			if strings.Contains(err.Error(), "duplicate") {
+				return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Doctor or user with this email already exists"})
+			}
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor with user"})
+		}
+	} else {
+		if err := models.CreateDoctor(&newDoctor); err != nil {
+			log.Printf("Error creating doctor: %v", err)
+			if strings.Contains(err.Error(), "duplicate") {
+				return c.Status(http.StatusConflict).JSON(fiber.Map{"error": "Doctor with this email already exists"})
+			}
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create doctor"})
+		}
 	}
 
 	return c.Status(http.StatusCreated).JSON(newDoctor)
@@ -357,7 +388,7 @@ func UpdateDoctor(c *fiber.Ctx) error {
 	}
 
 	// Update addresses if provided
-	if len(updateData.Addresses) > 0 {
+	if updateData.Addresses != nil { // Check if addresses field was provided in the request
 		if err := validateAddresses(updateData.Addresses); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -529,3 +560,4 @@ func isValidZip(zip string) bool {
 	zipRegex := regexp.MustCompile(`^\d{1,7}$`)
 	return zipRegex.MatchString(zip)
 }
+

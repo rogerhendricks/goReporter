@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useUserStore } from "@/stores/userStore";
 import { useDoctorStore } from "@/stores/doctorStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,8 @@ interface DoctorFormData {
   phone: string;
   specialty: string;
   addresses: Address[];
+  createUser: boolean;
+  username: string;
 }
 
 export default function DoctorForm() {
@@ -48,6 +51,7 @@ export default function DoctorForm() {
     updateDoctor,
     clearError,
   } = useDoctorStore();
+  const {} = useUserStore();
 
   const [formData, setFormData] = useState<DoctorFormData>({
     fullName: "",
@@ -55,7 +59,11 @@ export default function DoctorForm() {
     phone: "",
     specialty: "",
     addresses: [],
+    createUser: false,
+    username: "",
   });
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     if (isEdit && id) {
@@ -74,6 +82,8 @@ export default function DoctorForm() {
           currentDoctor.addresses && currentDoctor.addresses.length > 0
             ? currentDoctor.addresses
             : [],
+        createUser: false, // Ensure createUser is always present
+        username: "",
       });
     }
   }, [currentDoctor, isEdit]);
@@ -116,13 +126,36 @@ export default function DoctorForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+
+    if (formData.createUser) {
+      if (!formData.username) {
+        toast.error("Username is required");
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+      if (password.length < 8) {
+        toast.error("Password must be at least 8 characters");
+        return;
+      }
+    }
+
     try {
+      let doctorPayload = { ...formData };
+
       if (isEdit && id) {
-        await updateDoctor(parseInt(id), formData);
+        await updateDoctor(parseInt(id), doctorPayload);
         toast.success("Doctor updated successfully");
       } else {
-        await createDoctor(formData);
-        toast.success("Doctor created successfully");
+          const doctorPayload = {
+            ...formData,
+            createUser: formData.createUser,
+            password: password,
+          };
+          await createDoctor(doctorPayload);
+          toast.success("Doctor created successfully");
       }
       navigate("/doctors");
     } catch (err) {
@@ -213,6 +246,59 @@ export default function DoctorForm() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">User Account</h3>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="checkbox"
+                  id="createUser"
+                  name="createUser"
+                  checked={formData.createUser}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      createUser: e.target.checked,
+                    }))
+                  }
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="createUser">Create a user for this doctor</Label>
+              </div>
+              {formData.createUser && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">

@@ -3,19 +3,19 @@ package handlers
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/utils"
+	"github.com/rogerhendricks/goReporter/internal/validation"
 
-	"errors"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"errors" // Added errors import
 	"html"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/rogerhendricks/goReporter/internal/utils"
-
-	"github.com/google/uuid"
-	"gorm.io/gorm"
+	
 )
 
 // Payloads dedicated to user management to avoid leaking unintended fields
@@ -94,7 +94,7 @@ func CreateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Temporary users cannot be linked to doctor records"})
 	}
 
-	if err := validateUserUpdate(&newUser, true); err != nil {
+	if err := validation.ValidateUserUpdate(&newUser, true); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -298,7 +298,7 @@ func UpdateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Expiration dates are only valid for temporary users"})
 	}
 
-	if err := validateUserUpdate(&proposed, isAdmin); err != nil {
+	if err := validation.ValidateUserUpdate(&proposed, isAdmin); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 

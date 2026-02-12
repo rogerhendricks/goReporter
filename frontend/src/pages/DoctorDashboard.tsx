@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Users, FileText, Search } from "lucide-react";
+import { Users, Search } from "lucide-react";
 import { KeyRound } from "lucide-react";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";

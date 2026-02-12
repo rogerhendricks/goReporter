@@ -14,6 +14,7 @@ type Doctor struct {
 	Email     string    `json:"email" gorm:"type:varchar(255);uniqueIndex"`
 	Phone     string    `json:"phone" gorm:"type:varchar(20)"`
 	Specialty string    `json:"specialty" gorm:"type:varchar(100)"`
+	Password  string    `json:"-" gorm:"-"` // Added for user creation
 	Addresses []Address `json:"addresses" gorm:"foreignKey:DoctorID;constraint:OnDelete:CASCADE"`
 	Reports   []Report  `json:"reports"`
 }
@@ -59,6 +60,52 @@ func GetDoctorByID(doctorID uint) (*Doctor, error) {
 // CreateDoctor creates a new doctor with addresses
 func CreateDoctor(doctor *Doctor) error {
 	return config.DB.Create(doctor).Error
+}
+
+// CreateDoctorWithUser creates a new doctor and an associated user
+func CreateDoctorWithUser(doctor *Doctor, password string, username string) error {
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 1. Create the user
+	user := &User{
+		Username: username,
+		Email:    doctor.Email,
+		FullName: doctor.FullName,
+		Role:     "doctor",
+	}
+
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	user.Password = hashedPassword
+
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. Link user to doctor and create the doctor
+	doctor.UserID = &user.ID
+	if err := tx.Create(doctor).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 3. Update user with DoctorID
+	user.DoctorID = &doctor.ID
+	if err := tx.Save(user).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 // UpdateDoctor updates an existing doctor
