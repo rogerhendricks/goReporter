@@ -7,6 +7,8 @@ type AdminNotificationEvent = {
   type: string
   title: string
   message: string
+  actionUrl?: string
+  accessRequestId?: number
   taskId?: number
   reportId?: number
   completedBy?: string
@@ -69,7 +71,16 @@ export function useAdminNotifications() {
             return
           }
           
-          toast(payload.title, { description: payload.message })
+          const action = payload.actionUrl
+            ? {
+                label: 'View',
+                onClick: () => {
+                  window.location.href = payload.actionUrl!
+                }
+              }
+            : undefined
+
+          toast(payload.title, { description: payload.message, action })
         } catch (err) {
           console.error('[AdminNotifications] Failed to parse message:', err)
         }

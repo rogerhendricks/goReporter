@@ -18,6 +18,7 @@ import {
     Monitor,
     Check as CheckIcon,
     User2,
+    KeyRound,
 } from "lucide-react"
 
 import {
@@ -141,6 +142,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     label: "Tasks",
                     icon: Check,
                     roles: ["admin", "doctor", "user", "viewer"],
+                },
+                {
+                    href: "/admin/access-requests",
+                    label: "Access Requests",
+                    icon: KeyRound,
+                    roles: ["admin"],
+                },
+                {
+                    href: "/access-requests",
+                    label: "Access Requests",
+                    icon: KeyRound,
+                    roles: ["doctor"],
                 },
                 {
                     href: "/productivity",

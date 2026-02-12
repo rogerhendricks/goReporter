@@ -41,6 +41,7 @@ import { WebhookManagement } from "@/components/admin/WebhookManagement";
 import { TeamManagement } from "@/components/admin/TeamManagement";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
+import { AccessRequestsCard } from "@/components/admin/AccessRequestsCard";
 
 type Slice = { label: string; count: number };
 type ReportSummary = {
@@ -148,6 +149,7 @@ export default function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
+          <TabsTrigger value="access-requests">Access Requests</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
@@ -321,6 +323,10 @@ export default function AdminDashboard() {
         <TabsContent value="admin" className="space-y-6">
           <TagManagement />
           <TaskTemplateManager />
+        </TabsContent>
+
+        <TabsContent value="access-requests" className="space-y-6">
+          <AccessRequestsCard />
         </TabsContent>
 
         <TabsContent value="management" className="space-y-6">

@@ -70,6 +70,21 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 		},
 	}))
 
+	// User notifications websocket (any authenticated user)
+	app.Get("/api/notifications/ws", websocket.New(handlers.UserNotificationsWS, websocket.Config{
+		Filter: func(c *fiber.Ctx) bool {
+			userRole := c.Locals("user_role")
+			if userRole == nil {
+				return false
+			}
+			role, ok := userRole.(string)
+			if !ok || role == "" {
+				return false
+			}
+			return true
+		},
+	}))
+
 	// User routes
 	// app.Get("/api/users", handlers.GetUsers)
 	app.Get("/api/users", middleware.RequireAdmin, handlers.GetUsers)
@@ -108,6 +123,17 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/patients/:id", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatient)
 	app.Put("/api/patients/:id", middleware.RequireAdminOrUser, handlers.UpdatePatient)
 	app.Delete("/api/patients/:id", middleware.RequireAdminOrUser, handlers.DeletePatient)
+
+	// Access request workflow (doctors request; admins approve/deny)
+	app.Get("/api/access-requests/patient-lookup", middleware.RequireRole("doctor"), handlers.LookupPatientForAccessRequest)
+	app.Post("/api/access-requests", middleware.RequireRole("doctor"), handlers.CreateAccessRequest)
+	app.Get("/api/access-requests/mine", middleware.RequireRole("doctor"), handlers.GetMyAccessRequests)
+	app.Get("/api/access-requests/:id", middleware.RequireRole("doctor", "admin"), handlers.GetAccessRequest)
+
+	app.Get("/api/admin/access-requests", middleware.RequireAdmin, handlers.AdminListAccessRequests)
+	app.Get("/api/admin/access-requests/:id", middleware.RequireAdmin, handlers.AdminGetAccessRequest)
+	app.Put("/api/admin/access-requests/:id/approve", middleware.RequireAdmin, handlers.AdminApproveAccessRequest)
+	app.Put("/api/admin/access-requests/:id/deny", middleware.RequireAdmin, handlers.AdminDenyAccessRequest)
 
 	// Patient Notes routes
 	app.Get("/api/patients/:id/notes", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientNotes)

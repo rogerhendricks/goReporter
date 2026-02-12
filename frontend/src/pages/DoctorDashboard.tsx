@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, FileText, Search } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
 import { useAuthStore } from "@/stores/authStore";
@@ -22,16 +23,16 @@ export default function DoctorDashboard() {
       href: "/patients",
     },
     {
-      title: "Patient Reports",
-      description: "Create and manage patient reports",
-      icon: FileText,
-      href: "/patients",
-    },
-    {
       title: "Search Patients",
       description: "Search for patients in your care",
       icon: Search,
       href: "/search/patients",
+    },
+    {
+      title: "Request Patient Access",
+      description: "Request temporary or permanent access to a patient",
+      icon: KeyRound,
+      href: "/access-requests/new",
     },
   ];
 

@@ -88,7 +88,7 @@ export function TaskList({ patientId, assignedToId, showFilters = true }: TaskLi
   const [serialNumberText, setSerialNumberText] = useState('')
   const [serialMatches, setSerialMatches] = useState<SerialNumberMatch[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const { patients, searchResults, fetchPatients, searchPatients } = usePatientStore()
+  const { searchResults, fetchPatients, searchPatients } = usePatientStore()
 
   // Load data when template dialog opens, not on mount
   useEffect(() => {

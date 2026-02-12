@@ -43,6 +43,11 @@ type PatientDoctor struct {
 	AddressID *uint `json:"addressId"`
 	IsPrimary bool  `json:"isPrimary" gorm:"default:false"`
 
+	// Temporary access control (checked at access time)
+	// If NULL, access is permanent.
+	AccessExpiresAt          *time.Time `json:"accessExpiresAt,omitempty" gorm:"index"`
+	GrantedByAccessRequestID *uint      `json:"grantedByAccessRequestId,omitempty" gorm:"index"`
+
 	// Relationships
 	Patient Patient  `json:"patient"`
 	Doctor  Doctor   `json:"doctor"`
@@ -227,8 +232,9 @@ func IsDoctorAssociatedWithPatient(userID uint, patientID uint) (bool, error) {
 
 	// Now check if an entry exists in the patient_doctors join table
 	var count int64
+	now := time.Now()
 	err := config.DB.Model(&PatientDoctor{}).
-		Where("doctor_id = ? AND patient_id = ?", doctor.ID, patientID).
+		Where("doctor_id = ? AND patient_id = ? AND (access_expires_at IS NULL OR access_expires_at > ?)", doctor.ID, patientID, now).
 		Count(&count).Error
 
 	return count > 0, err

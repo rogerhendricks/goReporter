@@ -36,6 +36,11 @@ const ProductivityReportPage = lazy(() => import('@/pages/ProductivityReportPage
 const KnowledgeBase = lazy(() => import('@/pages/KnowledgeBase'))
 const AppointmentCalendarPage = lazy(() => import('@/pages/appointments/AppointmentCalendarPage'))
 
+const RequestPatientAccess = lazy(() => import('@/pages/accessRequests/RequestPatientAccess'))
+const AccessRequestDetail = lazy(() => import('@/pages/accessRequests/AccessRequestDetail'))
+const AdminAccessRequestDetail = lazy(() => import('@/pages/admin/AccessRequestDetail'))
+const AdminAccessRequestsPage = lazy(() => import('@/pages/admin/AccessRequestsPage'))
+
 
 export interface RouteConfig {
   path: string
@@ -80,6 +85,22 @@ export const routes: RouteConfig[] = [
     roles: ['admin']
   },
 
+  // Admin access request review
+  {
+    path: '/admin/access-requests',
+    element: <AdminAccessRequestsPage />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+  {
+    path: '/admin/access-requests/:id',
+    element: <AdminAccessRequestDetail />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['admin']
+  },
+
   // Doctor dashboard - doctor only
   {
     path: '/doctor',
@@ -87,6 +108,31 @@ export const routes: RouteConfig[] = [
     requiresAuth: true,
     layout: 'default',
     roles: ['doctor']
+  },
+
+  // Doctor workflow: request patient access
+  {
+    path: '/access-requests',
+    element: <RequestPatientAccess />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['doctor']
+  },
+  {
+    path: '/access-requests/new',
+    element: <RequestPatientAccess />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['doctor']
+  },
+
+  // Access request detail (requester/admin)
+  {
+    path: '/access-requests/:id',
+    element: <AccessRequestDetail />,
+    requiresAuth: true,
+    layout: 'default',
+    roles: ['doctor', 'admin']
   },
 
   // Temp dashboard - tempuser only

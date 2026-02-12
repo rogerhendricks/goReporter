@@ -11,13 +11,15 @@ import (
 // NotificationEvent is the payload sent over the websocket channels.
 // Keep this minimal and stable for the UI.
 type NotificationEvent struct {
-	Type        string `json:"type"`
-	Title       string `json:"title"`
-	Message     string `json:"message"`
-	Severity    string `json:"severity,omitempty"`
-	TaskID      *uint  `json:"taskId,omitempty"`
-	ReportID    *uint  `json:"reportId,omitempty"`
-	CompletedBy string `json:"completedBy,omitempty"`
+	Type            string `json:"type"`
+	Title           string `json:"title"`
+	Message         string `json:"message"`
+	Severity        string `json:"severity,omitempty"`
+	ActionURL       string `json:"actionUrl,omitempty"`
+	TaskID          *uint  `json:"taskId,omitempty"`
+	ReportID        *uint  `json:"reportId,omitempty"`
+	AccessRequestID *uint  `json:"accessRequestId,omitempty"`
+	CompletedBy     string `json:"completedBy,omitempty"`
 }
 
 type NotificationHub struct {
