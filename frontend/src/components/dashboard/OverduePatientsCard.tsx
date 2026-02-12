@@ -137,19 +137,19 @@ export function OverduePatientsCard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>MRN</TableHead>
-                    <TableHead>Device</TableHead>
-                    <TableHead>Report Type</TableHead>
-                    <TableHead>Last Report</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-left">Patient</TableHead>
+                    <TableHead className="text-left">MRN</TableHead>
+                    <TableHead className="text-left">Device</TableHead>
+                    <TableHead className="text-left">Report Type</TableHead>
+                    <TableHead className="text-left">Last Report</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.patients.map((patient) => (
                     <TableRow key={`${patient.patientId}-${patient.reportType}`}>
-                      <TableCell className="font-medium">
+                      <TableCell className="text-left">{patient.mrn}</TableCell>
+                      <TableCell className="font-medium text-left">
                         <Link 
                           to={`/patients/${patient.patientId}`}
                           className="hover:underline"
@@ -157,8 +157,8 @@ export function OverduePatientsCard() {
                           {patient.lastName}, {patient.firstName}
                         </Link>
                       </TableCell>
-                      <TableCell>{patient.mrn}</TableCell>
-                      <TableCell>
+
+                      <TableCell className="text-left">
                         <div className="flex items-center gap-2">
                           <span>{getDeviceIcon(patient.deviceType)}</span>
                           <div>
@@ -167,13 +167,13 @@ export function OverduePatientsCard() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-left">
                         <div className="flex items-center gap-1">
                           {getReportTypeIcon(patient.reportType)}
                           <span className="text-sm">{patient.reportType}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-left">
                         <div className="text-sm">
                           {formatDate(patient.lastReportDate)}
                           {patient.daysSinceReport !== null && (
@@ -183,15 +183,8 @@ export function OverduePatientsCard() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-left">
                         {getUrgencyBadge(patient.daysSinceReport, patient.deviceType)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm">
-                          <Link to={`/patients/${patient.patientId}`}>
-                            View Patient
-                          </Link>
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

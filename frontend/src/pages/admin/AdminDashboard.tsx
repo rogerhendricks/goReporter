@@ -5,8 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { CheckSquare } from "lucide-react";
 
 import { UserManagementTable } from "@/components/admin/UserManagementTable";
@@ -42,6 +40,7 @@ import { ReportBuilder } from "@/components/report-builder/ReportBuilder";
 import { WebhookManagement } from "@/components/admin/WebhookManagement";
 import { TeamManagement } from "@/components/admin/TeamManagement";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
+import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
 
 type Slice = { label: string; count: number };
 type ReportSummary = {
@@ -54,20 +53,6 @@ type AnalyticsResponse = {
   byManufacturer: Slice[];
   byDeviceType: Slice[];
   reports: ReportSummary;
-};
-
-type RecentReport = {
-  id: number;
-  reportDate: string | Date;
-  reportType?: string | null;
-  reportStatus?: string | null;
-  patient?: {
-    id: number;
-    fname?: string | null;
-    lname?: string | null;
-    mrn?: string | null;
-  } | null;
-  createdBy?: string | null;
 };
 
 type Tag = {
@@ -89,13 +74,7 @@ export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
-  const [incompleteReports, setIncompleteReports] = useState<RecentReport[]>(
-    [],
-  );
-  const [incompleteOffset, setIncompleteOffset] = useState(0);
-  const [hasMoreIncomplete, setHasMoreIncomplete] = useState(false);
-  const [loadingMoreIncomplete, setLoadingMoreIncomplete] = useState(false);
+
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>(
     undefined,
@@ -104,44 +83,18 @@ export default function AdminDashboard() {
   const [tagStatsLoading, setTagStatsLoading] = useState(false);
   const [tagStatsError, setTagStatsError] = useState<string>("");
 
-  const loadMoreIncomplete = async () => {
-    setLoadingMoreIncomplete(true);
-    try {
-      const response = await api.get<RecentReport[]>("/reports/recent", {
-        params: { limit: 10, incomplete: true, offset: incompleteOffset },
-      });
-      const newReports = response.data || [];
-      setIncompleteReports((prev) => [...prev, ...newReports]);
-      setHasMoreIncomplete(newReports.length === 10);
-      setIncompleteOffset((prev) => prev + 10);
-    } catch (error) {
-      console.error("Failed to load more incomplete reports:", error);
-    } finally {
-      setLoadingMoreIncomplete(false);
-    }
-  };
+
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [a, r, i, t] = await Promise.allSettled([
+        const [a, t] = await Promise.allSettled([
           api.get<AnalyticsResponse>("/analytics/summary"),
-          api.get<RecentReport[]>("/reports/recent", { params: { limit: 10 } }),
-          api.get<RecentReport[]>("/reports/recent", {
-            params: { limit: 10, incomplete: true, offset: 0 },
-          }),
           api.get<Tag[]>("/tags", { params: { type: "patient" } }),
         ]);
         if (!mounted) return;
         if (a.status === "fulfilled") setData(a.value.data);
-        if (r.status === "fulfilled") setRecentReports(r.value.data || []);
-        if (i.status === "fulfilled") {
-          const reports = i.value.data || [];
-          setIncompleteReports(reports);
-          setHasMoreIncomplete(reports.length === 10);
-          setIncompleteOffset(10);
-        }
         if (t.status === "fulfilled") {
           const tagList = t.value.data || [];
           setTags(tagList);
@@ -342,191 +295,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-amber-600 dark:text-amber-500">
-                    Reports Needing Completion
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {incompleteReports.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left">MRN</TableHead>
-                          <TableHead className="text-left">Patient</TableHead>
-                          <TableHead className="text-left">
-                            Report Date
-                          </TableHead>
-                          <TableHead className="text-left">
-                            Created By
-                          </TableHead>
-                          <TableHead className="text-left">Status</TableHead>
-                          <TableHead className="text-left">Type</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {incompleteReports.map((r) => {
-                          const p = r.patient;
-                          const patientName = p
-                            ? [p.lname, p.fname].filter(Boolean).join(", ")
-                            : "—";
-                          const mrn = p?.mrn || "—";
-                          const createdBy = r.createdBy || "—";
-                          const reportDateStr = r.reportDate
-                            ? new Date(r.reportDate).toLocaleDateString()
-                            : "—";
-
-                          const patientCell = p?.id ? (
-                            <Link
-                              to={`/patients/${p.id}`}
-                              className="text-primary text-left hover:underline"
-                            >
-                              {patientName}
-                            </Link>
-                          ) : (
-                            patientName
-                          );
-
-                          const reportDateCell = r.id ? (
-                            <Link
-                              to={`/reports/${r.id}/edit`}
-                              className="text-primary text-left hover:underline font-medium"
-                            >
-                              {reportDateStr}
-                            </Link>
-                          ) : (
-                            reportDateStr
-                          );
-                          return (
-                            <TableRow key={r.id}>
-                              <TableCell className="text-left">{mrn}</TableCell>
-                              <TableCell className="text-left">
-                                {patientCell}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {reportDateCell}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {createdBy}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {r.reportStatus || "—"}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {r.reportType || "—"}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No incomplete reports found.
-                    </div>
-                  )}
-                  {hasMoreIncomplete && (
-                    <div className="mt-4 flex justify-center">
-                      <Button
-                        variant="outline"
-                        onClick={loadMoreIncomplete}
-                        disabled={loadingMoreIncomplete}
-                      >
-                        {loadingMoreIncomplete ? "Loading..." : "Load More"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <IncompleteReportsCard />
 
               <OverduePatientsCard />
 
-              <Card>
-                <CardHeader>
-                  {" "}
-                  <CardTitle>Recent Reports</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {recentReports.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left">MRN</TableHead>
-                          <TableHead className="text-left">Patient</TableHead>
-                          <TableHead className="text-left">
-                            Report Date
-                          </TableHead>
-                          <TableHead className="text-left">
-                            Created By
-                          </TableHead>
-                          <TableHead className="text-left">Status</TableHead>
-                          <TableHead className="text-left">Type</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentReports.map((r) => {
-                          const p = r.patient;
-                          const patientName = p
-                            ? [p.lname, p.fname].filter(Boolean).join(", ")
-                            : "—";
-                          const mrn = p?.mrn || "—";
-                          const createdBy = r.createdBy || "—";
-                          const reportDateStr = r.reportDate
-                            ? new Date(r.reportDate).toLocaleDateString()
-                            : "—";
-
-                          const patientCell = p?.id ? (
-                            <Link
-                              to={`/patients/${p.id}`}
-                              className="text-primary text-left hover:underline"
-                            >
-                              {patientName}
-                            </Link>
-                          ) : (
-                            patientName
-                          );
-
-                          const reportDateCell = r.id ? (
-                            <Link
-                              to={`/reports/${r.id}/edit`}
-                              className="text-primary text-left hover:underline"
-                            >
-                              {reportDateStr}
-                            </Link>
-                          ) : (
-                            reportDateStr
-                          );
-                          return (
-                            <TableRow key={r.id}>
-                              <TableCell className="text-left">{mrn}</TableCell>
-                              <TableCell className="text-left">
-                                {patientCell}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {reportDateCell}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {createdBy}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {r.reportStatus || "—"}
-                              </TableCell>
-                              <TableCell className="text-left">
-                                {r.reportType || "—"}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No recent reports.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
               <Card>
                 <CardHeader>

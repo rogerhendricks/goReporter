@@ -627,7 +627,18 @@ func GetRecentReports(c *fiber.Ctx) error {
 		offset = 0
 	}
 
-	reports, err := models.GetRecentReports(limit, incompleteOnly, offset)
+	// Optional filter by doctor ID
+	var doctorID *uint
+	doctorIDStr := c.Query("doctorId", "")
+	if doctorIDStr != "" {
+		parsed, err := strconv.ParseUint(doctorIDStr, 10, 32)
+		if err == nil {
+			val := uint(parsed)
+			doctorID = &val
+		}
+	}
+
+	reports, err := models.GetRecentReports(limit, incompleteOnly, offset, doctorID)
 	if err != nil {
 		log.Printf("Error fetching recent reports: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch recent reports"})

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useAuthStore } from "@/stores/authStore";
 import { formatDistanceToNow } from "date-fns";
+import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
 
 export default function ViewerDashboard() {
   const user = useAuthStore((state) => state.user);
@@ -12,7 +13,7 @@ export default function ViewerDashboard() {
     : null;
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Viewer Dashboard</CardTitle>
@@ -25,6 +26,8 @@ export default function ViewerDashboard() {
           </p>
         </CardContent>
       </Card>
+
+      <IncompleteReportsCard />
     </div>
   );
 }

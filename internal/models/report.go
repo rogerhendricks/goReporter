@@ -125,7 +125,7 @@ func GetReportByID(reportID uint) (*Report, error) {
 	return &report, nil
 }
 
-func GetRecentReports(limit int, incompleteOnly bool, offset int) ([]Report, error) {
+func GetRecentReports(limit int, incompleteOnly bool, offset int, doctorID *uint) ([]Report, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
@@ -142,8 +142,16 @@ func GetRecentReports(limit int, incompleteOnly bool, offset int) ([]Report, err
 		query = query.Where("is_completed IS NULL OR is_completed = ?", false)
 	}
 
+	// Filter by doctor ID if provided
+	// Join through patient_doctors table since patients can have multiple doctors
+	if doctorID != nil {
+		query = query.Joins("JOIN patient_doctors ON patient_doctors.patient_id = reports.patient_id").
+			Where("patient_doctors.doctor_id = ?", *doctorID).
+			Where("patient_doctors.deleted_at IS NULL")
+	}
+
 	err := query.
-		Order("report_date DESC").
+		Order("reports.report_date DESC").
 		Offset(offset).
 		Limit(limit).
 		Find(&reports).Error

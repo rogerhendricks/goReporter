@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, FileText, Search } from "lucide-react";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
+import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function DoctorDashboard() {
+  const { user } = useAuthStore();
   const doctorActions = [
     {
       title: "My Patients",
@@ -68,6 +71,8 @@ export default function DoctorDashboard() {
       </div>
 
       <OverduePatientsCard />
+
+      <IncompleteReportsCard doctorId={user?.ID} />
 
       <Card>
         <CardHeader>
