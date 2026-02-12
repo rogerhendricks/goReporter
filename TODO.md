@@ -235,8 +235,8 @@ type RetentionPolicy struct {
 #### Access Control Granularity
 - Field-level permissions
 - Data masking for sensitive fields
--  **Done**  ~~Temporary access grants~~
-- Access request workflow
+- **Done**  ~~Temporary access grants~~
+- **Done** ~~Access request workflow~~
 - **Done** ~~Permission templates by role~~
 
 ### Integration Features
