@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import { Calendar, Activity } from "lucide-react";
 import api from "@/utils/axios";
 import { TableSkeleton } from "@/components/ui/loading-skeletons";
+import { Badge } from "@/components/ui/badge";
+
 
 type RecentReport = {
   id: number;
@@ -207,7 +209,24 @@ export function IncompleteReportsCard({
                     </TableCell>
                     <TableCell className="text-left">{createdBy}</TableCell>
                     <TableCell className="text-left">
-                      {r.reportStatus || "—"}
+                      {/** Render status as a Badge */}
+                      {(() => {
+                        const status = r.reportStatus || "—";
+                        const s = String(status).toLowerCase();
+                        if (status === "—") {
+                          return <Badge>{status}</Badge>;
+                        }
+                        if (s.includes("pending")){
+                          return <Badge variant="destructive">{status}</Badge>;
+                        }
+                        if (s.includes("reviewed") || s.includes("complete")) {
+                          return <Badge className="bg-purple-700 text-purple-50 dark:bg-purple-300 dark:text-purple-950">{status}</Badge>;
+                        }
+                        if (s.includes("incomplete")){
+                          return <Badge className="bg-green-50 text-green-700 dark:bg-green-300 dark:text-green-950">{status}</Badge>
+                        }
+                        return <Badge>{status}</Badge>;
+                      })()}
                     </TableCell>
                   </TableRow>
                 );

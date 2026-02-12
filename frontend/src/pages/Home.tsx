@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
 import { CheckSquare } from "lucide-react";
 import { TaskList } from "@/components/tasks/TaskList";
 import {
@@ -34,25 +34,24 @@ type AnalyticsResponse = {
   reports: ReportSummary;
 };
 
-type RecentReport = {
-  id: number;
-  reportDate: string | Date;
-  reportType?: string | null;
-  reportStatus?: string | null;
-  patient?: {
-    id: number;
-    fname?: string | null;
-    lname?: string | null;
-    mrn?: string | null;
-  } | null;
-  createdBy?: string | null;
-};
+// type RecentReport = {
+//   id: number;
+//   reportDate: string | Date;
+//   reportType?: string | null;
+//   reportStatus?: string | null;
+//   patient?: {
+//     id: number;
+//     fname?: string | null;
+//     lname?: string | null;
+//     mrn?: string | null;
+//   } | null;
+//   createdBy?: string | null;
+// };
 
 export default function Home() {
   const { user } = useAuthStore();
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
 
   // Redirect based on user role
   if (user?.role === "admin") {
@@ -67,13 +66,9 @@ export default function Home() {
     let mounted = true;
     (async () => {
       try {
-        const [a, r] = await Promise.allSettled([
-          api.get<AnalyticsResponse>("/analytics/summary"),
-          api.get<RecentReport[]>("/reports/recent", { params: { limit: 10 } }),
-        ]);
+        const res = await api.get<AnalyticsResponse>("/analytics/summary");
         if (!mounted) return;
-        if (a.status === "fulfilled") setData(a.value.data);
-        if (r.status === "fulfilled") setRecentReports(r.value.data || []);
+        setData(res.data);
       } finally {
         if (mounted) setLoading(false);
       }

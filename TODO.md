@@ -1,8 +1,5 @@
 ## TODO
 
-
-In my app I need to have a table similar like my overdue patients card (OverduePatientsCard.tsx) table but it shows patients with reports that are not completed which is is a boolean on the report model called "isCompleted" on my golang fiber model that uses GORM. Can you create this card for me for the AdminDashboard (for a user that hase role "admin"), Home.tsx file for regular users , The viewerDashboard for viewers and finally the DoctorsDashboard but they should only see the their patients they have a relationship with.
-
 ## Fix arrhythmias
 - The backend and frontend is different.
   - Name, Type, Duration, Count in backend
@@ -13,7 +10,8 @@ In my app I need to have a table similar like my overdue patients card (OverdueP
 
 ## Doctor Dashboard
   - Include upcoming appointments for their patients
-  - Include not completed reports / patient list with uncompleted reports.
+  - **Done** ~~Include not completed reports / patient list with uncompleted reports.~~
+
 ### Database encryption
  - Encrypted on server
  - No need as of yet for per column postgres encryption
@@ -39,6 +37,7 @@ interface Notification {
 - Email/SMS integration for critical alerts
 - In-app notification center with read/unread status
 - Notification preferences per user
+
 #### Audit Trail Enhancement
 Building on your existing security.go:
 
@@ -246,7 +245,7 @@ type RetentionPolicy struct {
 - Medical device data import APIs
 - Calendar integration (Google Calendar, Outlook)
 - **Done** ~~Slack/Teams notifications~~
-- Zapier integration for custom workflows
+
 #### API for Mobile Apps
 - Dedicated mobile API endpoints
 - Push notification support
