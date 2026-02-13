@@ -1,5 +1,7 @@
 ## TODO
 
+### Did not attend appointment letters / bulk print
+
 ## Fix arrhythmias
 - The backend and frontend is different.
   - Name, Type, Duration, Count in backend
@@ -9,7 +11,8 @@
   - AF episode in arrhythmias without burden or only burden.
 
 ## Doctor Dashboard
-  - Include upcoming appointments for their patients
+  - ### Lets focus on this 
+    - Include upcoming appointments for their patients
   - **Done** ~~Include not completed reports / patient list with uncompleted reports.~~
 
 ### Database encryption
