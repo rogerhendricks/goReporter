@@ -11,6 +11,7 @@ import { Users, Search } from "lucide-react";
 import { KeyRound } from "lucide-react";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
+import { UpcomingAppointmentsCard } from "@/components/dashboard/UpcomingAppointmentsCard";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function DoctorDashboard() {
@@ -74,6 +75,8 @@ export default function DoctorDashboard() {
       <OverduePatientsCard />
 
       <IncompleteReportsCard doctorId={user?.ID} />
+
+      <UpcomingAppointmentsCard />
 
       <Card>
         <CardHeader>

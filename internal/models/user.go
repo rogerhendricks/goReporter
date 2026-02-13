@@ -252,14 +252,17 @@ func GetPatientsForDoctor(userID string) ([]Patient, error) {
 	}
 
 	var patients []Patient
-	err = config.DB.Preload("ImplantedDevices.Device").
+	err = config.DB.Model(&Patient{}).
+		Select("DISTINCT patients.*").
+		Joins("JOIN patient_doctors pd ON pd.patient_id = patients.id").
+		Where("pd.doctor_id = ?", *user.DoctorID).
+		Where("pd.access_expires_at IS NULL OR pd.access_expires_at > ?", time.Now()).
+		Preload("ImplantedDevices.Device").
 		Preload("ImplantedLeads.Lead").
 		Preload("PatientDoctors.Doctor.Addresses").
 		Preload("PatientDoctors.Address").
 		Preload("Reports").
 		Preload("Medications").
-		Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
-		Where("patient_doctors.doctor_id = ?", *user.DoctorID).
 		Find(&patients).Error
 
 	return patients, err

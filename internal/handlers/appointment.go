@@ -42,7 +42,10 @@ func GetAppointments(c *fiber.Ctx) error {
 		return err
 	}
 
-	query := config.DB.Preload("Patient").Preload("CreatedBy")
+	query := config.DB.Model(&models.Appointment{}).
+		Select("DISTINCT appointments.*").
+		Preload("Patient").
+		Preload("CreatedBy")
 
 	if patientParam := c.Query("patientId"); patientParam != "" {
 		pid, convErr := strconv.Atoi(patientParam)
@@ -58,10 +61,11 @@ func GetAppointments(c *fiber.Ctx) error {
 			return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied for this patient"})
 		}
 	} else if userRole == "doctor" {
-		// Limit doctors to appointments for their panel of patients
-		query = query.Joins("JOIN patient_doctors ON patient_doctors.patient_id = appointments.patient_id").
-			Joins("JOIN doctors ON doctors.id = patient_doctors.doctor_id").
-			Where("doctors.user_id = ?", userID)
+		// Limit doctors to appointments for their panel of patients; distinct avoids duplicates from join rows
+		query = query.Joins("JOIN patient_doctors pd ON pd.patient_id = appointments.patient_id").
+			Joins("JOIN doctors d ON d.id = pd.doctor_id").
+			Where("d.user_id = ?", userID).
+			Where("pd.access_expires_at IS NULL OR pd.access_expires_at > ?", time.Now())
 	}
 
 	if startParam := c.Query("start"); startParam != "" {
