@@ -1,116 +1,94 @@
-# Weekly Productivity Reports Implementation
+# Productivity Reports
 
 ## Overview
-Implemented a comprehensive weekly productivity reporting system for managers and team members to track task completion metrics and performance.
+Track task completion metrics and team performance with weekly productivity reports.
 
-## Features Implemented
+## Who Can Access
 
-### Backend (Go)
+**All Users:**
+- View your personal productivity report
+- Track your task completion statistics
 
-#### New Models (`internal/models/productivity.go`)
-- **ProductivityReport**: Individual user productivity metrics
-  - Task completion counts by priority and status
-  - Average completion time
-  - On-time vs late completion rates
-  - Top patients by task count
-  
-- **TeamProductivityReport**: Aggregate team metrics for managers
-  - Total team task counts
-  - Team average completion time
-  - Top performer rankings
-  - Individual member breakdowns
+**Administrators:**
+- View personal reports
+- Access team-wide productivity metrics
+- See top performers and team breakdowns
 
-#### New Handlers (`internal/handlers/productivity.go`)
-- `GetMyProductivityReport`: Get authenticated user's productivity report
-- `GetUserProductivityReport`: Get specific user's report (admin only)
-- `GetTeamProductivityReport`: Get team-wide metrics (admin only)
+## Personal Productivity Report
 
-All handlers support configurable date ranges via query parameters:
-- `?startDate=2025-01-01&endDate=2025-01-31`
-- Defaults to last 7 days if not specified
+### Access
+Navigate to **Productivity** in the main navigation menu.
 
-#### New Routes (`internal/router/router.go`)
-- `GET /api/productivity/my-report` - Personal productivity report
-- `GET /api/productivity/team-report` - Team aggregate report (admin/manager)
-- `GET /api/productivity/users/:userId/report` - Specific user report (admin)
+### What You'll See
 
-### Frontend (React/TypeScript)
+**Summary Cards:**
+- Tasks completed this period
+- On-time completion rate
+- Average time to complete tasks
 
-#### New Service (`frontend/src/services/productivityService.ts`)
-- TypeScript types matching backend models
-- API service methods for fetching reports
-- Date range parameter support
+**Charts:**
+- Tasks by priority (pie chart)
+- Tasks by status (donut chart)
 
-#### New Page (`frontend/src/pages/ProductivityReportPage.tsx`)
-- **Date Range Selector**:
-  - Quick filters: Last 7/30/90 days
-  - Custom date range picker
-  
-- **My Report View** (all users):
-  - Summary cards: Tasks completed, on-time rate, avg completion time
-  - Donut charts: Tasks by priority and status
-  - Top patients table
-  
-- **Team Report View** (admins only):
-  - Team summary stats
-  - Top performers leaderboard
-  - Detailed team member breakdown
-  
-- **Features**:
-  - Toggle between personal and team views (for admins)
-  - Responsive design
-  - Loading skeletons
-  - Theme-aware charts
+**Details:**
+- Top patients by task count
+- Breakdown of completed vs pending tasks
 
-#### Navigation
-- Added "Productivity" link to main navigation
-- Icon: BarChart3
-- Accessible to all authenticated users (admin, doctor, user)
+### Date Range Options
 
-## Database Queries
+- **Last 7 days** (default)
+- **Last 30 days**
+- **Last 90 days**
+- **Custom range** (select specific dates)
 
-The implementation uses efficient SQL queries with:
-- Date range filtering on `completed_at` and `created_at`
-- Aggregations with `GROUP BY` for performance
-- Joins to patient table for top patient metrics
-- Preloading of related entities
+## Team Productivity Report (Admin Only)
 
-## Usage
+### Access
+Click **"Team Report"** button on the Productivity page.
 
-### For Users
-1. Navigate to `/productivity` or click "Productivity" in the navbar
-2. Select a date range or use quick filters
-3. View personal productivity metrics and charts
+### What Admins See
 
-### For Admins/Managers
-1. Same as above, plus:
-2. Click "Team Report" to view aggregate team metrics
-3. See top performers and individual member breakdowns
-4. Can view specific user reports via API (admin only)
+**Team Summary:**
+- Total tasks completed by the team
+- Team average completion time
+- Overall on-time rate
 
-## API Examples
+**Top Performers:**
+- Ranked list of team members by productivity
+- Tasks completed and on-time percentages
 
-```bash
-# Get my productivity report for last 7 days
-GET /api/productivity/my-report
+**Member Breakdown:**
+- Individual stats for each team member
+- Compare performance across the team
 
-# Get my report for custom date range
-GET /api/productivity/my-report?startDate=2025-01-01&endDate=2025-01-31
+## Using Productivity Data
 
-# Get team report (admin only)
-GET /api/productivity/team-report?startDate=2025-01-01&endDate=2025-01-31
+**For Individual Users:**
+- Track your efficiency over time
+- Identify areas for improvement
+- Celebrate completion milestones
 
-# Get specific user's report (admin only)
-GET /api/productivity/users/5/report?startDate=2025-01-01&endDate=2025-01-31
-```
+**For Managers:**
+- Monitor team workload distribution
+- Identify high performers
+- Spot potential bottlenecks
+- Plan resource allocation
 
-## Future Enhancements
+**For Teams:**
+- Foster healthy competition
+- Share best practices
+- Set collective goals
 
-Potential improvements:
-- Email/PDF export of reports
-- Scheduled weekly email delivery to managers
-- More granular filtering (by team, department, role)
-- Trend analysis over multiple periods
-- Custom report templates
-- Benchmark comparisons
-- Goal setting and tracking
+## Tips for Improving Productivity
+
+1. **Prioritize urgent tasks** - Use the priority filtering
+2. **Set realistic due dates** - Helps maintain good on-time rates
+3. **Complete tasks promptly** - Don't let them pile up
+4. **Use the data** - Review your trends weekly
+
+## Privacy
+
+- Users can only see their own detailed data
+- Team reports show aggregate data only
+- Admin access required for team-wide metrics
+- Individual performance is confidential

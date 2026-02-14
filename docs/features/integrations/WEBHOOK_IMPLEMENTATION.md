@@ -1,333 +1,151 @@
-# Webhook System Implementation - Complete
+# Webhook System
 
-## ✅ What's Been Implemented
+## Overview
+Connect goReporter to external services to receive real-time notifications when important events occur.
 
-### Backend (Go)
+## Who Can Use This
+- **Administrators** - Full access to create and manage webhooks
+- **Technical staff** - May assist with webhook configuration
 
-#### 1. Database Models
-**File:** `internal/models/webhook.go`
-- `Webhook` model with event subscriptions, URL, secret, active status
-- `WebhookDelivery` model for logging every webhook attempt
-- Custom `StringArray` type for storing event arrays as JSON
-- 13 predefined events (report, battery, task, consent, device events)
+## Supported Integrations
 
-#### 2. Webhook Service
-**File:** `internal/services/webhookService.go`
-- `TriggerWebhooks()` - Finds and triggers all active webhooks for an event
-- `deliverWebhook()` - Sends HTTP POST with JSON payload
-- HMAC-SHA256 signature generation for security
-- 10-second timeout for webhook requests
-- Automatic delivery logging with success/failure tracking
-- Statistics updates (success/failure counters, last triggered time)
-- `TestWebhook()` - Send test payload to verify configuration
+### Slack
+- Raw JSON notifications
+- Best for technical monitoring
+- Simple setup
 
-#### 3. API Handlers
-**File:** `internal/handlers/webhook.go`
-- `GET /api/webhooks` - List all webhooks
-- `GET /api/webhooks/:id` - Get specific webhook
-- `POST /api/webhooks` - Create new webhook
-- `PUT /api/webhooks/:id` - Update webhook
-- `DELETE /api/webhooks/:id` - Delete webhook
-- `POST /api/webhooks/:id/test` - Send test payload
-- `GET /api/webhooks/:id/deliveries` - View delivery logs
+### Microsoft Teams
+- Beautiful Adaptive Cards
+- Color-coded alerts
+- Professional appearance
+- Recommended for clinical teams
 
-#### 4. Event Triggers
-**Locations:** `internal/handlers/report.go`, `internal/handlers/task.go`
+### Epic EMR
+- FHIR R4 DiagnosticReport format
+- Automatic EMR integration
+- HIPAA-compliant
 
-**Report Events:**
-- ✅ `report.created` - Triggered when CreateReport() succeeds
-- ✅ `battery.low` - Triggered when battery percentage < 20%
-- ✅ `battery.critical` - Triggered when battery status is ERI/EOL
+### Generic Webhooks
+- Standard JSON payloads
+- Compatible with any HTTP endpoint
+- Custom integrations
 
-**Task Events:**
-- ✅ `task.created` - Triggered when CreateTask() succeeds
+## Common Use Cases
 
-#### 5. Database Migration
-**File:** `internal/bootstrap/bootstrap.go`
-- Added `&models.Webhook{}` to AutoMigrate
-- Added `&models.WebhookDelivery{}` to AutoMigrate
+**Clinical Alerts:**
+- Battery critical notifications
+- Overdue task reminders
+- Missed appointment follow-up
 
-#### 6. Router Configuration
-**File:** `internal/router/router.go`
-- Added webhook routes under `/api/webhooks`
-- Requires authentication (admin or user roles)
+**Administrative:**
+- Report completion notifications
+- New patient registrations
+- Access request approvals
 
-#### 7. Service Initialization
-**File:** `cmd/api/main.go`
-- `handlers.InitWebhookService(config.DB)` called on startup
-- Webhook service ready before routes are setup
+**Monitoring:**
+- System health checks
+- Daily summary reports
+- Error notifications
 
-### Frontend (React/TypeScript)
+## Events Available
 
-#### 1. Webhook Service
-**File:** `frontend/src/services/webhookService.ts`
-- TypeScript interfaces for Webhook and WebhookDelivery
-- CRUD operations (getAll, getById, create, update, delete)
-- Test webhook function
-- Get delivery logs with pagination
-- `AVAILABLE_EVENTS` constant with descriptions
+### Report Events
+- `report.created` - New report created
+- `report.completed` - Report marked complete
 
-#### 2. Webhook List Page
-**File:** `frontend/src/pages/WebhooksPage.tsx`
-- Display all webhooks in card format
-- Shows:
-  - Name, description, status (active/inactive)
-  - Endpoint URL
-  - Subscribed events as badges
-  - Success rate percentage
-  - Success/failure counters
-  - Last triggered timestamp
-- Actions:
-  - Test webhook (sends test payload)
-  - Edit webhook
-  - Delete webhook with confirmation dialog
-- Empty state with helpful message
+### Battery Events
+- `battery.low` - Battery below 20%
+- `battery.critical` - Battery at ERI/EOL
 
-#### 3. Webhook Form Page
-**File:** `frontend/src/pages/WebhookFormPage.tsx`
-- Create and edit webhook form
-- Fields:
-  - Name (required)
-  - URL (required, validated for http/https)
-  - Description (optional)
-  - Secret (optional, for signature verification)
-  - Active toggle
-- Event subscription checkboxes grouped by category:
-  - Report Events
-  - Battery Events
-  - Task Events
-  - Consent Events
-  - Device Events
-- Real-time validation
-- Loads existing webhook data in edit mode
+### Task Events
+- `task.created` - New task created
+- `task.due` - Task due today
+- `task.overdue` - Task past due date
 
-#### 4. Router Configuration
-**File:** `frontend/src/router/routes.tsx`
-- `/webhooks` - List page
-- `/webhooks/new` - Create page
-- `/webhooks/:id` - Edit page
-- Requires authentication (admin or user roles)
+## Quick Setup Guide
 
-#### 5. UI Components
-- ✅ AlertDialog - For delete confirmations
-- ✅ Alert - For informational messages
-- ✅ Checkbox - For event subscriptions
-- ✅ Switch - For active/inactive toggle
-- ✅ Skeleton - For loading states
+### For Slack
+1. Create incoming webhook in Slack
+2. Copy webhook URL
+3. In goReporter: Admin → Webhooks → New
+4. Paste URL and select events
+5. Test and save
 
-## 📋 Features
+### For Microsoft Teams
+See [Teams Integration Guide](TEAMS_INTEGRATION.md)
 
-### Security
-- **HMAC Signatures**: Optional signature verification using shared secret
-- **Authentication Required**: All endpoints require JWT authentication
-- **Role-Based Access**: Only admins and users can manage webhooks
-- **Timeout Protection**: 10-second timeout prevents hanging requests
+### For Epic EMR
+See [Epic Integration Guide](EPIC_INTEGRATION.md)
 
-### Monitoring
-- **Delivery Logs**: Every webhook attempt is logged
-- **Success Metrics**: Track success rate, total successes/failures
-- **Last Triggered**: See when webhook was last called
-- **Response Storage**: HTTP status code and response body saved
+### For Custom Services
+1. Ensure your service can receive HTTP POST requests
+2. Create webhook with your endpoint URL
+3. Optional: Add secret for signature verification
+4. Test payload delivery
 
-### Reliability
-- **Async Delivery**: Webhooks sent in goroutines (non-blocking)
-- **Error Handling**: Graceful failure handling with error logging
-- **Test Endpoint**: Verify webhooks work before relying on them
+## Monitoring Webhooks
 
-### User Experience
-- **Event Categorization**: Events grouped by type (report, battery, task, etc.)
-- **Event Descriptions**: Each event has helpful description
-- **Visual Feedback**: Loading states, success/error toasts
-- **Empty States**: Helpful messages when no webhooks exist
+**View All Webhooks:**
+- Admin Dashboard → Webhooks
+- See status, success rate, last triggered
 
-## 🎯 Currently Triggered Events
+**View Delivery Logs:**
+- Click webhook name → View Deliveries
+- See every delivery attempt
+- Check success/failure status
+- Review response codes
 
-### Automatic Triggers
+**Webhook Health:**
+- Green: Working normally
+- Yellow: Some failures
+- Red: Multiple consecutive failures
 
-1. **report.created** → When any report is created
-2. **battery.low** → When battery percentage < 20%
-3. **battery.critical** → When battery status is "ERI" or "EOL"
-4. **task.created** → When any task is created
+## Best Practices
 
-### Payload Examples
+**Security:**
+- Use HTTPS URLs only
+- Enable secret verification when possible
+- Keep webhook URLs confidential
+- Monitor for unauthorized access
 
-**Battery Critical:**
-```json
-{
-  "event": "battery.critical",
-  "timestamp": "2025-12-26T12:00:00Z",
-  "data": {
-    "reportId": 123,
-    "patientId": 45,
-    "batteryStatus": "ERI",
-    "batteryVoltage": 2.3,
-    "batteryPercentage": 12
-  }
-}
-```
+**Reliability:**
+- Test webhooks before relying on them
+- Monitor delivery logs regularly
+- Set up alerts for webhook failures
+- Have backup notification methods
 
-**Task Created:**
-```json
-{
-  "event": "task.created",
-  "timestamp": "2025-12-26T12:00:00Z",
-  "data": {
-    "taskId": 789,
-    "title": "Review Patient Follow-up",
-    "description": "Check device parameters",
-    "priority": "high",
-    "status": "pending",
-    "dueDate": "2025-12-30T00:00:00Z",
-    "patientId": 45,
-    "assignedTo": 2
-  }
-}
-```
+**Organization:**
+- Name webhooks descriptively
+- Document what each webhook does
+- Group related events together
+- Review and clean up unused webhooks
 
-## 🧪 Testing
+## Troubleshooting
 
-### Quick Test with Slack
+**Webhook not firing:**
+- Check webhook is active
+- Verify event subscription
+- Review delivery logs for errors
 
-1. Create Slack webhook at https://api.slack.com/messaging/webhooks
-2. In goReporter, go to `/webhooks/new`
-3. Enter Slack webhook URL
-4. Select events to monitor
-5. Click "Create Webhook"
-6. Click "Test" button
-7. Check Slack channel for test message
+**Authentication failures:**
+- Verify credentials (Client ID, tokens)
+- Check secret/key format
+- Ensure endpoint accepts authentication
 
-### Alternative: webhook.site
+**Missing notifications:**
+- Confirm webhook subscribed to event
+- Check if event actually occurred
+- Review delivery logs for the timeframe
 
-1. Visit https://webhook.site/
-2. Copy your unique URL
-3. Create webhook in goReporter with that URL
-4. Trigger events or use Test button
-5. Refresh webhook.site to see payloads
+**Too many notifications:**
+- Reduce number of subscribed events
+- Add filters for specific criteria
+- Consider batch notifications
 
-### Curl Test
+## Security Considerations
 
-```bash
-# Create webhook
-curl -X POST http://localhost:5000/api/webhooks \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test Webhook",
-    "url": "https://webhook.site/YOUR-UNIQUE-ID",
-    "events": ["battery.low", "battery.critical"],
-    "active": true
-  }'
-
-# Test webhook
-curl -X POST http://localhost:5000/api/webhooks/1/test \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-## 📁 Files Created/Modified
-
-### New Files
-```
-internal/models/webhook.go              (91 lines)
-internal/services/webhookService.go     (172 lines)
-internal/handlers/webhook.go            (247 lines)
-frontend/src/services/webhookService.ts (96 lines)
-frontend/src/pages/WebhooksPage.tsx     (221 lines)
-frontend/src/pages/WebhookFormPage.tsx  (371 lines)
-WEBHOOK_TESTING.md                      (445 lines)
-WEBHOOK_IMPLEMENTATION.md               (this file)
-```
-
-### Modified Files
-```
-internal/router/router.go               (+7 lines)
-internal/bootstrap/bootstrap.go         (+2 lines)
-internal/handlers/report.go             (+35 lines)
-internal/handlers/task.go               (+12 lines)
-cmd/api/main.go                        (+4 lines)
-frontend/src/router/routes.tsx          (+22 lines)
-```
-
-## 🔮 Future Enhancements (Not Yet Implemented)
-
-### Event Triggers to Add
-- `report.completed` - When report marked complete
-- `report.reviewed` - When report reviewed
-- `task.due` - When task due date is today
-- `task.overdue` - When task past due date
-- `task.completed` - When task marked complete
-- `consent.expiring` - When consent expires within 30 days
-- `consent.expired` - When consent has expired
-- `device.implanted` - When device implanted
-- `device.explanted` - When device explanted
-
-### Features to Add
-- **Retry Logic**: Auto-retry failed deliveries with exponential backoff
-- **Webhook Templates**: Pre-configured for Slack, Teams, Discord
-- **Batch Webhooks**: Daily/hourly summaries
-- **Conditional Webhooks**: Only trigger if conditions met (e.g., specific patient tags)
-- **Webhook History Graph**: Visualize delivery success over time
-- **Rate Limiting**: Prevent webhook spam
-
-### UI Improvements
-- **Delivery Details Modal**: View full request/response for each delivery
-- **Webhook Playground**: Test with custom payloads
-- **Event History**: See all events that have occurred (not just deliveries)
-
-## 💡 Usage Examples
-
-### Slack Battery Alerts
-```typescript
-// Create webhook for critical battery alerts
-{
-  name: "Slack Battery Alerts",
-  url: "https://hooks.slack.com/services/...",
-  events: ["battery.low", "battery.critical"],
-  description: "Sends alerts to #device-alerts channel"
-}
-```
-
-### Microsoft Teams Task Notifications
-```typescript
-// Create webhook for task reminders
-{
-  name: "Teams Task Notifications",
-  url: "https://outlook.office.com/webhook/...",
-  events: ["task.created", "task.overdue"],
-  description: "Notify team when tasks are created or overdue"
-}
-```
-
-### Custom Integration
-```typescript
-// Create webhook for custom service
-{
-  name: "Custom Service Integration",
-  url: "https://myservice.com/api/webhook",
-  events: ["report.created", "battery.critical"],
-  secret: "my-secret-key",
-  description: "Integration with custom monitoring system"
-}
-```
-
-## 🎉 Summary
-
-You now have a complete, production-ready webhook system that:
-
-- ✅ Sends real-time notifications to external services (Slack, Teams, etc.)
-- ✅ Tracks battery levels and alerts when critical
-- ✅ Monitors report and task creation
-- ✅ Provides delivery logging and statistics
-- ✅ Includes security via HMAC signatures
-- ✅ Has a user-friendly management interface
-- ✅ Can be tested before relying on it
-- ✅ Is ready for Phase 1: Slack battery alerts and task reminders
-
-**Total Implementation:** ~1,600 lines of code (backend + frontend + documentation)
-
-**Next Steps:**
-1. Test with Slack webhook (5 minutes)
-2. Create test report with low battery (see alert in Slack)
-3. Add more event triggers as needed
-4. Share webhook URL with third-party services
-
-Enjoy your new real-time notification system! 🚀
+- All webhooks use HTTPS encryption
+- Optional HMAC signature verification
+- JWT authentication for Epic integration
+- Delivery logs stored for audit
+- Admin-only access to configuration

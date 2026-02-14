@@ -1,36 +1,41 @@
-# Features Index
+# Features Guide
 
-This file lists feature documentation for the project and links into the detailed feature pages.
+Complete guide to goReporter features organized by user role.
 
-## Patient features
+## For All Users
 
-- [SMART_PREPOPULATION](patients/SMART_PREPOPULATION.md)
-- [OVERDUE_PATIENTS](patients/OVERDUE_PATIENTS.md)
+### Patient Management
+- **[Smart Report Pre-population](patients/SMART_PREPOPULATION.md)** - Auto-fill device settings from previous reports
+- **[Overdue Patient Tracking](patients/OVERDUE_PATIENTS.md)** - Track patients needing device reports
 
-## Appointment features
+### Appointments
+- **[Appointment Booking System](appointments/APPOINTMENT_SLOTS.md)** - Book clinic appointments with slot management
 
-- [APPOINTMENT_SLOTS](appointments/APPOINTMENT_SLOTS.md)
-- [URGENT_SLOT_FIX](appointments/URGENT_SLOT_FIX.md)
+### Tasks
+- **[Task Team Assignment](tasks/TEAM_ASSIGNMENT.md)** - Assign tasks to individuals or teams
+- **[Task Filtering](tasks/TASK_FILTERING.md)** - Filter tasks by status, priority, and due date
 
-## Report features
+### Reports
+- **[Report Tags](reports/REPORT_TAGS.md)** - Organize reports with custom tags
+- **[Productivity Reports](reports/PRODUCTIVITY_REPORTS.md)** - Track task completion and performance
 
-- [REPORT_TAGS](reports/REPORT_TAGS.md)
-- [PRODUCTIVITY_REPORTS](reports/PRODUCTIVITY_REPORTS.md)
+## For Administrators
 
-## Integration features
+### Access Control
+- **[Access Requests](security/ACCESS_REQUESTS.md)** - Manage doctor access to patient records
 
-- [EPIC_INTEGRATION](integrations/EPIC_INTEGRATION.md)
-- [EPIC_OAUTH_IMPLEMENTATION](integrations/EPIC_OAUTH_IMPLEMENTATION.md)
-- [TEAMS_INTEGRATION](integrations/TEAMS_INTEGRATION.md)
-- [WEBHOOK_IMPLEMENTATION](integrations/WEBHOOK_IMPLEMENTATION.md)
+### Missed Appointments
+- **[Missed Appointment Letters](MISSED_APPOINTMENTS.md)** - Generate letters for missed appointments
 
-## Task features
+## Integrations
 
-- [TEAM_ASSIGNMENT](tasks/TEAM_ASSIGNMENT.md)
-- [TASK_FILTERING](tasks/TASK_FILTERING.md)
+- **[Epic EMR Integration](integrations/EPIC_INTEGRATION.md)** - Push reports to Epic
+- **[Microsoft Teams Notifications](integrations/TEAMS_INTEGRATION.md)** - Teams alerts and notifications
+- **[Webhook System](integrations/WEBHOOK_IMPLEMENTATION.md)** - Custom integrations
 
-## Security / Access features
+---
 
-- [ACCESS_REQUESTS](security/ACCESS_REQUESTS.md)
-
-If a link above is missing or broken, look in the `docs/features` tree for the updated path.
+**Quick Links:**
+- [Admin Dashboard](../admin/README.md)
+- [Doctor Dashboard](../doctor/README.md)
+- [User Guide](../user/README.md)
