@@ -8,6 +8,11 @@ export interface AppointmentPatientSummary {
   fname?: string
   lname?: string
   mrn?: number
+  street?: string
+  city?: string
+  state?: string
+  postal?: string
+  country?: string
 }
 
 export interface Appointment {
@@ -23,6 +28,7 @@ export interface Appointment {
   createdById: number
   createdAt: string
   updatedAt: string
+  missedLetterSentAt?: string | null
 }
 
 export interface AppointmentPayload {
@@ -58,6 +64,7 @@ export interface PaginatedAppointmentsResponse {
   data: Appointment[]
   pagination: Pagination
   graceMinutes?: number
+  lookbackDays?: number
 }
 
 export interface AppointmentSlot {
@@ -92,6 +99,10 @@ async function getAdminAppointments(
   return data
 }
 
+async function markMissedLettersSent(appointmentIds: number[]): Promise<void> {
+  await api.post('/admin/appointments/missed-letter', { appointmentIds })
+}
+
 async function createAppointment(payload: AppointmentPayload): Promise<Appointment> {
   const { data } = await api.post('/appointments', payload)
   return data
@@ -121,6 +132,7 @@ export const appointmentService = {
   getAppointments,
   getPatientAppointments,
   getAdminAppointments,
+  markMissedLettersSent,
   createAppointment,
   updateAppointment,
   deleteAppointment,

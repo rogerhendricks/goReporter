@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -38,6 +39,7 @@ func setupAdminAppointmentsTestApp(t *testing.T) *fiber.App {
 
 	app := fiber.New()
 	app.Get("/api/admin/appointments", GetAdminAppointments)
+	app.Post("/api/admin/appointments/missed-letter", MarkMissedLettersSent)
 	return app
 }
 
@@ -252,5 +254,57 @@ func TestGetAdminAppointments_RespectsLookbackWindow(t *testing.T) {
 	}
 	if len(payload.Data) != 1 || payload.Data[0].ID != withinWindow.ID {
 		t.Fatalf("expected within-window appointment only, got %+v", payload.Data)
+	}
+}
+
+func TestMarkMissedLettersSent(t *testing.T) {
+	app := setupAdminAppointmentsTestApp(t)
+	patient, user := seedAppointmentFixtures(t)
+
+	now := time.Now().UTC()
+
+	appt := models.Appointment{
+		Title:       "Needs letter",
+		Location:    models.AppointmentLocationClinic,
+		Status:      models.AppointmentStatusScheduled,
+		StartAt:     now.Add(-2 * time.Hour),
+		PatientID:   patient.ID,
+		CreatedByID: user.ID,
+	}
+	if err := config.DB.Create(&appt).Error; err != nil {
+		t.Fatalf("seed appointment: %v", err)
+	}
+
+	body, _ := json.Marshal(markLettersRequest{AppointmentIDs: []uint{appt.ID}})
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/appointments/missed-letter", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	var out struct {
+		Updated   int64     `json:"updated"`
+		Timestamp time.Time `json:"timestamp"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if out.Updated != 1 {
+		t.Fatalf("expected 1 updated, got %d", out.Updated)
+	}
+
+	var updated models.Appointment
+	if err := config.DB.First(&updated, appt.ID).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if updated.MissedLetterSentAt == nil {
+		t.Fatalf("expected missedLetterSentAt set")
 	}
 }

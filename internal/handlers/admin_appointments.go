@@ -77,6 +77,32 @@ func GetAdminAppointments(c *fiber.Ctx) error {
 	})
 }
 
+type markLettersRequest struct {
+	AppointmentIDs []uint `json:"appointmentIds"`
+}
+
+// MarkMissedLettersSent sets missed_letter_sent_at for the provided appointment IDs.
+func MarkMissedLettersSent(c *fiber.Ctx) error {
+	var payload markLettersRequest
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid payload"})
+	}
+	if len(payload.AppointmentIDs) == 0 {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "appointmentIds required"})
+	}
+
+	now := time.Now().UTC()
+	res := config.DB.Model(&models.Appointment{}).
+		Where("id IN ?", payload.AppointmentIDs).
+		Updates(map[string]interface{}{"missed_letter_sent_at": now})
+
+	if res.Error != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to mark letters"})
+	}
+
+	return c.JSON(fiber.Map{"updated": res.RowsAffected, "timestamp": now})
+}
+
 func parsePositiveInt(val string, fallback int) int {
 	if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
 		return parsed

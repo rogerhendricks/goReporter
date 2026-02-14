@@ -56,9 +56,10 @@ type Appointment struct {
 	CreatedByID uint  `json:"createdById" gorm:"not null;index"`
 	CreatedBy   *User `json:"createdBy,omitempty"`
 
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	CreatedAt          time.Time      `json:"createdAt"`
+	UpdatedAt          time.Time      `json:"updatedAt"`
+	DeletedAt          gorm.DeletedAt `json:"-" gorm:"index"`
+	MissedLetterSentAt *time.Time     `json:"missedLetterSentAt" gorm:"index"`
 }
 
 // AppointmentFilter captures optional query constraints for appointment lookups.

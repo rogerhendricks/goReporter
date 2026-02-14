@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, Mail, RefreshCw } from "lucide-react"
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib"
 
 import { appointmentService, type Appointment } from "@/services/appointmentService"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,7 @@ export function MissedAppointments() {
   const [graceMinutes, setGraceMinutes] = useState<number | undefined>()
   const [lookbackDays, setLookbackDays] = useState<number | undefined>()
   const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
@@ -103,42 +105,149 @@ export function MissedAppointments() {
     [rows, selected],
   )
 
-  const openLettersPreview = (appointments: Appointment[]) => {
-    if (!appointments.length) {
-      return
-    }
-    const html = appointments
-      .map((appt, index) => {
-        const patientName = `${appt.patient?.fname ?? ""} ${appt.patient?.lname ?? ""}`.trim() || "Patient"
-        const start = new Date(appt.startAt)
-        const dateStr = isNaN(start.getTime()) ? appt.startAt : start.toLocaleString()
-        return `
-          <section style="font-family: Arial, sans-serif; margin-bottom: 32px;">
-            <p style="font-size: 14px; color: #555;">Letter ${index + 1} of ${appointments.length}</p>
-            <h2 style="margin: 0 0 8px;">Missed Appointment Notice</h2>
-            <p style="margin: 4px 0;">Dear ${patientName || "Patient"},</p>
-            <p style="margin: 4px 0;">Our records show your appointment scheduled for <strong>${dateStr}</strong> was missed. Please contact our office to reschedule at your earliest convenience.</p>
-            <p style="margin: 4px 0;">If you have already rescheduled, please disregard this notice.</p>
-            <p style="margin: 12px 0 0;">Thank you,</p>
-            <p style="margin: 4px 0;">Clinic Team</p>
-          </section>
-        `
-      })
-      .join("<hr style='margin:24px 0;' />")
+  const formatDateStr = (iso: string) => {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    return d.toLocaleString(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
-    const win = window.open("", "_blank")
-    if (!win) return
-    win.document.write(`<!doctype html><html><head><title>Missed Appointment Letters</title></head><body>${html}</body></html>`)
-    win.document.close()
-    win.focus()
+  const buildLettersPdf = async (appointments: Appointment[]) => {
+    if (!appointments.length) return
+    setGenerating(true)
+    try {
+      const pdfDoc = await PDFDocument.create()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+      const A5_WIDTH = 420 // points (~148mm)
+      const A5_HEIGHT = 595 // points (~210mm)
+      const margin = 32
+      const usableWidth = A5_WIDTH - margin * 2
+
+      for (const appt of appointments) {
+        const page = pdfDoc.addPage([A5_WIDTH, A5_HEIGHT])
+        const { height } = page.getSize()
+        const patientName = `${appt.patient?.fname ?? ""} ${appt.patient?.lname ?? ""}`.trim() || "Patient"
+        const mrnLine = appt.patient?.mrn ? `MRN: ${appt.patient.mrn}` : ""
+        const cityStatePostal = [appt.patient?.city, appt.patient?.state, appt.patient?.postal]
+          .filter(Boolean)
+          .join(" ")
+        const addressLines = [
+          appt.patient?.street,
+          cityStatePostal || undefined,
+          appt.patient?.country,
+        ].filter(Boolean) as string[]
+
+        const addressYStart = height - margin - 20
+        let cursorY = addressYStart
+
+        // Address block for windowed envelope (top-left)
+        page.drawText(patientName, { x: margin, y: cursorY, size: 12, font: boldFont, color: rgb(0, 0, 0) })
+        cursorY -= 16
+        if (mrnLine) {
+          page.drawText(mrnLine, { x: margin, y: cursorY, size: 10, font, color: rgb(0.2, 0.2, 0.2) })
+          cursorY -= 14
+        }
+        for (const line of addressLines) {
+          page.drawText(line, { x: margin, y: cursorY, size: 11, font, color: rgb(0, 0, 0) })
+          cursorY -= 14
+        }
+
+        // Body
+        let bodyY = cursorY - 24
+        const lineHeight = 16
+        const drawWrapped = (text: string, bold = false) => {
+          const fontToUse = bold ? boldFont : font
+          const words = text.split(" ")
+          let line = ""
+          for (const word of words) {
+            const testLine = line ? `${line} ${word}` : word
+            const width = fontToUse.widthOfTextAtSize(testLine, 11)
+            if (width > usableWidth && line) {
+              page.drawText(line, {
+                x: margin,
+                y: bodyY,
+                size: 11,
+                font: fontToUse,
+                color: rgb(0, 0, 0),
+              })
+              bodyY -= lineHeight
+              line = word
+            } else {
+              line = testLine
+            }
+          }
+          if (line) {
+            page.drawText(line, {
+              x: margin,
+              y: bodyY,
+              size: 11,
+              font: fontToUse,
+              color: rgb(0, 0, 0),
+            })
+            bodyY -= lineHeight
+          }
+        }
+
+        drawWrapped(`Date: ${formatDateStr(appt.startAt)}`, true)
+        bodyY -= 6
+        drawWrapped(`Dear ${patientName},`)
+        drawWrapped(
+          "Our records show your appointment was scheduled but not marked as arrived. Please contact our office to reschedule at your earliest convenience.",
+        )
+        drawWrapped(
+          "If you have already rescheduled or attended, please disregard this notice.",
+        )
+        bodyY -= 6
+        drawWrapped("Appointment Details", true)
+        drawWrapped(`- Original date/time: ${formatDateStr(appt.startAt)}`)
+        drawWrapped(`- Status: ${appt.status}`)
+        bodyY -= 6
+        drawWrapped("Thank you,")
+        drawWrapped("Clinic Team")
+      }
+
+      const pdfBytes = await pdfDoc.save()
+      const blob = new Blob([pdfBytes], { type: "application/pdf" })
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, "_blank")
+      if (!win) {
+        // Fallback download if popup blocked
+        const anchor = document.createElement("a")
+        anchor.href = url
+        anchor.download = "missed-appointments.pdf"
+        anchor.click()
+      }
+
+      // Mark letters as sent
+      await appointmentService.markMissedLettersSent(appointments.map((a) => a.id))
+
+      // Refresh current page to reflect sent status
+      setRows((prev) =>
+        prev.map((row) =>
+          appointments.find((a) => a.id === row.id)
+            ? { ...row, missedLetterSentAt: new Date().toISOString() }
+            : row,
+        ),
+      )
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const handleGenerateSelected = () => {
-    openLettersPreview(selectedAppointments)
+    void buildLettersPdf(selectedAppointments)
   }
 
   const handleGenerateSingle = (appointment: Appointment) => {
-    openLettersPreview([appointment])
+    void buildLettersPdf([appointment])
   }
 
   const canGoPrev = pagination.page > 1
@@ -161,10 +270,15 @@ export function MissedAppointments() {
           </Button>
           <Button
             size="sm"
-            disabled={!selectedAppointments.length}
+            disabled={!selectedAppointments.length || generating}
             onClick={handleGenerateSelected}
           >
-            <Mail className="mr-2 h-4 w-4" /> Generate Letters
+            {generating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Generate Letters
           </Button>
         </div>
       </CardHeader>
@@ -231,13 +345,30 @@ export function MissedAppointments() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="capitalize">
-                          {row.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className="capitalize w-fit">
+                            {row.status}
+                          </Badge>
+                          {row.missedLetterSentAt && (
+                            <Badge variant="outline" className="w-fit text-xs">
+                              Letter sent
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => handleGenerateSingle(row)}>
-                          <Mail className="mr-2 h-4 w-4" /> Letter
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGenerateSingle(row)}
+                          disabled={generating}
+                        >
+                          {generating ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mail className="mr-2 h-4 w-4" />
+                          )}
+                          {row.missedLetterSentAt ? "Re-send" : "Letter"}
                         </Button>
                       </TableCell>
                     </TableRow>
