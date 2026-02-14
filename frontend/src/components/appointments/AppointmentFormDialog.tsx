@@ -67,7 +67,7 @@ interface FormState {
 
 const statusOptions: { label: string; value: AppointmentStatus }[] = [
   { label: 'Scheduled', value: 'scheduled' },
-  { label: 'Completed', value: 'completed' },
+  { label: 'Arrived', value: 'arrived' },
   { label: 'Cancelled', value: 'cancelled' },
 ]
 

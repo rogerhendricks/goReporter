@@ -42,6 +42,7 @@ import { TeamManagement } from "@/components/admin/TeamManagement";
 import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard";
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
 import { AccessRequestsCard } from "@/components/admin/AccessRequestsCard";
+import { MissedAppointments } from "@/components/admin/MissedAppointments";
 
 type Slice = { label: string; count: number };
 type ReportSummary = {
@@ -154,6 +155,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="security-logs">Security Logs</TabsTrigger>
+          <TabsTrigger value="missed-appointments">Missed Appointments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -341,6 +343,9 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="security-logs" className="space-y-6">
           <SecurityLogsDashboard />
+        </TabsContent>
+        <TabsContent value="missed-appointments" className="space-y-6">
+          <MissedAppointments />
         </TabsContent>
       </Tabs>
       <Card className="hover:shadow-lg transition-shadow mt-4">

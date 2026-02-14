@@ -46,6 +46,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	// app.Get("/api/admin", handlers.GetAdminData)
 	app.Get("/api/admin/security-logs", middleware.RequireAdmin, handlers.GetSecurityLogs)
 	app.Get("/api/admin/security-logs/export", middleware.RequireAdmin, handlers.ExportSecurityLogs)
+	app.Get("/api/admin/appointments", middleware.RequireAdmin, handlers.GetAdminAppointments)
 
 	// WebSocket upgrade needs special handling - check auth in the filter
 	app.Get("/api/admin/notifications/ws", websocket.New(handlers.AdminNotificationsWS, websocket.Config{
