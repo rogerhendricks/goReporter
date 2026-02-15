@@ -1,305 +1,161 @@
-## TODO
+# Development Roadmap
 
-### Did not attend appointment letters / bulk print
+This document tracks active work, planned features, and future ideas for goReporter.
 
-## Fix arrhythmias
-- The backend and frontend is different.
-  - Name, Type, Duration, Count in backend
-  - Name, Symptoms, Rate, Termination, therapies in frontend
-- Decide how to store AF episodes
-  - AF episode seperate / AF burden %
-  - AF episode in arrhythmias without burden or only burden.
+---
 
-## Doctor Dashboard
-  - ### Lets focus on this 
-    - Include upcoming appointments for their patients
-  - **Done** ~~Include not completed reports / patient list with uncompleted reports.~~
+## 🚧 Active Work
 
-### Database encryption
- - Encrypted on server
- - No need as of yet for per column postgres encryption
+### Doctor Dashboard Enhancements
+- [ ] Include upcoming appointments for doctor's patients
+- [ ] Focus on improving daily workflow efficiency
 
-### Future ideas
-- Trend Analysis: Add time-series charts showing device failure patterns, report completion rates over time
-- Predictive Analytics: Implement ML models to predict device maintenance needs based on historical data
-- Export Options: Add PDF, Excel, and CSV exports for all analytics views
+### Arrhythmias Data Model
+**Issue:** Backend and frontend field names don't match
+- Backend: Name, Type, Duration, Count
+- Frontend: Name, Symptoms, Rate, Termination, Therapies
+- [ ] Decide on unified schema
+- [ ] Determine AF episode storage (separate vs AF burden %)
 
-#### Patient notes
-- **DONE** ~~Create a note page for each patient that the user can make notes. Should have created date, deletable with whome deleted it and when, and should be in chronological order~~ 
-#### Notification and Alert System
-```
-// New service: frontend/src/services/notificationService.ts
-interface Notification {
-  type: 'task_due' | 'consent_expiring' | 'device_recall' | 'report_pending'
-  priority: 'low' | 'medium' | 'high' | 'critical'
-  message: string
-  actionUrl?: string
-}
-```
-- Real-time notifications for task deadlines, consent expiration, device recalls
-- Email/SMS integration for critical alerts
-- In-app notification center with read/unread status
-- Notification preferences per user
+---
 
-#### Audit Trail Enhancement
-Building on your existing security.go:
+## 📋 Planned Features
 
-- Add data change tracking (before/after values)
-- Visual diff viewer for report/patient modifications
-- Compliance reports for HIPAA audits
-Automated alerts for suspicious activity patterns
-#### Document Management System
-- Secure file upload for device manuals, patient forms, consent documents
-- Version control for documents
-- OCR for scanned documents
-- Full-text search across all documents
-- Integration with your existing file.go handler
+### Reporting & Reminders
+- [ ] Unsigned reports pending >24/48 hours
+- [ ] Reports awaiting co-signature with escalation
+- [ ] Pre-appointment task checklist reminders
+- [ ] Patient confirmation status tracking
 
-####  Scheduling & Appointment System
-```
-// New model: internal/models/appointment.go
-type Appointment struct {
-    ID          uint
-    PatientID   uint
-    DoctorID    uint
-    DeviceID    *uint
-    StartTime   time.Time
-    EndTime     time.Time
-    Type        string // "follow-up", "device-check", "emergency"
-    Status      string
-    Notes       string
-}
-```
-- **Done** ~~Calendar view for device checks and patient appointments~~
-- Automated appointment reminders
-- Recurring appointment templates
-- Integration with task system
-
-#### Mobile-Responsive Design Improvements
-- Progressive Web App (PWA) capabilities
-- Offline mode for critical data entry
-- Mobile-optimized forms and tables
-- Touch-friendly UI components
-- Camera integration for quick photo capture
-
- #### Collaborative Features
-- Team comments on reports (enhance existing report.go)
-- @mentions for team members
-- Activity feed showing team actions
-- Real-time collaborative editing indicators
-- Shared task lists with assignments
-
-#### Data Import/Export Enhancements
-Building on your FileImporter.tsx:
-
-- Bulk patient import from CSV/Excel
-- HL7/FHIR integration for EMR systems (Partial-> Epic)
-- Automated data validation during import
-- Import history and rollback capability
-- Template downloads for batch imports
-
-#### Workflow Automation
-```
-// New feature: Workflow Engine
-interface WorkflowRule {
-  trigger: 'report_created' | 'device_implanted' | 'consent_expiring'
-  conditions: Array<{field: string, operator: string, value: any}>
-  actions: Array<{type: 'create_task' | 'send_email' | 'assign_user'}>
-}
-```
-- Automated task creation based on events
-- Email workflows for consent renewals
-- **TODO ITEM** Escalation rules for overdue tasks
-- Custom workflow builder UI
+### Task Management
+- [ ] Escalation rules for overdue tasks
+- [ ] "Recently Viewed" section on dashboards
 
 ### Technical Improvements
-#### Performance Optimizations
-```
-// Backend caching in internal/middleware/cache.go
-type CacheMiddleware struct {
-    cache map[string]interface{}
-    ttl   time.Duration
-}
-```
-- Redis/in-memory caching for frequent queries
-- Database query optimization with indexes
-- **Done** ~~Lazy loading for large datasets~~
-- **TODO ITEM** Response compression
-- CDN integration for static assets
+- [ ] Response compression for API endpoints
+- [ ] GraphQL endpoint alongside REST
+- [ ] API versioning (/api/v1/, /api/v2/)
+- [ ] Swagger/OpenAPI documentation
+- [ ] Comprehensive testing infrastructure (unit, integration, E2E)
+- [ ] Automated daily backups with encryption
 
-#### API Enhancements
-- GraphQL endpoint alongside REST
-- API versioning (/api/v1/, /api/v2/)
-- Rate limiting per endpoint (enhance your existing limiter)
-- API documentation with Swagger/OpenAPI
-- **Done** ~~Webhook support for third-party integrations~~
+### Security Enhancements
+- [ ] Two-factor authentication (TOTP)
+- [ ] Automatic session timeout
+- [ ] IP whitelisting for admin access
+- [ ] API key management for integrations
 
-#### Testing Infrastrucure
-```
-# Add comprehensive testing
-├── internal/
-│   ├── handlers/
-│   │   ├── patient_test.go
-│   │   ├── report_test.go
-├── frontend/
-│   ├── src/
-│   │   ├── __tests__/
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-```
-- Unit tests for all handlers
-- Integration tests for API endpoints
-- E2E tests with Playwright/Cypress
-- Load testing with k6
-- Test coverage reporting
+### UI/UX Improvements
+- [ ] Form templates for common scenarios
+- [ ] Bulk operations (delete, export, assign)
+- [ ] Dashboard widget customization
 
-#### Security Enhancements
-Building on your security.go:
+### Compliance & Data
+- [ ] Data retention policies with automated archival
+- [ ] Field-level permissions and data masking
+- [ ] Digital signature capture for consent
+- [ ] Consent audit trail with version history
 
--Two-factor authentication (TOTP)
-- Password complexity requirements
-- Session management improvements
-- API key management for integrations
-- Biometric authentication support
-- Automatic session timeout
-- IP whitelisting for admin access
+---
 
-#### Backup & Disaster Recovery
-```
-// New utility: internal/utils/backup.go
-func CreateDatabaseBackup() error {
-    // Automated SQLite backup
-    timestamp := time.Now().Format("20060102_150405")
-    backupPath := fmt.Sprintf("./backups/db_%s.sqlite", timestamp)
-    // Copy database file
-}
-```
-- Automated daily backups
-- Point-in-time recovery
-- Backup encryption
-- Cloud backup storage (S3, Azure Blob)
-- Backup verification and testing
+## 💡 Future Ideas
 
-### UI/UX Enhancements
-#### Dashboard Customization
-- Draggable widget system
-- User-specific dashboard layouts
-- Saved dashboard templates
-- **Done** ~~Dark/light theme improvements (smooth transitions, system sync, theme-aware toasts)~~
-- Accessibility improvements (ARIA labels, keyboard navigation)
-#### Data Visualization
-Enhance your DonutChart.tsx:
+### Analytics & Intelligence
+- Trend Analysis: Time-series charts for device patterns and completion rates
+- Predictive Analytics: ML models for device maintenance prediction
+- Clinical Decision Support: AI-powered recommendations
 
+### Advanced Features
+- Patient Portal: Self-service portal for patients
+- Document Management: OCR, version control, full-text search
+- Device Recall Management: Track and manage recalls
+- Inventory Management: Device stock tracking
+- Multi-tenancy: Support for multiple healthcare facilities
+- Language Localization: i18n for multiple languages
+
+### Mobile & Offline
+- Progressive Web App (PWA) capabilities
+- Offline mode for critical data entry
+- Camera integration for quick photo capture
+- Mobile-optimized data payloads
+- QR code generation/scanning
+
+### Workflow Automation
+- Custom workflow builder UI
+- Automated task creation based on events
+- Email workflows for consent renewals
+- Recurring appointment templates
+
+### Data Integration
+- Medical device data import APIs
+- HL7/FHIR integration for other EMR systems
+- Bulk patient import from CSV/Excel
+
+### Advanced Visualization
 - Interactive charts with drill-down
-- **Done** ~~Timeline visualizations for patient history~~
 - Heatmaps for device usage patterns
 - Geographic maps for patient distribution
-- Real-time data streaming for active monitoring
-#### Form Improvements
-Building on ReportForm.tsx:
+- Real-time data streaming
 
-- **Done** ~~Field validation with helpful error messages~~
-- **Done** ~~Conditional field display~~
-- **Not implemented** ~~Multi-step forms with progress indicators~~
-- Form templates for common scenarios
-- **Done** ~~Smart field pre-population~~
+---
 
-#### Onboarding & Help System
-- Interactive product tour for new users
-- Contextual help tooltips
-- Video tutorials library
--  **Woking on this** In-app knowledge base
-- Guided workflows for common tasks
+## ❌ Not Planned
 
-### Compliance & HIPAA Features
-#### Enhanced Consent Management
-Building on ConsentManager.tsx:
+### Database Encryption
+- **Status:** Will not implement at this time
+- **Reason:** Current server-level encryption is sufficient
+- **Note:** No need for per-column PostgreSQL encryption currently
 
-- Digital signature capture
-- Consent renewal workflow automation
-- **Done** ~~Multi-language consent forms~~
-- Consent audit trail with version history
-- Automated expiration notifications
-#### Data Retention Policies
-```
-// New handler: internal/handlers/retention.go
-type RetentionPolicy struct {
-    EntityType string
-    RetentionPeriod time.Duration
-    ArchiveAfter time.Duration
-    DeleteAfter time.Duration
-}
-```
-- Configurable retention rules
-- Automated data archival
-- Secure data deletion
-- Retention compliance reports
+### Archive
+Items moved here were previously considered but deprioritized:
+- (None currently)
 
-#### Access Control Granularity
-- Field-level permissions
-- Data masking for sensitive fields
-- **Done**  ~~Temporary access grants~~
-- **Done** ~~Access request workflow~~
-- **Done** ~~Permission templates by role~~
+---
 
-### Integration Features
-####  Third-Party Integrations
-- **Done** ~~EMR system connectors (Epic, Cerner)~~
-- Medical device data import APIs
-- Calendar integration (Google Calendar, Outlook)
-- **Done** ~~Slack/Teams notifications~~
+## ✅ Recently Completed
 
-#### API for Mobile Apps
-- Dedicated mobile API endpoints
-- Push notification support
-- Offline sync protocol
-- Mobile-optimized data payloads
-- QR code generation/scanning for quick access
+*Last updated: February 2026*
 
+### Major Features
+- Patient notes system with audit trail
+- Calendar view for appointments
+- Dark/light theme with smooth transitions
+- Lazy loading for large datasets
+- Webhook support for integrations
+- Field validation with error messages
+- Conditional field display
+- Smart field pre-population
+- Timeline visualizations for patient history
+- Multi-language consent forms
+- Temporary access grants
+- Access request workflow
+- Permission templates by role
+- EMR system connectors (Epic FHIR)
+- Slack/Teams notifications
+- Loading skeletons
+- Keyboard shortcuts
+- Weekly productivity reports
 
-### Workflow & Productivity
-#### Report Review Reminders / Push notifications
+### Quick Wins Delivered
+- Toast notifications across the app
+- Theme-aware components
+- Smooth theme transitions
 
-- **TODO ITEM** Unsigned reports pending >24/48 hours
-- Reports awaiting co-signature
-- Escalate to supervisor after threshold
-- Upcoming Appointment Reminders
+---
 
-- Scheduled in-clinic visits approaching
-- Pre-appointment task checklists incomplete
-- Patient confirmation status
-- Bulk Task Completion Summaries
+## How to Use This Document
 
-- Daily digest of completed tasks
-- **Done** ~~Weekly productivity reports to managers~~
-- Team performance metrics
-- Audit & Compliance Alerts
+**Adding New Items:**
+- Place in appropriate section based on priority
+- Use `[ ]` for incomplete, `[x]` for complete
+- Add brief description and context
 
-- Security log anomalies (multiple failed logins, unusual access patterns)
-- HIPAA compliance violations detected
-- Required documentation missing before deadlines
-- Consent renewal windows closing
+**Moving Items:**
+- When starting work, move to "Active Work"
+- When completed, move to "Recently Completed"
+- If deprioritized, move to "Not Planned" with reason
 
-
-### Nice-to-Have Features
-- **Multi-tenancy**: Support for multiple healthcare facilities
-- **Language Localization**: i18n support for multiple languages
-- **Patient Portal**: Self-service portal for patients to view their data
-- **Reporting Scheduler**: Automated report generation and distribution
-- **Device Recall Management**: Track and manage device recalls
-- **Inventory Management**: Track device stock levels
-- **Billing Integration**: Connect with billing systems
-- **Clinical Decision Support**: AI-powered recommendations
-- **Telemedicine Integration**: Video consultation support
-
-### Quick Wins (Start Here)
-- **Add toast notifications** across the app (you're using Sonner)
-- **Done** ~~Implement dark mode polish with smooth transitions~~
-- **Done** ~~Add loading skeletons (you have Skeleton)~~
-- **Create a changelog page** to track updates
-- **Done** ~~Add keyboard shortcuts for power users~~
-- **Implement bulk operations** (delete, export, assign)
-- **Add data export to Excel/PDF** for all list views
-- **Create email templates** for common notifications
-- **TODO ITEM** **Add "Recently Viewed"** section to dashboards
-- **Implement auto-complete** for patient/device search
+**Review Schedule:**
+- Review monthly with team
+- Update priorities based on user feedback
+- Archive completed items quarterly
