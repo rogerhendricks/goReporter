@@ -150,12 +150,10 @@ export default function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="overview">My Overview</TabsTrigger>
           <TabsTrigger value="admin">Admin Tools</TabsTrigger>
-          <TabsTrigger value="access-requests">Access Requests</TabsTrigger>
           <TabsTrigger value="management">User Management</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="security-logs">Security Logs</TabsTrigger>
-          <TabsTrigger value="missed-appointments">Missed Appointments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -323,14 +321,11 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="admin" className="space-y-6">
+          <MissedAppointments />
+          <AccessRequestsCard />
           <TagManagement />
           <TaskTemplateManager />
         </TabsContent>
-
-        <TabsContent value="access-requests" className="space-y-6">
-          <AccessRequestsCard />
-        </TabsContent>
-
         <TabsContent value="management" className="space-y-6">
           <TeamManagement />
           <UserManagementTable />
@@ -343,9 +338,6 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="security-logs" className="space-y-6">
           <SecurityLogsDashboard />
-        </TabsContent>
-        <TabsContent value="missed-appointments" className="space-y-6">
-          <MissedAppointments />
         </TabsContent>
       </Tabs>
       <Card className="hover:shadow-lg transition-shadow mt-4">
