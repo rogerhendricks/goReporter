@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { CheckSquare } from "lucide-react";
 
 import { UserManagementTable } from "@/components/admin/UserManagementTable";
@@ -32,6 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DonutChartSkeleton,
   TableSkeleton,
@@ -76,6 +82,22 @@ export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string>("");
+  const [reportYear, setReportYear] = useState<number>(() => {
+    const year = new Date().getFullYear();
+    return Math.min(2035, Math.max(2025, year));
+  });
+  const [reportMonth, setReportMonth] = useState<number>(
+    () => new Date().getMonth() + 1,
+  );
+  const [pendingReportYear, setPendingReportYear] = useState<number>(() => {
+    const year = new Date().getFullYear();
+    return Math.min(2035, Math.max(2025, year));
+  });
+  const [pendingReportMonth, setPendingReportMonth] = useState<number>(
+    () => new Date().getMonth() + 1,
+  );
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>(
@@ -85,25 +107,109 @@ export default function AdminDashboard() {
   const [tagStatsLoading, setTagStatsLoading] = useState(false);
   const [tagStatsError, setTagStatsError] = useState<string>("");
 
+  const reportYears = Array.from({ length: 11 }, (_, i) => 2025 + i);
+  const reportMonths = [
+    { value: 1, label: "Jan" },
+    { value: 2, label: "Feb" },
+    { value: 3, label: "Mar" },
+    { value: 4, label: "Apr" },
+    { value: 5, label: "May" },
+    { value: 6, label: "Jun" },
+    { value: 7, label: "Jul" },
+    { value: 8, label: "Aug" },
+    { value: 9, label: "Sep" },
+    { value: 10, label: "Oct" },
+    { value: 11, label: "Nov" },
+    { value: 12, label: "Dec" },
+  ];
 
+  const getReportDateRange = (year: number, month: number) => {
+    if (!year || month < 1 || month > 12) return null;
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+    const toYmd = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    return { start: toYmd(startDate), end: toYmd(endDate) };
+  };
+
+  const handleApplyReportMonth = async () => {
+    const range = getReportDateRange(pendingReportYear, pendingReportMonth);
+    if (!range) {
+      setAnalyticsError("Please select a valid year and month.");
+      return;
+    }
+    setAnalyticsLoading(true);
+    setAnalyticsError("");
+    try {
+      const response = await api.get<ReportSummary>(
+        "/analytics/reports-summary",
+        {
+          params: range ?? undefined,
+        },
+      );
+      setData((prev) =>
+        prev
+          ? { ...prev, reports: response.data }
+          : { byManufacturer: [], byDeviceType: [], reports: response.data },
+      );
+      setReportYear(pendingReportYear);
+      setReportMonth(pendingReportMonth);
+    } catch (error: any) {
+      setAnalyticsError(
+        error?.response?.data?.error || "Failed to load report summary.",
+      );
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setAnalyticsError("");
+      try {
+        const range = getReportDateRange(reportYear, reportMonth);
+        const response = await api.get<AnalyticsResponse>(
+          "/analytics/summary",
+          {
+            params: range ?? undefined,
+          },
+        );
+        if (!mounted) return;
+        setData(response.data);
+      } catch (error: any) {
+        if (!mounted) return;
+        setData(null);
+        setAnalyticsError(
+          error?.response?.data?.error || "Failed to load analytics.",
+        );
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [a, t] = await Promise.allSettled([
-          api.get<AnalyticsResponse>("/analytics/summary"),
-          api.get<Tag[]>("/tags", { params: { type: "patient" } }),
-        ]);
+        const response = await api.get<Tag[]>("/tags", {
+          params: { type: "patient" },
+        });
         if (!mounted) return;
-        if (a.status === "fulfilled") setData(a.value.data);
-        if (t.status === "fulfilled") {
-          const tagList = t.value.data || [];
-          setTags(tagList);
-          // Don't auto-select - let user choose
-        }
-      } finally {
-        if (mounted) setLoading(false);
+        const tagList = response.data || [];
+        setTags(tagList);
+        // Don't auto-select - let user choose
+      } catch {
+        // Intentionally no-op; tag list is optional for analytics
       }
     })();
     return () => {
@@ -170,7 +276,7 @@ export default function AdminDashboard() {
             </>
           ) : !data ? (
             <div className="p-4 text-sm text-destructive">
-              Failed to load analytics.
+              {analyticsError || "Failed to load analytics."}
             </div>
           ) : (
             <>
@@ -261,9 +367,87 @@ export default function AdminDashboard() {
                 <div className="md:mb-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Reports Summary</CardTitle>
+                      <CardTitle className="text-base">
+                        Reports Summary
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            {reportYear}-{String(reportMonth).padStart(2, "0")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-muted-foreground">
+                              Year
+                            </span>
+                            <Select
+                              value={String(pendingReportYear)}
+                              onValueChange={(value) =>
+                                setPendingReportYear(Number(value))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue placeholder="Year" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {reportYears.map((year) => (
+                                  <SelectItem key={year} value={String(year)}>
+                                    {year}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-xs text-muted-foreground">
+                              Month
+                            </span>
+                            <Select
+                              value={String(pendingReportMonth)}
+                              onValueChange={(value) =>
+                                setPendingReportMonth(Number(value))
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-[120px]">
+                                <SelectValue placeholder="Month" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {reportMonths.map((month) => (
+                                  <SelectItem
+                                    key={month.value}
+                                    value={String(month.value)}
+                                  >
+                                    {month.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="flex justify-end">
+                            <Button
+                              size="sm"
+                              onClick={handleApplyReportMonth}
+                              disabled={
+                                analyticsLoading ||
+                                (pendingReportYear === reportYear &&
+                                  pendingReportMonth === reportMonth)
+                              }
+                            >
+                              {analyticsLoading ? "Loading..." : "Apply"}
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      {analyticsError ? (
+                        <div className="mb-2 text-xs text-destructive">
+                          {analyticsError}
+                        </div>
+                      ) : null}
                       <div className="mb-4 text-sm">
                         <span className="font-medium">Total:</span>{" "}
                         {data.reports.total}{" "}
@@ -300,7 +484,6 @@ export default function AdminDashboard() {
               <IncompleteReportsCard />
 
               <OverduePatientsCard />
-
 
               <Card>
                 <CardHeader>

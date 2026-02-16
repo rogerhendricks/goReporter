@@ -191,6 +191,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Analytics routes
 	app.Get("/api/analytics/summary", handlers.GetAnalyticsSummary)
+	app.Get("/api/analytics/reports-summary", handlers.GetReportSummary)
 
 	// Tag routes
 	tags := app.Group("/api/tags")
