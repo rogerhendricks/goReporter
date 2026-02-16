@@ -372,7 +372,7 @@ export default function AdminDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Popover>
+                      <Popover >
                         <PopoverTrigger asChild>
                           <Button size="sm" variant="outline">
                             {reportYear}-{String(reportMonth).padStart(2, "0")}
@@ -448,7 +448,7 @@ export default function AdminDashboard() {
                           {analyticsError}
                         </div>
                       ) : null}
-                      <div className="mb-4 text-sm">
+                      <div className="my-4 text-sm">
                         <span className="font-medium">Total:</span>{" "}
                         {data.reports.total}{" "}
                         <span className="ml-4 font-medium">
