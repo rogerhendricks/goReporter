@@ -436,6 +436,7 @@ export function ReportForm({ patient }: ReportFormProps) {
 
   // Pre-populate form from previous report
   const loadFromPreviousReport = () => {
+    console.log("🔍 Pre-population - Previous report:", previousReport);
     if (!previousReport) return;
 
     // Fields to pre-populate (settings that typically don't change between reports)
@@ -444,9 +445,9 @@ export function ReportForm({ patient }: ReportFormProps) {
       mdc_idc_set_brady_mode: previousReport.mdc_idc_set_brady_mode,
       mdc_idc_set_brady_lowrate: previousReport.mdc_idc_set_brady_lowrate,
       mdc_idc_set_brady_max_tracking_rate:
-        previousReport.mdc_idc_set_brady_max_tracking_rate,
+      previousReport.mdc_idc_set_brady_max_tracking_rate,
       mdc_idc_set_brady_max_sensor_rate:
-        previousReport.mdc_idc_set_brady_max_sensor_rate,
+      previousReport.mdc_idc_set_brady_max_sensor_rate,
       mdc_idc_dev_sav: previousReport.mdc_idc_dev_sav,
       mdc_idc_dev_pav: previousReport.mdc_idc_dev_pav,
 
@@ -485,7 +486,7 @@ export function ReportForm({ patient }: ReportFormProps) {
       VF_therapy_4_energy: previousReport.VF_therapy_4_energy,
       VF_therapy_4_max_num_shocks: previousReport.VF_therapy_4_max_num_shocks,
     };
-
+    console.log("🔍 Pre-population - Fields to pre-populate:", fieldsToPrePopulate);
     setFormData((prev) => ({
       ...prev,
       ...fieldsToPrePopulate,

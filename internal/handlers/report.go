@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -599,7 +600,18 @@ func GetReportsByPatient(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
 	}
 
-	reports, err := models.GetReportsByPatientID(uint(patientID))
+	limit := 0
+	if limitParam := c.Query("limit", ""); limitParam != "" {
+		if parsed, parseErr := strconv.Atoi(limitParam); parseErr == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	sortField := c.Query("sort", "reportDate")
+	order := c.Query("order", "desc")
+	includeDeleted := strings.EqualFold(c.Query("includeDeleted", "false"), "true")
+	full := strings.EqualFold(c.Query("full", "false"), "true")
+
+	reports, err := models.GetReportsByPatientID(uint(patientID), limit, sortField, order, includeDeleted, full)
 	if err != nil {
 		log.Printf("Error fetching reports for patient %d: %v", patientID, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch reports"})

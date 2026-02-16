@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/rogerhendricks/goReporter/internal/config"
@@ -100,19 +101,62 @@ type Report struct {
 	Tags        []Tag        `json:"tags" gorm:"many2many:report_tags;"`
 }
 
-// GetReportsByPatientID retrieves all reports for a specific patient.
-func GetReportsByPatientID(patientID uint) ([]Report, error) {
+// GetReportsByPatientID retrieves reports for a patient. If full is true, return full records with associations; otherwise return a lean list.
+func GetReportsByPatientID(patientID uint, limit int, sortField, sortOrder string, includeDeleted, full bool) ([]Report, error) {
 	var reports []Report
-	// Order by report date descending to show the newest first
-	err := config.DB.Model(&Report{}).
-		Select("id", "patient_id",
+
+	query := config.DB.Model(&Report{}).Where("patient_id = ?", patientID)
+
+	if !includeDeleted {
+		query = query.Where("deleted_at IS NULL")
+	}
+
+	if full {
+		query = query.Preload("Arrhythmias").Preload("Tags")
+	} else {
+		query = query.Select("id", "patient_id",
 			"report_date", "mdc_idc_batt_status",
 			"report_type", "report_status", "file_url",
-		).
-		Where("patient_id = ?", patientID).
-		Order("report_date desc").
-		Find(&reports).Error
+		)
+	}
+
+	sortColumn := resolveReportSortColumn(sortField)
+	sortOrderClause := resolveReportSortOrder(sortOrder)
+	query = query.Order(sortColumn + " " + sortOrderClause)
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.Find(&reports).Error
 	return reports, err
+}
+
+func resolveReportSortColumn(field string) string {
+	normalized := strings.TrimSpace(strings.ToLower(field))
+	switch normalized {
+	case "reportdate", "report_date":
+		return "report_date"
+	case "reportstatus", "report_status":
+		return "report_status"
+	case "reporttype", "report_type":
+		return "report_type"
+	case "createdat", "created_at":
+		return "created_at"
+	case "updatedat", "updated_at":
+		return "updated_at"
+	case "patientid", "patient_id":
+		return "patient_id"
+	default:
+		return "report_date"
+	}
+}
+
+func resolveReportSortOrder(order string) string {
+	if strings.EqualFold(strings.TrimSpace(order), "asc") {
+		return "ASC"
+	}
+	return "DESC"
 }
 
 // GetReportByID retrieves a single report by its ID, preloading related data.

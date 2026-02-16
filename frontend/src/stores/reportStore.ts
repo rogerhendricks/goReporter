@@ -167,9 +167,18 @@ export const useReportStore = create<ReportState>((set) => ({
 
   fetchMostRecentReport: async (patientId) => {
     try {
-      const response = await api.get(`/patients/${patientId}/reports?limit=1&sort=reportDate&order=desc`)
-      const reports = response.data.reports || response.data
-      if (reports && reports.length > 0) {
+      const response = await api.get(`/patients/${patientId}/reports`, {
+        params: {
+          limit: 1,
+          sort: 'reportDate',
+          order: 'desc',
+          includeDeleted: false,
+          full: true,
+        },
+      })
+
+      const reports = response.data?.reports || response.data
+      if (Array.isArray(reports) && reports.length > 0) {
         return reports[0]
       }
       return null
