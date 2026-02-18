@@ -1205,7 +1205,8 @@ export function ReportForm({ patient }: ReportFormProps) {
       } else if (key === "tags") {
         submissionData.append(key, JSON.stringify(value));
       } else if (value instanceof Date) {
-        submissionData.append(key, value.toISOString());
+        // Send as date-only string to avoid timezone-induced day shifts
+        submissionData.append(key, format(value, "yyyy-MM-dd"));
       } else if (value !== null && value !== undefined) {
         submissionData.append(key, String(value));
       }

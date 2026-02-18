@@ -62,7 +62,7 @@ type Report struct {
 	MdcIdcStatBradyRaPercentPaced  *float64 `json:"mdc_idc_stat_brady_ra_percent_paced"`
 	MdcIdcStatBradyRvPercentPaced  *float64 `json:"mdc_idc_stat_brady_rv_percent_paced"`
 	MdcIdcStatBradyLvPercentPaced  *float64 `json:"mdc_idc_stat_brady_lv_percent_paced"`
-	MdcIdcStatTachyBivPercentPaced *float64 `json:"mdc_idc_stat_tachy_biv_percent_paced"`
+	MdcIdcStatBradyBivPercentPaced *float64 `json:"mdc_idc_stat_brady_biv_percent_paced" gorm:"column:mdc_idc_stat_tachy_biv_percent_paced"`
 
 	// Battery/Device Diagnostics
 	MdcIdcBattVolt       *float64 `json:"mdc_idc_batt_volt"`
@@ -82,13 +82,49 @@ type Report struct {
 	MdcIdcMsmtRvSensing         *float64 `json:"mdc_idc_msmt_rv_sensing"`
 	MdcIdcMsmtRvPacingThreshold *float64 `json:"mdc_idc_msmt_rv_pacing_threshold"`
 	MdcIdcMsmtRvPw              *float64 `json:"mdc_idc_msmt_rv_pw"`
-	MdcIdcMsmtShockImpedance    *float64 `json:"mdc_idc_msmt_shock_impedance"`
+	MdcIdcMsmtHvImpedanceMean   *float64 `json:"mdc_idc_msmt_hv_impedance_mean" gorm:"column:mdc_idc_msmt_shock_impedance"`
 
 	// LV Measurements
 	MdcIdcMsmtLvImpedanceMean   *float64 `json:"mdc_idc_msmt_lv_impedance_mean"`
 	MdcIdcMsmtLvSensing         *float64 `json:"mdc_idc_msmt_lv_sensing"`
 	MdcIdcMsmtLvPacingThreshold *float64 `json:"mdc_idc_msmt_lv_pacing_threshold"`
 	MdcIdcMsmtLvPw              *float64 `json:"mdc_idc_msmt_lv_pw"`
+
+	// Tachy Settings
+	Vt1Active               *string `json:"VT1_active" gorm:"type:varchar(50)"`
+	Vt1DetectionInterval    *string `json:"VT1_detection_interval" gorm:"type:varchar(50)"`
+	Vt1Therapy1Atp          *string `json:"VT1_therapy_1_atp" gorm:"type:varchar(50)"`
+	Vt1Therapy1NoBursts     *string `json:"VT1_therapy_1_no_bursts" gorm:"type:varchar(50)"`
+	Vt1Therapy2Atp          *string `json:"VT1_therapy_2_atp" gorm:"type:varchar(50)"`
+	Vt1Therapy2NoBursts     *string `json:"VT1_therapy_2_no_bursts" gorm:"type:varchar(50)"`
+	Vt1Therapy3Cvrt         *string `json:"VT1_therapy_3_cvrt" gorm:"type:varchar(50)"`
+	Vt1Therapy3Energy       *string `json:"VT1_therapy_3_energy" gorm:"type:varchar(50)"`
+	Vt1Therapy4Cvrt         *string `json:"VT1_therapy_4_cvrt" gorm:"type:varchar(50)"`
+	Vt1Therapy4Energy       *string `json:"VT1_therapy_4_energy" gorm:"type:varchar(50)"`
+	Vt1Therapy5Cvrt         *string `json:"VT1_therapy_5_cvrt" gorm:"type:varchar(50)"`
+	Vt1Therapy5Energy       *string `json:"VT1_therapy_5_energy" gorm:"type:varchar(50)"`
+	Vt1Therapy5MaxNumShocks *string `json:"VT1_therapy_5_max_num_shocks" gorm:"type:varchar(50)"`
+	Vt2Active               *string `json:"VT2_active" gorm:"type:varchar(50)"`
+	Vt2DetectionInterval    *string `json:"VT2_detection_interval" gorm:"type:varchar(50)"`
+	Vt2Therapy1Atp          *string `json:"VT2_therapy_1_atp" gorm:"type:varchar(50)"`
+	Vt2Therapy1NoBursts     *string `json:"VT2_therapy_1_no_bursts" gorm:"type:varchar(50)"`
+	Vt2Therapy2Atp          *string `json:"VT2_therapy_2_atp" gorm:"type:varchar(50)"`
+	Vt2Therapy2NoBursts     *string `json:"VT2_therapy_2_no_bursts" gorm:"type:varchar(50)"`
+	Vt2Therapy3Cvrt         *string `json:"VT2_therapy_3_cvrt" gorm:"type:varchar(50)"`
+	Vt2Therapy3Energy       *string `json:"VT2_therapy_3_energy" gorm:"type:varchar(50)"`
+	Vt2Therapy4Cvrt         *string `json:"VT2_therapy_4_cvrt" gorm:"type:varchar(50)"`
+	Vt2Therapy4Energy       *string `json:"VT2_therapy_4_energy" gorm:"type:varchar(50)"`
+	Vt2Therapy5Cvrt         *string `json:"VT2_therapy_5_cvrt" gorm:"type:varchar(50)"`
+	Vt2Therapy5Energy       *string `json:"VT2_therapy_5_energy" gorm:"type:varchar(50)"`
+	Vt2Therapy5MaxNumShocks *string `json:"VT2_therapy_5_max_num_shocks" gorm:"type:varchar(50)"`
+	VfActive                *string `json:"VF_active" gorm:"type:varchar(50)"`
+	VfDetectionInterval     *string `json:"VF_detection_interval" gorm:"type:varchar(50)"`
+	VfTherapy1Atp           *string `json:"VF_therapy_1_atp" gorm:"type:varchar(50)"`
+	VfTherapy1NoBursts      *string `json:"VF_therapy_1_no_bursts" gorm:"type:varchar(50)"`
+	VfTherapy2Energy        *string `json:"VF_therapy_2_energy" gorm:"type:varchar(50)"`
+	VfTherapy3Energy        *string `json:"VF_therapy_3_energy" gorm:"type:varchar(50)"`
+	VfTherapy4Energy        *string `json:"VF_therapy_4_energy" gorm:"type:varchar(50)"`
+	VfTherapy4MaxNumShocks  *string `json:"VF_therapy_4_max_num_shocks" gorm:"type:varchar(50)"`
 
 	// Report Info
 	Comments    *string `json:"comments" gorm:"type:text"`

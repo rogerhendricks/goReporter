@@ -55,7 +55,7 @@ type ReportResponse struct {
 	MdcIdcStatBradyRaPercentPaced                  *float64             `json:"mdc_idc_stat_brady_ra_percent_paced"`
 	MdcIdcStatBradyRvPercentPaced                  *float64             `json:"mdc_idc_stat_brady_rv_percent_paced"`
 	MdcIdcStatBradyLvPercentPaced                  *float64             `json:"mdc_idc_stat_brady_lv_percent_paced"`
-	MdcIdcStatTachyBivPercentPaced                 *float64             `json:"mdc_idc_stat_tachy_biv_percent_paced"`
+	MdcIdcStatBradyBivPercentPaced                 *float64             `json:"mdc_idc_stat_brady_biv_percent_paced"`
 	MdcIdcBattVolt                                 *float64             `json:"mdc_idc_batt_volt"`
 	MdcIdcBattRemaining                            *float64             `json:"mdc_idc_batt_remaining"`
 	MdcIdcBattPercentage                           *float64             `json:"mdc_idc_batt_percentage"`
@@ -69,11 +69,45 @@ type ReportResponse struct {
 	MdcIdcMsmtRvSensing                            *float64             `json:"mdc_idc_msmt_rv_sensing"`
 	MdcIdcMsmtRvPacingThreshold                    *float64             `json:"mdc_idc_msmt_rv_pacing_threshold"`
 	MdcIdcMsmtRvPw                                 *float64             `json:"mdc_idc_msmt_rv_pw"`
-	MdcIdcMsmtShockImpedance                       *float64             `json:"mdc_idc_msmt_shock_impedance"`
+	MdcIdcMsmtHvImpedanceMean                      *float64             `json:"mdc_idc_msmt_hv_impedance_mean"`
 	MdcIdcMsmtLvImpedanceMean                      *float64             `json:"mdc_idc_msmt_lv_impedance_mean"`
 	MdcIdcMsmtLvSensing                            *float64             `json:"mdc_idc_msmt_lv_sensing"`
 	MdcIdcMsmtLvPacingThreshold                    *float64             `json:"mdc_idc_msmt_lv_pacing_threshold"`
 	MdcIdcMsmtLvPw                                 *float64             `json:"mdc_idc_msmt_lv_pw"`
+	Vt1Active                                      *string              `json:"VT1_active"`
+	Vt1DetectionInterval                           *string              `json:"VT1_detection_interval"`
+	Vt1Therapy1Atp                                 *string              `json:"VT1_therapy_1_atp"`
+	Vt1Therapy1NoBursts                            *string              `json:"VT1_therapy_1_no_bursts"`
+	Vt1Therapy2Atp                                 *string              `json:"VT1_therapy_2_atp"`
+	Vt1Therapy2NoBursts                            *string              `json:"VT1_therapy_2_no_bursts"`
+	Vt1Therapy3Cvrt                                *string              `json:"VT1_therapy_3_cvrt"`
+	Vt1Therapy3Energy                              *string              `json:"VT1_therapy_3_energy"`
+	Vt1Therapy4Cvrt                                *string              `json:"VT1_therapy_4_cvrt"`
+	Vt1Therapy4Energy                              *string              `json:"VT1_therapy_4_energy"`
+	Vt1Therapy5Cvrt                                *string              `json:"VT1_therapy_5_cvrt"`
+	Vt1Therapy5Energy                              *string              `json:"VT1_therapy_5_energy"`
+	Vt1Therapy5MaxNumShocks                        *string              `json:"VT1_therapy_5_max_num_shocks"`
+	Vt2Active                                      *string              `json:"VT2_active"`
+	Vt2DetectionInterval                           *string              `json:"VT2_detection_interval"`
+	Vt2Therapy1Atp                                 *string              `json:"VT2_therapy_1_atp"`
+	Vt2Therapy1NoBursts                            *string              `json:"VT2_therapy_1_no_bursts"`
+	Vt2Therapy2Atp                                 *string              `json:"VT2_therapy_2_atp"`
+	Vt2Therapy2NoBursts                            *string              `json:"VT2_therapy_2_no_bursts"`
+	Vt2Therapy3Cvrt                                *string              `json:"VT2_therapy_3_cvrt"`
+	Vt2Therapy3Energy                              *string              `json:"VT2_therapy_3_energy"`
+	Vt2Therapy4Cvrt                                *string              `json:"VT2_therapy_4_cvrt"`
+	Vt2Therapy4Energy                              *string              `json:"VT2_therapy_4_energy"`
+	Vt2Therapy5Cvrt                                *string              `json:"VT2_therapy_5_cvrt"`
+	Vt2Therapy5Energy                              *string              `json:"VT2_therapy_5_energy"`
+	Vt2Therapy5MaxNumShocks                        *string              `json:"VT2_therapy_5_max_num_shocks"`
+	VfActive                                       *string              `json:"VF_active"`
+	VfDetectionInterval                            *string              `json:"VF_detection_interval"`
+	VfTherapy1Atp                                  *string              `json:"VF_therapy_1_atp"`
+	VfTherapy1NoBursts                             *string              `json:"VF_therapy_1_no_bursts"`
+	VfTherapy2Energy                               *string              `json:"VF_therapy_2_energy"`
+	VfTherapy3Energy                               *string              `json:"VF_therapy_3_energy"`
+	VfTherapy4Energy                               *string              `json:"VF_therapy_4_energy"`
+	VfTherapy4MaxNumShocks                         *string              `json:"VF_therapy_4_max_num_shocks"`
 	Comments                                       *string              `json:"comments"`
 	IsCompleted                                    *bool                `json:"isCompleted"`
 	FilePath                                       *string              `json:"file_path"`
@@ -96,6 +130,14 @@ type RecentReportItem struct {
 		MRN       string `json:"mrn"`
 	} `json:"patient"`
 	CreatedBy string `json:"createdBy,omitempty"`
+}
+
+// normalizeDateOnly strips any time/zone component and returns midnight UTC for date-only fields.
+func normalizeDateOnly(t time.Time) time.Time {
+	// Preserve the calendar date as supplied (including its offset) and store at midnight UTC.
+	// This avoids shifting a user-selected date (e.g., 18th local) back to the previous day
+	// when converting to UTC.
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 // toReportResponse converts a Report model to a ReportResponse DTO
@@ -127,7 +169,7 @@ func toReportResponse(report models.Report) ReportResponse {
 		MdcIdcStatBradyRaPercentPaced:  report.MdcIdcStatBradyRaPercentPaced,
 		MdcIdcStatBradyRvPercentPaced:  report.MdcIdcStatBradyRvPercentPaced,
 		MdcIdcStatBradyLvPercentPaced:  report.MdcIdcStatBradyLvPercentPaced,
-		MdcIdcStatTachyBivPercentPaced: report.MdcIdcStatTachyBivPercentPaced,
+		MdcIdcStatBradyBivPercentPaced: report.MdcIdcStatBradyBivPercentPaced,
 		MdcIdcBattVolt:                 report.MdcIdcBattVolt,
 		MdcIdcBattRemaining:            report.MdcIdcBattRemaining,
 		MdcIdcBattPercentage:           report.MdcIdcBattPercentage,
@@ -141,11 +183,45 @@ func toReportResponse(report models.Report) ReportResponse {
 		MdcIdcMsmtRvSensing:            report.MdcIdcMsmtRvSensing,
 		MdcIdcMsmtRvPacingThreshold:    report.MdcIdcMsmtRvPacingThreshold,
 		MdcIdcMsmtRvPw:                 report.MdcIdcMsmtRvPw,
-		MdcIdcMsmtShockImpedance:       report.MdcIdcMsmtShockImpedance,
+		MdcIdcMsmtHvImpedanceMean:      report.MdcIdcMsmtHvImpedanceMean,
 		MdcIdcMsmtLvImpedanceMean:      report.MdcIdcMsmtLvImpedanceMean,
 		MdcIdcMsmtLvSensing:            report.MdcIdcMsmtLvSensing,
 		MdcIdcMsmtLvPacingThreshold:    report.MdcIdcMsmtLvPacingThreshold,
 		MdcIdcMsmtLvPw:                 report.MdcIdcMsmtLvPw,
+		Vt1Active:                      report.Vt1Active,
+		Vt1DetectionInterval:           report.Vt1DetectionInterval,
+		Vt1Therapy1Atp:                 report.Vt1Therapy1Atp,
+		Vt1Therapy1NoBursts:            report.Vt1Therapy1NoBursts,
+		Vt1Therapy2Atp:                 report.Vt1Therapy2Atp,
+		Vt1Therapy2NoBursts:            report.Vt1Therapy2NoBursts,
+		Vt1Therapy3Cvrt:                report.Vt1Therapy3Cvrt,
+		Vt1Therapy3Energy:              report.Vt1Therapy3Energy,
+		Vt1Therapy4Cvrt:                report.Vt1Therapy4Cvrt,
+		Vt1Therapy4Energy:              report.Vt1Therapy4Energy,
+		Vt1Therapy5Cvrt:                report.Vt1Therapy5Cvrt,
+		Vt1Therapy5Energy:              report.Vt1Therapy5Energy,
+		Vt1Therapy5MaxNumShocks:        report.Vt1Therapy5MaxNumShocks,
+		Vt2Active:                      report.Vt2Active,
+		Vt2DetectionInterval:           report.Vt2DetectionInterval,
+		Vt2Therapy1Atp:                 report.Vt2Therapy1Atp,
+		Vt2Therapy1NoBursts:            report.Vt2Therapy1NoBursts,
+		Vt2Therapy2Atp:                 report.Vt2Therapy2Atp,
+		Vt2Therapy2NoBursts:            report.Vt2Therapy2NoBursts,
+		Vt2Therapy3Cvrt:                report.Vt2Therapy3Cvrt,
+		Vt2Therapy3Energy:              report.Vt2Therapy3Energy,
+		Vt2Therapy4Cvrt:                report.Vt2Therapy4Cvrt,
+		Vt2Therapy4Energy:              report.Vt2Therapy4Energy,
+		Vt2Therapy5Cvrt:                report.Vt2Therapy5Cvrt,
+		Vt2Therapy5Energy:              report.Vt2Therapy5Energy,
+		Vt2Therapy5MaxNumShocks:        report.Vt2Therapy5MaxNumShocks,
+		VfActive:                       report.VfActive,
+		VfDetectionInterval:            report.VfDetectionInterval,
+		VfTherapy1Atp:                  report.VfTherapy1Atp,
+		VfTherapy1NoBursts:             report.VfTherapy1NoBursts,
+		VfTherapy2Energy:               report.VfTherapy2Energy,
+		VfTherapy3Energy:               report.VfTherapy3Energy,
+		VfTherapy4Energy:               report.VfTherapy4Energy,
+		VfTherapy4MaxNumShocks:         report.VfTherapy4MaxNumShocks,
 		Comments:                       report.Comments,
 		IsCompleted:                    report.IsCompleted,
 		FilePath:                       report.FilePath,
@@ -201,6 +277,8 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 			return nil, fmt.Errorf("invalid date format for reportDate: %w", err)
 		}
 	}
+	// Ensure we store date-only at midnight UTC to avoid timezone shifts from client to server.
+	reportDate = normalizeDateOnly(reportDate)
 
 	// Create the base report model from form values
 	report := models.Report{
@@ -270,7 +348,7 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 	report.MdcIdcStatBradyRaPercentPaced = parseFloat("mdc_idc_stat_brady_ra_percent_paced")
 	report.MdcIdcStatBradyRvPercentPaced = parseFloat("mdc_idc_stat_brady_rv_percent_paced")
 	report.MdcIdcStatBradyLvPercentPaced = parseFloat("mdc_idc_stat_brady_lv_percent_paced")
-	report.MdcIdcStatTachyBivPercentPaced = parseFloat("mdc_idc_stat_tachy_biv_percent_paced")
+	report.MdcIdcStatBradyBivPercentPaced = parseFloat("mdc_idc_stat_brady_biv_percent_paced")
 	report.MdcIdcBattVolt = parseFloat("mdc_idc_batt_volt")
 	report.MdcIdcBattRemaining = parseFloat("mdc_idc_batt_remaining")
 	report.MdcIdcBattPercentage = parseFloat("mdc_idc_batt_percentage")
@@ -284,11 +362,45 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 	report.MdcIdcMsmtRvSensing = parseFloat("mdc_idc_msmt_rv_sensing")
 	report.MdcIdcMsmtRvPacingThreshold = parseFloat("mdc_idc_msmt_rv_pacing_threshold")
 	report.MdcIdcMsmtRvPw = parseFloat("mdc_idc_msmt_rv_pw")
-	report.MdcIdcMsmtShockImpedance = parseFloat("mdc_idc_msmt_shock_impedance")
+	report.MdcIdcMsmtHvImpedanceMean = parseFloat("mdc_idc_msmt_hv_impedance_mean")
 	report.MdcIdcMsmtLvImpedanceMean = parseFloat("mdc_idc_msmt_lv_impedance_mean")
 	report.MdcIdcMsmtLvSensing = parseFloat("mdc_idc_msmt_lv_sensing")
 	report.MdcIdcMsmtLvPacingThreshold = parseFloat("mdc_idc_msmt_lv_pacing_threshold")
 	report.MdcIdcMsmtLvPw = parseFloat("mdc_idc_msmt_lv_pw")
+	report.Vt1Active = parseString("VT1_active")
+	report.Vt1DetectionInterval = parseString("VT1_detection_interval")
+	report.Vt1Therapy1Atp = parseString("VT1_therapy_1_atp")
+	report.Vt1Therapy1NoBursts = parseString("VT1_therapy_1_no_bursts")
+	report.Vt1Therapy2Atp = parseString("VT1_therapy_2_atp")
+	report.Vt1Therapy2NoBursts = parseString("VT1_therapy_2_no_bursts")
+	report.Vt1Therapy3Cvrt = parseString("VT1_therapy_3_cvrt")
+	report.Vt1Therapy3Energy = parseString("VT1_therapy_3_energy")
+	report.Vt1Therapy4Cvrt = parseString("VT1_therapy_4_cvrt")
+	report.Vt1Therapy4Energy = parseString("VT1_therapy_4_energy")
+	report.Vt1Therapy5Cvrt = parseString("VT1_therapy_5_cvrt")
+	report.Vt1Therapy5Energy = parseString("VT1_therapy_5_energy")
+	report.Vt1Therapy5MaxNumShocks = parseString("VT1_therapy_5_max_num_shocks")
+	report.Vt2Active = parseString("VT2_active")
+	report.Vt2DetectionInterval = parseString("VT2_detection_interval")
+	report.Vt2Therapy1Atp = parseString("VT2_therapy_1_atp")
+	report.Vt2Therapy1NoBursts = parseString("VT2_therapy_1_no_bursts")
+	report.Vt2Therapy2Atp = parseString("VT2_therapy_2_atp")
+	report.Vt2Therapy2NoBursts = parseString("VT2_therapy_2_no_bursts")
+	report.Vt2Therapy3Cvrt = parseString("VT2_therapy_3_cvrt")
+	report.Vt2Therapy3Energy = parseString("VT2_therapy_3_energy")
+	report.Vt2Therapy4Cvrt = parseString("VT2_therapy_4_cvrt")
+	report.Vt2Therapy4Energy = parseString("VT2_therapy_4_energy")
+	report.Vt2Therapy5Cvrt = parseString("VT2_therapy_5_cvrt")
+	report.Vt2Therapy5Energy = parseString("VT2_therapy_5_energy")
+	report.Vt2Therapy5MaxNumShocks = parseString("VT2_therapy_5_max_num_shocks")
+	report.VfActive = parseString("VF_active")
+	report.VfDetectionInterval = parseString("VF_detection_interval")
+	report.VfTherapy1Atp = parseString("VF_therapy_1_atp")
+	report.VfTherapy1NoBursts = parseString("VF_therapy_1_no_bursts")
+	report.VfTherapy2Energy = parseString("VF_therapy_2_energy")
+	report.VfTherapy3Energy = parseString("VF_therapy_3_energy")
+	report.VfTherapy4Energy = parseString("VF_therapy_4_energy")
+	report.VfTherapy4MaxNumShocks = parseString("VF_therapy_4_max_num_shocks")
 	report.Comments = parseString("comments")
 	report.IsCompleted = parseBool("isCompleted")
 
@@ -411,7 +523,7 @@ func CreateReport(c *fiber.Ctx) error {
 				"batteryVoltage":      getFloatPointer(createdReport.MdcIdcBattVolt),
 				"atrialPacing":        getFloatPointer(createdReport.MdcIdcStatBradyRaPercentPaced),
 				"ventricularPacing":   getFloatPointer(createdReport.MdcIdcStatBradyRvPercentPaced),
-				"biventricularPacing": getFloatPointer(createdReport.MdcIdcStatTachyBivPercentPaced),
+				"biventricularPacing": getFloatPointer(createdReport.MdcIdcStatBradyBivPercentPaced),
 				"device":              deviceInfo,
 			})
 
@@ -490,7 +602,7 @@ func UpdateReport(c *fiber.Ctx) error {
 	existingReport.MdcIdcStatBradyRaPercentPaced = updatedData.MdcIdcStatBradyRaPercentPaced
 	existingReport.MdcIdcStatBradyRvPercentPaced = updatedData.MdcIdcStatBradyRvPercentPaced
 	existingReport.MdcIdcStatBradyLvPercentPaced = updatedData.MdcIdcStatBradyLvPercentPaced
-	existingReport.MdcIdcStatTachyBivPercentPaced = updatedData.MdcIdcStatTachyBivPercentPaced
+	existingReport.MdcIdcStatBradyBivPercentPaced = updatedData.MdcIdcStatBradyBivPercentPaced
 	existingReport.MdcIdcBattVolt = updatedData.MdcIdcBattVolt
 	existingReport.MdcIdcBattRemaining = updatedData.MdcIdcBattRemaining
 	existingReport.MdcIdcBattPercentage = updatedData.MdcIdcBattPercentage
@@ -504,11 +616,45 @@ func UpdateReport(c *fiber.Ctx) error {
 	existingReport.MdcIdcMsmtRvSensing = updatedData.MdcIdcMsmtRvSensing
 	existingReport.MdcIdcMsmtRvPacingThreshold = updatedData.MdcIdcMsmtRvPacingThreshold
 	existingReport.MdcIdcMsmtRvPw = updatedData.MdcIdcMsmtRvPw
-	existingReport.MdcIdcMsmtShockImpedance = updatedData.MdcIdcMsmtShockImpedance
+	existingReport.MdcIdcMsmtHvImpedanceMean = updatedData.MdcIdcMsmtHvImpedanceMean
 	existingReport.MdcIdcMsmtLvImpedanceMean = updatedData.MdcIdcMsmtLvImpedanceMean
 	existingReport.MdcIdcMsmtLvSensing = updatedData.MdcIdcMsmtLvSensing
 	existingReport.MdcIdcMsmtLvPacingThreshold = updatedData.MdcIdcMsmtLvPacingThreshold
 	existingReport.MdcIdcMsmtLvPw = updatedData.MdcIdcMsmtLvPw
+	existingReport.Vt1Active = updatedData.Vt1Active
+	existingReport.Vt1DetectionInterval = updatedData.Vt1DetectionInterval
+	existingReport.Vt1Therapy1Atp = updatedData.Vt1Therapy1Atp
+	existingReport.Vt1Therapy1NoBursts = updatedData.Vt1Therapy1NoBursts
+	existingReport.Vt1Therapy2Atp = updatedData.Vt1Therapy2Atp
+	existingReport.Vt1Therapy2NoBursts = updatedData.Vt1Therapy2NoBursts
+	existingReport.Vt1Therapy3Cvrt = updatedData.Vt1Therapy3Cvrt
+	existingReport.Vt1Therapy3Energy = updatedData.Vt1Therapy3Energy
+	existingReport.Vt1Therapy4Cvrt = updatedData.Vt1Therapy4Cvrt
+	existingReport.Vt1Therapy4Energy = updatedData.Vt1Therapy4Energy
+	existingReport.Vt1Therapy5Cvrt = updatedData.Vt1Therapy5Cvrt
+	existingReport.Vt1Therapy5Energy = updatedData.Vt1Therapy5Energy
+	existingReport.Vt1Therapy5MaxNumShocks = updatedData.Vt1Therapy5MaxNumShocks
+	existingReport.Vt2Active = updatedData.Vt2Active
+	existingReport.Vt2DetectionInterval = updatedData.Vt2DetectionInterval
+	existingReport.Vt2Therapy1Atp = updatedData.Vt2Therapy1Atp
+	existingReport.Vt2Therapy1NoBursts = updatedData.Vt2Therapy1NoBursts
+	existingReport.Vt2Therapy2Atp = updatedData.Vt2Therapy2Atp
+	existingReport.Vt2Therapy2NoBursts = updatedData.Vt2Therapy2NoBursts
+	existingReport.Vt2Therapy3Cvrt = updatedData.Vt2Therapy3Cvrt
+	existingReport.Vt2Therapy3Energy = updatedData.Vt2Therapy3Energy
+	existingReport.Vt2Therapy4Cvrt = updatedData.Vt2Therapy4Cvrt
+	existingReport.Vt2Therapy4Energy = updatedData.Vt2Therapy4Energy
+	existingReport.Vt2Therapy5Cvrt = updatedData.Vt2Therapy5Cvrt
+	existingReport.Vt2Therapy5Energy = updatedData.Vt2Therapy5Energy
+	existingReport.Vt2Therapy5MaxNumShocks = updatedData.Vt2Therapy5MaxNumShocks
+	existingReport.VfActive = updatedData.VfActive
+	existingReport.VfDetectionInterval = updatedData.VfDetectionInterval
+	existingReport.VfTherapy1Atp = updatedData.VfTherapy1Atp
+	existingReport.VfTherapy1NoBursts = updatedData.VfTherapy1NoBursts
+	existingReport.VfTherapy2Energy = updatedData.VfTherapy2Energy
+	existingReport.VfTherapy3Energy = updatedData.VfTherapy3Energy
+	existingReport.VfTherapy4Energy = updatedData.VfTherapy4Energy
+	existingReport.VfTherapy4MaxNumShocks = updatedData.VfTherapy4MaxNumShocks
 	existingReport.Comments = updatedData.Comments
 	existingReport.IsCompleted = updatedData.IsCompleted
 

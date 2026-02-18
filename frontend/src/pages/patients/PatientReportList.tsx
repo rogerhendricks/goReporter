@@ -92,6 +92,7 @@ export default function PatientReportList() {
     const date = new Date(dateString);
     // Use getUTC methods to ignore the local timezone
     const day = String(date.getUTCDate()).padStart(2, "0");
+    console.log('Report date from formatDate:', day);
     const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // getUTCMonth is 0-indexed
     const year = date.getUTCFullYear();
     return `${day}/${month}/${year}`;
