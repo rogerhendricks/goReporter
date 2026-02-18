@@ -394,7 +394,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'NormParams.MTRIntvl': 'mdc_idc_set_brady_max_tracking_rate',
     'NormParams.MSRIntvl': 'mdc_idc_set_brady_max_sensor_rate',
     'BatteryStatus.BatteryPhase': 'mdc_idc_batt_status',
-    'BatteryLongevityParams.RemainingBatteryPercent': '',
+    'BatteryLongevityParams.RemainingBatteryPercent': 'mdc_idc_batt_percentage',
     'BatteryLongevityParams.TimeToERI': 'mdc_idc_batt_remaining',
     'CapformChargeTime': 'mdc_idc_cap_charge_time',
     'ManualLeadImpedData.RAMsmt.Msmt': 'mdc_idc_msmt_ra_impedance_mean',
@@ -574,7 +574,7 @@ function parseBnkFile(fileContent: string): ParsedData {
   }
 
   if (result.mdc_idc_batt_remaining) {
-    result.mdc_idc_batt_remaining = Math.floor(parseInt(result.mdc_idc_batt_remaining.replace(/months?/i, '').trim()) / 12).toString();
+    result.mdc_idc_batt_remaining = (Math.floor((parseFloat(result.mdc_idc_batt_remaining.replace(/months?/i, '').trim()) / 12) * 2) / 2).toString();
   }
   // Convert rates and thresholds
   if (result.mdc_idc_set_brady_lowrate) {
