@@ -200,7 +200,7 @@ export function usePdfFormFiller() {
       fillTextField('lv_threshold', formData.mdc_idc_msmt_lv_pacing_threshold)
       fillTextField('lv_pulse_width', formData.mdc_idc_msmt_lv_pw)
 
-      fillTextField('shock_impedance', formData.mdc_idc_msmt_shock_impedance)
+      fillTextField('shock_impedance', formData.mdc_idc_msmt_hv_impedance_mean)
 
       // Fill Arrhythmia Events (for first few events)
       if (formData.arrhythmias && formData.arrhythmias.length > 0) {
