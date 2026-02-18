@@ -410,13 +410,16 @@ export function AppointmentFormDialog(props: AppointmentFormDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={formState.title}
-              onChange={event => handleChange('title', event.target.value)}
-              placeholder="Remote check in"
-            />
+            <Label htmlFor="title">Visit Type</Label>
+            <Select value={formState.title} onValueChange={value => handleChange('title', value as FormState['title'])}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select visit type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Clinic">Clinic</SelectItem>
+                <SelectItem value="Remote">Remote</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
