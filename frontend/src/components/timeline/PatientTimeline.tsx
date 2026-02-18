@@ -85,17 +85,18 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
       }
 
       const response = await timelineService.getPatientTimeline(patientId, filters)
+      const incomingEvents = Array.isArray(response.events) ? response.events : [] // Guard against null payloads
       
       if (reset) {
-        setEvents(response.events)
+        setEvents(incomingEvents)
         setPage(2)
       } else {
-        setEvents(prev => [...prev, ...response.events])
+        setEvents(prev => [...prev, ...incomingEvents])
         setPage(currentPage + 1)
       }
       
-      setTotalCount(response.total)
-      setHasMore(response.hasMore)
+      setTotalCount(typeof response.total === 'number' ? response.total : incomingEvents.length)
+      setHasMore(Boolean(response.hasMore))
     } catch (error) {
       console.error('Failed to load timeline:', error)
       toast.error('Failed to load timeline')
@@ -362,18 +363,64 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Timeline</CardTitle>
+            <CardTitle>
+              Timeline ({filterType === 'all' ? 'events' : `${filterType}s`})
+            </CardTitle>
             <div className="flex items-center gap-2">
+              {/* Date Range Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                        </>
+                      ) : (
+                        format(dateRange.from, 'LLL dd, y')
+                      )
+                    ) : (
+                      'Date Range'
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={handleDateRangeChange}
+                    numberOfMonths={2}
+                  />
+                  {dateRange && (
+                    <div className="p-3 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={clearDateRange}
+                        className="w-full gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Clear Date Range
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+
+              {/* Type Filter */}
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={filterType} onValueChange={handleFilterChange}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter events" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Events</SelectItem>
-                  <SelectItem value="task">Tasks</SelectItem>
-                  <SelectItem value="note">Notes</SelectItem>
-                  <SelectItem value="report">Reports</SelectItem>
+                  <SelectItem value="all">All Events {stats && `(${stats.taskCount + stats.noteCount + stats.reportCount})`}</SelectItem>
+                  <SelectItem value="task">Tasks {stats && `(${stats.taskCount})`}</SelectItem>
+                  <SelectItem value="note">Notes {stats && `(${stats.noteCount})`}</SelectItem>
+                  <SelectItem value="report">Reports {stats && `(${stats.reportCount})`}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
