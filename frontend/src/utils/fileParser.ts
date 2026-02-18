@@ -409,7 +409,7 @@ function parseBnkFile(fileContent: string): ParsedData {
     'ManualIntrinsicResult.LVMsmt.Msmt': 'mdc_idc_msmt_lv_sensing_mean',
     'InterPaceThreshResult.LVMsmt.Amplitude': 'mdc_idc_msmt_lv_pacing_threshold',
     'InterPaceThreshResult.LVMsmt.PulseWidth': 'mdc_idc_msmt_lv_pw',
-    'ShockImpedanceLastMeas0': '',
+    'ShockImpedanceLastMeas0': 'mdc_idc_msmt_hv_impedance_mean',
     'ShockImpedanceLastMeas1': '',
     // Tachy Settings
     // VT1 Settings

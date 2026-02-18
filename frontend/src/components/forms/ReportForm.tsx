@@ -122,7 +122,7 @@ const initialFormData: Partial<Report> = {
   mdc_idc_msmt_rv_sensing: undefined,
   mdc_idc_msmt_rv_pacing_threshold: undefined,
   mdc_idc_msmt_rv_pw: undefined,
-  mdc_idc_msmt_shock_impedance: undefined,
+  mdc_idc_msmt_hv_impedance_mean: undefined,
   mdc_idc_msmt_lv_impedance_mean: undefined,
   mdc_idc_msmt_lv_sensing: undefined,
   mdc_idc_msmt_lv_pacing_threshold: undefined,
@@ -559,7 +559,7 @@ export function ReportForm({ patient }: ReportFormProps) {
       mdc_idc_msmt_rv_sensing: undefined,
       mdc_idc_msmt_rv_pacing_threshold: undefined,
       mdc_idc_msmt_rv_pw: undefined,
-      mdc_idc_msmt_shock_impedance: undefined,
+      mdc_idc_msmt_hv_impedance_mean: undefined,
       // LV measurements
       mdc_idc_msmt_lv_impedance_mean: undefined,
       mdc_idc_msmt_lv_sensing: undefined,
@@ -785,9 +785,9 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
 
     // Map shock impedance
-    if (data.mdc_idc_msmt_shock_impedance) {
-      updatedFormData.mdc_idc_msmt_shock_impedance = parseFloat(
-        data.mdc_idc_msmt_shock_impedance,
+    if (data.mdc_idc_msmt_hv_impedance_mean) {
+      updatedFormData.mdc_idc_msmt_hv_impedance_mean = parseFloat(
+        data.mdc_idc_msmt_hv_impedance_mean,
       );
     }
 
@@ -2713,14 +2713,14 @@ export function ReportForm({ patient }: ReportFormProps) {
                 <div className="mt-4 border-t pt-4">
                   <Label className="pb-2">RV Shock Impedance (Ω)</Label>
                   <ValidatedInput
-                    id="mdc_idc_msmt_shock_impedance"
-                    name="mdc_idc_msmt_shock_impedance"
+                    id="mdc_idc_msmt_hv_impedance_mean"
+                    name="mdc_idc_msmt_hv_impedance_mean"
                     type="number"
                     step="any"
-                    value={formData.mdc_idc_msmt_shock_impedance || ""}
+                    value={formData.mdc_idc_msmt_hv_impedance_mean || ""}
                     onChange={(e) =>
                       handleValidatedMeasurementChange(
-                        "mdc_idc_msmt_shock_impedance",
+                        "mdc_idc_msmt_hv_impedance_mean",
                         e.target.value,
                         "shockImpedance",
                       )

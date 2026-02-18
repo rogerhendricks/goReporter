@@ -62,7 +62,7 @@ export interface Report {
   mdc_idc_msmt_rv_sensing?: number | null
   mdc_idc_msmt_rv_pacing_threshold?: number | null
   mdc_idc_msmt_rv_pw?: number | null
-  mdc_idc_msmt_shock_impedance?: number | null
+  mdc_idc_msmt_hv_impedance_mean?: number | null
   // LV measurements
   mdc_idc_msmt_lv_impedance_mean?: number | null
   mdc_idc_msmt_lv_sensing?: number | null
