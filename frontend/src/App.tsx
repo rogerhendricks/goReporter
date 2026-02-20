@@ -38,6 +38,7 @@ function preloadCriticalRoutes() {
     import("@/pages/patients/PatientDetail"),
     import("@/pages/admin/AdminDashboard"),
     import("@/pages/DoctorDashboard"),
+    import("@/pages/StaffDoctorDashboard"),
   ];
 
   // Fire and forget - these will be cached for instant navigation

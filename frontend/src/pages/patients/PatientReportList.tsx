@@ -240,11 +240,18 @@ export default function PatientReportList() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-left">
-                      {report.isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-muted-foreground" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {report.isCompleted ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        {report.completedByName && report.isCompleted && (
+                          <span className="text-xs text-muted-foreground">
+                            by {report.completedByName}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       {report.file_url && (

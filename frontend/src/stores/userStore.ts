@@ -7,7 +7,7 @@ export interface User {
   username: string
   fullName: string
   email: string
-  role: 'admin' | 'doctor' | 'user' | 'viewer'
+  role: 'admin' | 'doctor' | 'user' | 'viewer' | 'staff_doctor'
   password?: string
   createdAt: string
   updatedAt: string

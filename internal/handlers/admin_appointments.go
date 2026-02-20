@@ -64,7 +64,7 @@ func GetAdminAppointments(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"data": appointments,
+		"data": toAppointmentResponses(appointments),
 		"pagination": fiber.Map{
 			"page":       page,
 			"limit":      limit,

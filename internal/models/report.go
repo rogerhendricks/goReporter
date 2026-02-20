@@ -21,12 +21,15 @@ type Arrhythmia struct {
 // Report model to store all the data from a device interrogation.
 type Report struct {
 	gorm.Model
-	PatientID uint    `json:"patientId"`
-	UserID    uint    `json:"userId"`   // The user who created the report
-	DoctorID  *uint   `json:"doctorId"` // Optional doctor associated with the report
-	Patient   Patient `json:"patient"`  // Belongs to Patient
-	User      User    `json:"user"`     // Belongs to User
-	Doctor    *Doctor `json:"doctor"`   // Belongs to Doctor
+	PatientID            uint    `json:"patientId"`
+	UserID               uint    `json:"userId"`   // The user who created the report
+	DoctorID             *uint   `json:"doctorId"` // Optional doctor associated with the report
+	CompletedByUserID    *uint   `json:"completedByUserId"`
+	CompletedByName      *string `json:"completedByName" gorm:"type:varchar(255)"`
+	CompletedBySignature *string `json:"completedBySignature" gorm:"type:text"`
+	Patient              Patient `json:"patient"` // Belongs to Patient
+	User                 User    `json:"user"`    // Belongs to User
+	Doctor               *Doctor `json:"doctor"`  // Belongs to Doctor
 
 	// Core Report Info
 	ReportDate   time.Time `json:"reportDate"`
@@ -153,6 +156,7 @@ func GetReportsByPatientID(patientID uint, limit int, sortField, sortOrder strin
 		query = query.Select("id", "patient_id",
 			"report_date", "mdc_idc_batt_status",
 			"report_type", "report_status", "file_url",
+			"is_completed", "completed_by_user_id", "completed_by_name", "completed_by_signature",
 		)
 	}
 

@@ -1,4 +1,5 @@
 import { lazy, type ReactNode } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 
 // Eagerly load critical routes for immediate access
 import Login from '@/components/auth/Login'
@@ -8,6 +9,7 @@ import Home from '@/pages/Home'
 // Lazy load all other routes
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
 const DoctorDashboard = lazy(() => import('@/pages/DoctorDashboard'))
+const StaffDoctorDashboard = lazy(() => import('@/pages/StaffDoctorDashboard'))
 const ViewerDashboard = lazy(() => import('@/pages/ViewerDashboard'))
 const PatientIndex = lazy(() => import('@/pages/patients/PatientIndex'))
 const PatientDetail = lazy(() => import('@/pages/patients/PatientDetail'))
@@ -48,6 +50,17 @@ export interface RouteConfig {
   requiresAuth?: boolean
   layout?: 'default' | 'home'
   roles?: string[]
+}
+
+// Role-aware doctor dashboard: staff_doctor sees StaffDoctorDashboard, others see DoctorDashboard
+const DoctorDashboardRoute = () => {
+  console.log('DoctorDashboardRoute')
+  const { user } = useAuthStore()
+  if (user?.role === 'staff_doctor') {
+    console.log('staff_doctor')
+    return <StaffDoctorDashboard />
+  }
+  return <DoctorDashboard />
 }
 
 export const routes: RouteConfig[] = [
@@ -104,10 +117,10 @@ export const routes: RouteConfig[] = [
   // Doctor dashboard - doctor only
   {
     path: '/doctor',
-    element: <DoctorDashboard />,
+    element: <DoctorDashboardRoute />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['doctor']
+    roles: ['doctor', 'staff_doctor']
   },
 
   // Doctor workflow: request patient access
@@ -132,7 +145,7 @@ export const routes: RouteConfig[] = [
     element: <AccessRequestDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['doctor', 'admin']
+    roles: ['doctor', 'staff_doctor', 'admin']
   },
 
   // Temp dashboard - tempuser only
@@ -150,14 +163,14 @@ export const routes: RouteConfig[] = [
     element: <KnowledgeBase />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   {
     path: '/appointments',
     element: <AppointmentCalendarPage />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   // Patient routes - admin can create/edit, doctors can view their patients
   {
@@ -165,7 +178,7 @@ export const routes: RouteConfig[] = [
     element: <PatientIndex />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   {
     path: '/patients/new',
@@ -179,7 +192,7 @@ export const routes: RouteConfig[] = [
     element: <PatientDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   {
     path: '/patients/:id/edit',
@@ -193,21 +206,21 @@ export const routes: RouteConfig[] = [
     element: <PatientReportList />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   {
     path: '/patients/:patientId/reports/new',
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user', 'doctor']
+    roles: ['admin', 'user', 'doctor', 'staff_doctor']
   },
   {
     path: '/reports/:reportId/edit',
     element: <ReportFormWrapper />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user', 'doctor']
+    roles: ['admin', 'user', 'doctor', 'staff_doctor']
   },
   {
     path: '/reports/builder',
@@ -230,7 +243,7 @@ export const routes: RouteConfig[] = [
     element: <PatientSearch />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   // Doctor routes - admin only for create/edit
   {
@@ -238,7 +251,7 @@ export const routes: RouteConfig[] = [
     element: <DoctorIndex />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user']
   },
   {
     path: '/doctors/new',
@@ -342,7 +355,7 @@ export const routes: RouteConfig[] = [
     element: <TaskList />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'doctor', 'user', 'viewer']
+    roles: ['admin', 'doctor', 'staff_doctor', 'user', 'viewer']
   },
   {
     path: 'tasks/new',
@@ -356,14 +369,14 @@ export const routes: RouteConfig[] = [
     element: <TaskDetail />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin', 'user']
+    roles: ['admin', 'user', 'doctor', 'staff_doctor']
   },
   {
     path: '/task-templates',
     element: <TaskTemplateManager />,
     requiresAuth: true,
     layout: 'default',
-    roles: ['admin']
+    roles: ['admin', 'doctor', 'staff_doctor']
   },
   {
     path: '/patients/:patientId/tasks/new',

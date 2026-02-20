@@ -82,6 +82,8 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
 
   const user = useAuthStore(state => state.user)
   const isDoctor = user?.role === 'doctor'
+  const isStaffDoctor = user?.role === 'staff_doctor'
+
 
   useEffect(() => {
     if (!patients.length) {
@@ -466,7 +468,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
             <Printer className="mr-2 h-4 w-4" />
             Print List
           </Button>
-          {!isDoctor && (
+          {!isDoctor && !isStaffDoctor && (
             <Button onClick={() => openCreateDialog(selectedDate)}>
               <Plus className="mr-2 h-4 w-4" />
               New Appointment
@@ -590,7 +592,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
                 {selectedDayAppointments.length} appointment{selectedDayAppointments.length !== 1 ? 's' : ''}
               </p>
             </div>
-            {!isDoctor && (
+            {!isDoctor && !isStaffDoctor && (
               <Button variant="ghost" size="icon" onClick={() => openCreateDialog(selectedDate)}>
                 <CalendarDays className="h-5 w-5" />
               </Button>
@@ -673,7 +675,7 @@ export function AppointmentCalendar({ patientId }: AppointmentCalendarProps) {
       </div>
 
       {
-        !isDoctor && (
+        !isDoctor  && !isStaffDoctor && (
           <AppointmentFormDialog
             open={dialogOpen}
             onOpenChange={setDialogOpen}

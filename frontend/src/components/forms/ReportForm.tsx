@@ -5,6 +5,7 @@ import { useReportStore } from "@/stores/reportStore";
 import type { Report } from "@/stores/reportStore";
 import type { Arrhythmia } from "@/stores/reportStore";
 import type { Patient } from "@/stores/patientStore";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ValidatedInput } from "@/components/ui/validated-input";
@@ -80,6 +81,8 @@ const initialFormData: Partial<Report> = {
   reportType: "",
   reportStatus: "",
   isCompleted: false,
+  completedByName: "",
+  completedBySignature: undefined,
   comments: "",
   arrhythmias: [],
   qrs_duration: undefined,
@@ -187,6 +190,9 @@ export function ReportForm({ patient }: ReportFormProps) {
     fetchMostRecentReport,
     setCurrentReport,
   } = useReportStore();
+  const { user } = useAuthStore();
+  const canComplete = user?.role === "staff_doctor" || user?.role === "admin";
+  const requireSignature = user?.role === "staff_doctor";
   const { setItems } = useBreadcrumbs();
   const [selectedDoctorForPdf, setSelectedDoctorForPdf] = useState<any>(null);
   const [doctorSelectorOpen, setDoctorSelectorOpen] = useState(false);
@@ -1138,6 +1144,77 @@ export function ReportForm({ patient }: ReportFormProps) {
     setFormData((prev) => ({ ...prev, arrhythmias }));
   };
 
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingSignatureRef = useRef(false);
+
+  // Keep the canvas drawing buffer in sync with its displayed size to avoid pointer offsets
+  useEffect(() => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }, []);
+
+  const clearSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setFormData((prev) => ({ ...prev, completedBySignature: undefined }));
+  };
+
+  const getCanvasPoint = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+  ): { x: number; y: number } => {
+    const canvas = signatureCanvasRef.current;
+    const rect = canvas?.getBoundingClientRect();
+    const scaleX = rect && canvas ? canvas.width / rect.width : 1;
+    const scaleY = rect && canvas ? canvas.height / rect.height : 1;
+    const x = (e.clientX - (rect?.left || 0)) * scaleX;
+    const y = (e.clientY - (rect?.top || 0)) * scaleY;
+    return { x, y };
+  };
+
+  const handleSignaturePointerDown = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getCanvasPoint(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f172a";
+    isDrawingSignatureRef.current = true;
+  };
+
+  const handleSignaturePointerMove = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    if (!isDrawingSignatureRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getCanvasPoint(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const handleSignaturePointerUp = () => {
+    if (!isDrawingSignatureRef.current) return;
+    isDrawingSignatureRef.current = false;
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    setFormData((prev) => ({ ...prev, completedBySignature: dataUrl }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1148,6 +1225,16 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
     if (!formData.reportStatus) {
       toast.error("Report Status is required");
+      return;
+    }
+
+    if (formData.isCompleted && !canComplete) {
+      toast.error("Only staff doctors or admins can mark reports completed.");
+      return;
+    }
+
+    if (formData.isCompleted && requireSignature && !formData.completedBySignature) {
+      toast.error("Signature is required for staff doctors when completing a report.");
       return;
     }
 
@@ -1191,6 +1278,18 @@ export function ReportForm({ patient }: ReportFormProps) {
     const submissionData = new FormData();
     submissionData.append("patientId", patient.id.toString());
 
+    const submissionPayload: Record<string, unknown> = { ...formData };
+
+    // Only send reviewer attribution when completion is enabled and permitted
+    if (!submissionPayload.isCompleted) {
+      submissionPayload.completedByName = undefined;
+      submissionPayload.completedBySignature = undefined;
+    } else if (!requireSignature) {
+      submissionPayload.completedBySignature = undefined;
+    } else if (!submissionPayload.completedByName && user) {
+      submissionPayload.completedByName = user.fullName || user.username;
+    }
+
     // If merging PDFs was successful, append the merged PDF blob
     if (mergedPdfBlob) {
       // Use a descriptive filename
@@ -1199,7 +1298,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     }
 
     // Append all form fields
-    Object.entries(formData).forEach(([key, value]) => {
+    Object.entries(submissionPayload).forEach(([key, value]) => {
       if (key === "arrhythmias") {
         submissionData.append(key, JSON.stringify(value));
       } else if (key === "tags") {
@@ -2899,13 +2998,92 @@ export function ReportForm({ patient }: ReportFormProps) {
                 name="isCompleted"
                 checked={!!formData.isCompleted}
                 onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, isCompleted: !!checked }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    isCompleted: !!checked,
+                    ...(checked
+                      ? {}
+                      : { completedByName: "", completedBySignature: undefined }),
+                  }))
                 }
               />
               <Label htmlFor="isCompleted" className="font-normal">
                 Mark as Completed
               </Label>
             </div>
+
+            {canComplete && formData.isCompleted && (
+              <div className="space-y-3 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="completedByName">Reviewer Name</Label>
+                  <Input
+                    id="completedByName"
+                    name="completedByName"
+                    value={formData.completedByName || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        completedByName: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter your name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Digital Signature</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={clearSignature}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 p-2">
+                    <canvas
+                      ref={signatureCanvasRef}
+                      width={480}
+                      height={160}
+                      className="w-full bg-white rounded border"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        const target = e.currentTarget;
+                        target.setPointerCapture?.(e.pointerId);
+                        handleSignaturePointerDown(e);
+                      }}
+                      onPointerMove={handleSignaturePointerMove}
+                      onPointerUp={(e) => {
+                        e.preventDefault();
+                        handleSignaturePointerUp();
+                      }}
+                      onPointerLeave={handleSignaturePointerUp}
+                    />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+                      <span>
+                        {requireSignature
+                          ? "Signature required for staff doctors."
+                          : "Signature optional for admins."}
+                      </span>
+                      {formData.completedBySignature && (
+                        <span>Captured</span>
+                      )}
+                    </div>
+                    {formData.completedBySignature && (
+                      <div className="mt-2">
+                        <img
+                          src={formData.completedBySignature}
+                          alt="Signature preview"
+                          className="h-16 object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

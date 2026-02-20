@@ -33,6 +33,9 @@ type ReportResponse struct {
 	PatientID                                      uint                 `json:"patientId"`
 	UserID                                         uint                 `json:"userId"`
 	DoctorID                                       *uint                `json:"doctorId"`
+	CompletedByUserID                              *uint                `json:"completedByUserId"`
+	CompletedByName                                *string              `json:"completedByName"`
+	CompletedBySignature                           *string              `json:"completedBySignature"`
 	ReportDate                                     time.Time            `json:"reportDate"`
 	ReportType                                     string               `json:"reportType"`
 	ReportStatus                                   string               `json:"reportStatus"`
@@ -147,6 +150,9 @@ func toReportResponse(report models.Report) ReportResponse {
 		PatientID:                            report.PatientID,
 		UserID:                               report.UserID,
 		DoctorID:                             report.DoctorID,
+		CompletedByUserID:                    report.CompletedByUserID,
+		CompletedByName:                      report.CompletedByName,
+		CompletedBySignature:                 report.CompletedBySignature,
 		ReportDate:                           report.ReportDate,
 		ReportType:                           report.ReportType,
 		ReportStatus:                         report.ReportStatus,
@@ -403,6 +409,8 @@ func parseReportForm(c *fiber.Ctx) (*models.Report, error) {
 	report.VfTherapy4MaxNumShocks = parseString("VF_therapy_4_max_num_shocks")
 	report.Comments = parseString("comments")
 	report.IsCompleted = parseBool("isCompleted")
+	report.CompletedByName = parseString("completedByName")
+	report.CompletedBySignature = parseString("completedBySignature")
 
 	// Parse arrhythmias from JSON string in form data
 	arrhythmiasJSON := c.FormValue("arrhythmias")
@@ -447,6 +455,37 @@ func CreateReport(c *fiber.Ctx) error {
 	report, err := parseReportForm(c)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	userRole, _ := c.Locals("userRole").(string)
+	user, _ := c.Locals("user").(*models.User)
+	allowedCompleter := userRole == "staff_doctor" || userRole == "admin"
+
+	if report.IsCompleted != nil && *report.IsCompleted {
+		if !allowedCompleter {
+			return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Only staff doctors or admins can mark reports completed"})
+		}
+
+		if user != nil {
+			if report.CompletedByUserID == nil {
+				report.CompletedByUserID = &user.ID
+			}
+			if report.CompletedByName == nil {
+				name := user.FullName
+				if name == "" {
+					name = user.Username
+				}
+				report.CompletedByName = &name
+			}
+		}
+
+		if userRole == "admin" {
+			report.CompletedBySignature = nil // Admins do not provide signatures
+		}
+	} else {
+		report.CompletedByUserID = nil
+		report.CompletedByName = nil
+		report.CompletedBySignature = nil
 	}
 
 	// Save the report to the database
@@ -567,6 +606,35 @@ func UpdateReport(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	userRole, _ := c.Locals("userRole").(string)
+	user, _ := c.Locals("user").(*models.User)
+	allowedCompleter := userRole == "staff_doctor" || userRole == "admin"
+
+	if updatedData.IsCompleted != nil && *updatedData.IsCompleted {
+		if !allowedCompleter {
+			return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Only staff doctors or admins can mark reports completed"})
+		}
+
+		if user != nil {
+			updatedData.CompletedByUserID = &user.ID
+			if updatedData.CompletedByName == nil {
+				name := user.FullName
+				if name == "" {
+					name = user.Username
+				}
+				updatedData.CompletedByName = &name
+			}
+		}
+
+		if userRole == "admin" {
+			updatedData.CompletedBySignature = nil // Admins do not provide signatures
+		}
+	} else {
+		updatedData.CompletedByUserID = nil
+		updatedData.CompletedByName = nil
+		updatedData.CompletedBySignature = nil
+	}
+
 	// Start transaction
 	tx := config.DB.Begin()
 
@@ -657,6 +725,9 @@ func UpdateReport(c *fiber.Ctx) error {
 	existingReport.VfTherapy4MaxNumShocks = updatedData.VfTherapy4MaxNumShocks
 	existingReport.Comments = updatedData.Comments
 	existingReport.IsCompleted = updatedData.IsCompleted
+	existingReport.CompletedByUserID = updatedData.CompletedByUserID
+	existingReport.CompletedByName = updatedData.CompletedByName
+	existingReport.CompletedBySignature = updatedData.CompletedBySignature
 
 	// Replace arrhythmias
 	if err := tx.Where("report_id = ?", reportID).Delete(&models.Arrhythmia{}).Error; err != nil {

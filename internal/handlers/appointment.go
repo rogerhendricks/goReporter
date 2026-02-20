@@ -23,6 +23,70 @@ type appointmentRequest struct {
 	PatientID   uint    `json:"patientId"`
 }
 
+// Lightweight response DTOs so nested patient IDs serialize as `id` instead of `ID`.
+type appointmentPatientResponse struct {
+	ID      uint   `json:"id"`
+	MRN     int    `json:"mrn"`
+	Fname   string `json:"fname"`
+	Lname   string `json:"lname"`
+	Street  string `json:"street,omitempty"`
+	City    string `json:"city,omitempty"`
+	State   string `json:"state,omitempty"`
+	Postal  string `json:"postal,omitempty"`
+	Country string `json:"country,omitempty"`
+}
+
+type appointmentResponse struct {
+	ID                 uint                        `json:"id"`
+	Title              string                      `json:"title"`
+	Description        string                      `json:"description,omitempty"`
+	Location           models.AppointmentLocation  `json:"location"`
+	Status             models.AppointmentStatus    `json:"status"`
+	StartAt            time.Time                   `json:"startAt"`
+	EndAt              *time.Time                  `json:"endAt"`
+	PatientID          uint                        `json:"patientId"`
+	Patient            *appointmentPatientResponse `json:"patient,omitempty"`
+	SlotID             *uint                       `json:"slotId,omitempty"`
+	CreatedByID        uint                        `json:"createdById"`
+	CreatedAt          time.Time                   `json:"createdAt"`
+	UpdatedAt          time.Time                   `json:"updatedAt"`
+	MissedLetterSentAt *time.Time                  `json:"missedLetterSentAt,omitempty"`
+}
+
+func toAppointmentResponse(appt models.Appointment) appointmentResponse {
+	var patient *appointmentPatientResponse
+	if appt.Patient != nil {
+		patient = &appointmentPatientResponse{
+			ID:      appt.Patient.ID,
+			MRN:     appt.Patient.MRN,
+			Fname:   appt.Patient.FirstName,
+			Lname:   appt.Patient.LastName,
+			Street:  appt.Patient.Street,
+			City:    appt.Patient.City,
+			State:   appt.Patient.State,
+			Postal:  appt.Patient.Postal,
+			Country: appt.Patient.Country,
+		}
+	}
+
+	return appointmentResponse{
+		ID:                 appt.ID,
+		Title:              appt.Title,
+		Description:        appt.Description,
+		Location:           appt.Location,
+		Status:             appt.Status,
+		StartAt:            appt.StartAt,
+		EndAt:              appt.EndAt,
+		PatientID:          appt.PatientID,
+		Patient:            patient,
+		SlotID:             appt.SlotID,
+		CreatedByID:        appt.CreatedByID,
+		CreatedAt:          appt.CreatedAt,
+		UpdatedAt:          appt.UpdatedAt,
+		MissedLetterSentAt: appt.MissedLetterSentAt,
+	}
+}
+
 var allowedAppointmentStatuses = map[models.AppointmentStatus]struct{}{
 	models.AppointmentStatusScheduled: {},
 	models.AppointmentStatusCompleted: {},
@@ -89,7 +153,7 @@ func GetAppointments(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load appointments"})
 	}
 
-	return c.JSON(appointments)
+	return c.JSON(toAppointmentResponses(appointments))
 }
 
 // GetPatientAppointments returns appointments scoped to a single patient.
@@ -120,7 +184,7 @@ func GetPatientAppointments(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to load appointments"})
 	}
 
-	return c.JSON(appointments)
+	return c.JSON(toAppointmentResponses(appointments))
 }
 
 // GetAppointment retrieves a single appointment entry.
@@ -151,7 +215,7 @@ func GetAppointment(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 	}
 
-	return c.JSON(appointment)
+	return c.JSON(toAppointmentResponse(*appointment))
 }
 
 // CreateAppointment stores a new appointment entry.
@@ -280,7 +344,7 @@ func CreateAppointment(c *fiber.Ctx) error {
 	}
 
 	created, _ := models.GetAppointmentByID(appointment.ID)
-	return c.Status(http.StatusCreated).JSON(created)
+	return c.Status(http.StatusCreated).JSON(toAppointmentResponse(*created))
 }
 
 // UpdateAppointment modifies an existing appointment entry.
@@ -464,7 +528,7 @@ func UpdateAppointment(c *fiber.Ctx) error {
 	}
 
 	updated, _ := models.GetAppointmentByID(appointment.ID)
-	return c.JSON(updated)
+	return c.JSON(toAppointmentResponse(*updated))
 }
 
 // GetAvailableSlots returns available appointment slots for a date range.
@@ -625,9 +689,20 @@ func resolveUserContext(c *fiber.Ctx) (uint, string, error) {
 	return userID, role, nil
 }
 
+func toAppointmentResponses(appts []models.Appointment) []appointmentResponse {
+	if len(appts) == 0 {
+		return []appointmentResponse{}
+	}
+	resp := make([]appointmentResponse, 0, len(appts))
+	for _, a := range appts {
+		resp = append(resp, toAppointmentResponse(a))
+	}
+	return resp
+}
+
 func canAccessPatient(userRole string, userID uint, patientID uint) (bool, error) {
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		return true, nil
 	case "doctor":
 		return models.IsDoctorAssociatedWithPatient(userID, patientID)

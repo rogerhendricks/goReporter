@@ -145,11 +145,26 @@ func RequireAdmin(c *fiber.Ctx) error {
 }
 
 func RequireDoctor(c *fiber.Ctx) error {
-	return RequireRole("admin", "doctor")(c)
+	return RequireRole("admin", "doctor", "staff_doctor")(c)
 }
 
 func RequireAdminOrUser(c *fiber.Ctx) error {
 	return RequireRole("admin", "user")(c)
+}
+
+// RequireAdminUserDoctorOrStaffDoctor grants access to admins, basic users, doctors, and staff doctors.
+func RequireAdminUserDoctorOrStaffDoctor(c *fiber.Ctx) error {
+	return RequireRole("admin", "user", "doctor", "staff_doctor")(c)
+}
+
+// RequireAdminOrStaffDoctor grants access to admins and staff doctors (used for report completion flows).
+func RequireAdminOrStaffDoctor(c *fiber.Ctx) error {
+	return RequireRole("admin", "staff_doctor")(c)
+}
+
+// RequireAdminUserOrStaffDoctor grants access to admins, basic users, and staff doctors (for report updates where users edit and staff doctors complete).
+func RequireAdminUserOrStaffDoctor(c *fiber.Ctx) error {
+	return RequireRole("admin", "user", "staff_doctor")(c)
 }
 
 func AuthorizeDoctorPatientAccess(c *fiber.Ctx) error {
@@ -176,11 +191,11 @@ func AuthorizeDoctorPatientAccess(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: User not found"})
 	}
 
-	if user.Role == "admin" || user.Role == "user" || user.Role == "viewer" {
+	if user.Role == "admin" || user.Role == "user" || user.Role == "viewer" || user.Role == "staff_doctor" {
 		return c.Next()
 	}
 
-	if user.Role == "doctor" {
+	if user.Role == "doctor" || user.Role == "staff_doctor" {
 		isAssociated, err := models.IsDoctorAssociatedWithPatient(user.ID, uint(patientID))
 		if err != nil {
 			log.Printf("Error checking doctor-patient association: %v", err)
@@ -205,7 +220,7 @@ func SetUserRole(c *fiber.Ctx) error {
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: User not found"})
 	}
 
-	if user.Role == "admin" || user.Role == "user" || user.Role == "doctor" || user.Role == "viewer" {
+	if user.Role == "admin" || user.Role == "user" || user.Role == "doctor" || user.Role == "viewer" || user.Role == "staff_doctor" {
 		c.Locals("userRole", user.Role)
 		return c.Next()
 	}

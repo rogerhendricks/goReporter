@@ -100,6 +100,7 @@ export default function PatientDetail() {
   const { setItems } = useBreadcrumbs();
   const { user } = useAuthStore();
   const isDoctor = user?.role === "doctor";
+  const isStaffDoctor = user?.role === "staff_doctor";
 
   useEffect(() => {
     if (id) {
@@ -233,7 +234,7 @@ export default function PatientDetail() {
     <div className="container mx-auto">
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap gap-2">
-          {!isDoctor && (
+          {!isDoctor  && !isStaffDoctor && (
             <>
               <Dialog
                 open={openTemplateDialog}
@@ -371,7 +372,7 @@ export default function PatientDetail() {
             </Link>
           </Button>
 
-          {!isDoctor && (
+          {!isDoctor && !isStaffDoctor && (
             <>
           <Button
                 onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}
@@ -577,7 +578,7 @@ export default function PatientDetail() {
             <PatientAppointments
               patientId={currentPatient.id}
               patientName={`${currentPatient.fname} ${currentPatient.lname}`}
-              isDoctor={isDoctor}
+              isDoctor={isDoctor || isStaffDoctor}
             />
             <Card>
               <CardHeader>
@@ -825,7 +826,7 @@ export default function PatientDetail() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Tasks</CardTitle>
-                    {!isDoctor && (
+                    {!isDoctor && !isStaffDoctor && (
                       <Dialog
                         open={openTaskDialog}
                         onOpenChange={setOpenTaskDialog}

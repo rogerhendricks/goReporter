@@ -114,11 +114,7 @@ func SearchPatientsComplex(c *fiber.Ctx) error {
 	var err error
 
 	switch userRole {
-	case "admin":
-		patients, err = models.SearchPatientsComplex(params)
-	case "user":
-		patients, err = models.SearchPatientsComplex(params)
-	case "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		patients, err = models.SearchPatientsComplex(params)
 	case "doctor":
 		// For doctors, get their patients first

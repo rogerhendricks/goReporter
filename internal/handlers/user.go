@@ -6,8 +6,6 @@ import (
 	"github.com/rogerhendricks/goReporter/internal/utils"
 	"github.com/rogerhendricks/goReporter/internal/validation"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"errors" // Added errors import
 	"html"
 	"log"
@@ -15,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // Payloads dedicated to user management to avoid leaking unintended fields
@@ -525,7 +525,7 @@ func isValidEmail(email string) bool {
 
 // isValidRole checks if role is one of the allowed values
 func isValidRole(role string) bool {
-	allowedRoles := []string{"admin", "user", "doctor", "viewer"}
+	allowedRoles := []string{"admin", "user", "doctor", "viewer", "staff_doctor"}
 	for _, allowedRole := range allowedRoles {
 		if role == allowedRole {
 			return true

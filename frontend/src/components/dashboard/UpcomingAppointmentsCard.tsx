@@ -120,7 +120,7 @@ export function UpcomingAppointmentsCard() {
                   <TableCell className="text-left">
                     {appt.patient ? (
                       <Link to={`/patients/${appt.patient.id}/reports`} className="text-primary hover:underline text-sm">
-                        Open Reports
+                        {}Open Reports
                       </Link>
                     ) : (
                       <span className="text-muted-foreground text-sm">N/A</span>

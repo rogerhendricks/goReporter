@@ -6,7 +6,7 @@ interface User {
   ID: number
   email: string
   username: string
-  role: 'admin' | 'doctor' | 'user' | 'viewer'
+  role: 'admin' | 'doctor' | 'user' | 'viewer' | 'staff_doctor'
   fullName?: string
   themePreference?: string
   CreatedAt?: string
@@ -35,6 +35,7 @@ interface AuthState {
   updateTheme: (theme: string) => Promise<void>
   get isAdmin(): boolean
   get isDoctor(): boolean
+  get isStaffDoctor(): boolean
   get isUser(): boolean
   get isViewer(): boolean
 }
@@ -70,6 +71,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   get isDoctor() {
     const role = get().user?.role
     return role?.toLowerCase() === 'doctor'
+  },
+
+  get isStaffDoctor() {
+    const role = get().user?.role
+    return role?.toLowerCase() === 'staff_doctor'
   },
   
   get isUser() {

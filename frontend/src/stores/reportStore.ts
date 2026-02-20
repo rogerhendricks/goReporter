@@ -108,6 +108,9 @@ export interface Report {
   // Report info
   comments?: string | null
   isCompleted?: boolean | null
+  completedByUserId?: number | null
+  completedByName?: string | null
+  completedBySignature?: string | null
   file_path?: string | null
   file_url?: string | null
   createdAt: string

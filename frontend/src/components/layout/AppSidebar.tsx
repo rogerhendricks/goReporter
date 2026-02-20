@@ -79,8 +79,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             href: "/doctor",
             label: "Doctor Dashboard",
             icon: Stethoscope,
-            roles: ["doctor"],
-        },
+            roles: ["doctor", "staff_doctor"],
+        }
     ]
 
     // Organized navigation groups
@@ -93,19 +93,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/patients",
                     label: "Patients",
                     icon: Users,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "doctor", "user", "viewer", "staff_doctor"],
                 },
                 {
                     href: "/search/patients",
                     label: "Patient Search",
                     icon: Search,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "doctor", "user", "viewer", "staff_doctor"],
                 },
                 {
                     href: "/doctors",
                     label: "Doctors",
                     icon: Stethoscope,
-                    roles: ["admin", "doctor", "user"],
+                    roles: ["admin", "doctor", "user", "staff_doctor"],
                 },
             ],
         },
@@ -135,13 +135,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/appointments",
                     label: "Appointments",
                     icon: Calendar,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "doctor", "staff_doctor" ,"user", "viewer"],
                 },
                 {
                     href: "/tasks",
                     label: "Tasks",
                     icon: Check,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "doctor", "user", "viewer", "staff_doctor"],
                 },
                 {
                     href: "/admin/access-requests",
@@ -171,7 +171,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/knowledge-base",
                     label: "Knowledge Base",
                     icon: Eye,
-                    roles: ["admin", "doctor", "user", "viewer"],
+                    roles: ["admin", "doctor", "user", "viewer", "staff_doctor"],
                 },
             ],
         },

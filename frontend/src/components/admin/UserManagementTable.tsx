@@ -293,6 +293,7 @@ export function UserManagementTable() {
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="admin">Admin</SelectItem>
+                                                        <SelectItem value="staff_doctor">Staff Doctor</SelectItem>
                                                         <SelectItem value="doctor">Doctor</SelectItem>
                                                         <SelectItem value="user">User</SelectItem>
                                                     </SelectContent>
@@ -353,6 +354,7 @@ export function UserManagementTable() {
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 <SelectItem value="admin">Admin</SelectItem>
+                                                                <SelectItem value="staff_doctor">Staff Doctor</SelectItem>
                                                                 <SelectItem value="doctor">Doctor</SelectItem>
                                                                 <SelectItem value="user">User</SelectItem>
                                                             </SelectContent>

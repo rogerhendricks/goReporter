@@ -56,9 +56,11 @@ export default function Home() {
   // Redirect based on user role
   if (user?.role === "admin") {
     return <Navigate to="/admin" replace />;
-  } else if (user?.role === "doctor") {
+  }
+  if (user?.role === "doctor" || user?.role === "staff_doctor") {
     return <Navigate to="/doctor" replace />;
-  } else if (user?.role === "viewer") {
+  }
+  if (user?.role === "viewer") {
     return <Navigate to="/viewer-dashboard" replace />;
   }
 

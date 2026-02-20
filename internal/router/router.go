@@ -139,9 +139,9 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Patient Notes routes
 	app.Get("/api/patients/:id/notes", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientNotes)
-	app.Post("/api/patients/:id/notes", middleware.RequireAdminOrUser, handlers.CreatePatientNote)
-	app.Put("/api/patients/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.UpdatePatientNote)
-	app.Delete("/api/patients/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeletePatientNote)
+	app.Post("/api/patients/:id/notes", middleware.RequireAdminUserOrStaffDoctor, handlers.CreatePatientNote)
+	app.Put("/api/patients/:id/notes/:noteId", middleware.RequireAdminUserOrStaffDoctor, handlers.UpdatePatientNote)
+	app.Delete("/api/patients/:id/notes/:noteId", middleware.RequireAdminUserOrStaffDoctor, handlers.DeletePatientNote)
 
 	// Timeline routes
 	app.Get("/api/patients/:patientId/timeline", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientTimeline)
@@ -166,7 +166,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/reports/recent", middleware.SetUserRole, handlers.GetRecentReports)
 	app.Get("/api/patients/:patientId/reports", middleware.AuthorizeDoctorPatientAccess, handlers.GetReportsByPatient)
 	app.Get("/api/reports/:id", handlers.GetReport)
-	app.Put("/api/reports/:id", middleware.RequireAdminOrUser, handlers.UploadFile, handlers.UpdateReport)
+	app.Put("/api/reports/:id", middleware.RequireAdminUserOrStaffDoctor, handlers.UploadFile, handlers.UpdateReport)
 	app.Delete("/api/reports/:id", middleware.RequireAdminOrUser, handlers.DeleteReport)
 
 	// Report Builder routes
@@ -204,13 +204,13 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// Task routes
 	app.Get("/api/tasks", middleware.SetUserRole, handlers.GetTasks)
-	app.Post("/api/tasks", middleware.RequireAdminOrUser, handlers.CreateTask)
-	app.Get("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.GetTask)
-	app.Put("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.UpdateTask)
-	app.Delete("/api/tasks/:id", middleware.RequireAdminOrUser, handlers.DeleteTask)
-	app.Post("/api/tasks/:id/notes", middleware.RequireAdminOrUser, handlers.AddTaskNote)
-	app.Put("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.UpdateTaskNote)
-	app.Delete("/api/tasks/:id/notes/:noteId", middleware.RequireAdminOrUser, handlers.DeleteTaskNote)
+	app.Post("/api/tasks", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.CreateTask)
+	app.Get("/api/tasks/:id", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.GetTask)
+	app.Put("/api/tasks/:id", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.UpdateTask)
+	app.Delete("/api/tasks/:id", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.DeleteTask)
+	app.Post("/api/tasks/:id/notes", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.AddTaskNote)
+	app.Put("/api/tasks/:id/notes/:noteId", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.UpdateTaskNote)
+	app.Delete("/api/tasks/:id/notes/:noteId", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.DeleteTaskNote)
 
 	// Patient-specific tasks
 	app.Get("/api/patients/:patientId/tasks", middleware.AuthorizeDoctorPatientAccess, handlers.GetTasksByPatient)
@@ -219,18 +219,18 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/appointments", handlers.GetAppointments)
 	app.Get("/api/appointments/slots/available", handlers.GetAvailableSlots)
 	app.Get("/api/appointments/:id", handlers.GetAppointment)
-	app.Post("/api/appointments", handlers.CreateAppointment)
-	app.Put("/api/appointments/:id", handlers.UpdateAppointment)
-	app.Delete("/api/appointments/:id", handlers.DeleteAppointment)
+	app.Post("/api/appointments", middleware.RequireAdminOrUser, handlers.CreateAppointment)
+	app.Put("/api/appointments/:id", middleware.RequireAdminOrUser, handlers.UpdateAppointment)
+	app.Delete("/api/appointments/:id", middleware.RequireAdminOrUser, handlers.DeleteAppointment)
 	app.Get("/api/patients/:patientId/appointments", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientAppointments)
 
 	// Task template routes (if you want to add them)
-	app.Get("/api/task-templates", middleware.RequireAdminOrUser, handlers.GetTaskTemplates)
+	app.Get("/api/task-templates", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.GetTaskTemplates)
 	app.Post("/api/task-templates", middleware.RequireAdmin, handlers.CreateTaskTemplate)
 	app.Put("/api/task-templates/:id", middleware.RequireAdmin, handlers.UpdateTaskTemplate)
 	app.Delete("/api/task-templates/:id", middleware.RequireAdmin, handlers.DeleteTaskTemplate)
-	app.Post("/api/task-templates/:id/assign", middleware.RequireAdminOrUser, handlers.AssignTemplateToPatient)
-	app.Get("/api/task-templates/:id/patients", middleware.RequireAdminOrUser, handlers.GetPatientsWithTemplate)
+	app.Post("/api/task-templates/:id/assign", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.AssignTemplateToPatient)
+	app.Get("/api/task-templates/:id/patients", middleware.RequireAdminUserDoctorOrStaffDoctor, handlers.GetPatientsWithTemplate)
 
 	// Patient consent routes
 	app.Get("/api/patients/:patientId/consents", middleware.AuthorizeDoctorPatientAccess, handlers.GetPatientConsents)

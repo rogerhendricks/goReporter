@@ -208,7 +208,7 @@ func GetPatients(c *fiber.Ctx) error {
 
 	// Admin-level users can see all patients
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		if searchQuery != "" {
 			patients, err = models.SearchPatients(searchQuery)
 		} else {
@@ -254,7 +254,7 @@ func GetAllPatients(c *fiber.Ctx) error {
 	var err error
 
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		patients, err = models.GetAllPatients()
 	case "doctor":
 		patients, err = models.GetPatientsForDoctor(userID)
@@ -284,7 +284,7 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	var err error
 
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		patients, err = models.GetMostRecentPatientList()
 	case "doctor":
 		allPatients, docErr := models.GetPatientsForDoctor(userID)
@@ -335,7 +335,7 @@ func GetPatientsPaginated(c *fiber.Ctx) error {
 	var err error
 
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		patients, total, err = models.GetPatientsPaginated(search, page, limit)
 	case "doctor":
 		patients, total, err = models.GetPatientsPaginatedForDoctor(userID, search, page, limit)
@@ -897,7 +897,7 @@ func SearchPatients(c *fiber.Ctx) error {
 
 	// Admin users can search all patients
 	switch userRole {
-	case "admin", "user", "viewer":
+	case "admin", "user", "viewer", "staff_doctor":
 		patients, err = models.SearchPatients(searchQuery)
 		if err != nil {
 			// Check for the specific "too many results" error from the model
@@ -1122,6 +1122,19 @@ func GetOverduePatients(c *fiber.Ctx) error {
 			var doctor models.Doctor
 			if err := config.DB.Where("user_id = ?", userIDStr).First(&doctor).Error; err == nil {
 				doctorID = &doctor.ID
+			}
+		}
+	}
+
+	// Check if user is a staff_doctor and get their patients based on their doctor id
+	if userRole == "staff_doctor" {
+		userIDStr, _ := c.Locals("userID").(string)
+
+		if userIDStr != "" {
+			// Load user with linked doctor; staff_doctor should always have DoctorID set
+			staffUser, err := models.GetUserWithDoctor(userIDStr)
+			if err == nil && staffUser != nil && staffUser.DoctorID != nil {
+				doctorID = staffUser.DoctorID
 			}
 		}
 	}
