@@ -672,8 +672,8 @@ export default function PatientSearch() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
                   <TableHead>MRN</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>DOB</TableHead>
                   <TableHead>Assigned Doctors</TableHead>
                 </TableRow>
@@ -681,6 +681,7 @@ export default function PatientSearch() {
               <TableBody>
                 {searchResults.map((patient) => (
                   <TableRow key={patient.id}>
+                    <TableCell className="font-medium  text-left">{patient.mrn}</TableCell>
                     <TableCell className="text-left">
                       <Link
                         to={`/patients/${patient.id}`}
@@ -690,7 +691,7 @@ export default function PatientSearch() {
                         {patient.fname} {patient.lname}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-left">{patient.mrn}</TableCell>
+
                     <TableCell className="text-left">
                       {new Date(patient.dob).toLocaleDateString()}
                     </TableCell>
