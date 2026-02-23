@@ -681,7 +681,7 @@ export default function PatientSearch() {
               <TableBody>
                 {searchResults.map((patient) => (
                   <TableRow key={patient.id}>
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Link
                         to={`/patients/${patient.id}`}
                         className="flex items-center gap-2 hover:underline"
@@ -690,11 +690,11 @@ export default function PatientSearch() {
                         {patient.fname} {patient.lname}
                       </Link>
                     </TableCell>
-                    <TableCell>{patient.mrn}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">{patient.mrn}</TableCell>
+                    <TableCell className="text-left">
                       {new Date(patient.dob).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">
                       {patient.patientDoctors?.map((pd) => (
                         <Badge key={pd.id} variant="secondary" className="mr-1">
                           {pd.doctor.fullName}
