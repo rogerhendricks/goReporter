@@ -316,7 +316,7 @@ func setAuthCookies(c *fiber.Ctx, user *models.User) error {
 			"refreshExpiresAt": result.RefreshExpiresAt,
 		})
 
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
+	isProduction := os.Getenv("APP_ENV") == "production"
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
@@ -438,7 +438,7 @@ func GetCSRFToken(c *fiber.Ctx) error {
 			Name:     "csrf_token",
 			Value:    token,
 			HTTPOnly: false, // Must be false so JavaScript can read it
-			Secure:   os.Getenv("ENVIRONMENT") == "production",
+			Secure:   os.Getenv("APP_ENV") == "production",
 			SameSite: "Lax",
 			MaxAge:   int((1 * time.Hour).Seconds()),
 			Path:     "/",
@@ -487,7 +487,7 @@ func Logout(c *fiber.Ctx) error {
 		Name:     "access_token",
 		Value:    "",
 		HTTPOnly: true,
-		Secure:   os.Getenv("ENVIRONMENT") == "production",
+		Secure:   os.Getenv("APP_ENV") == "production",
 		SameSite: "Lax",
 		MaxAge:   -1,
 		Path:     "/",
@@ -497,7 +497,7 @@ func Logout(c *fiber.Ctx) error {
 		Name:     "refresh_token",
 		Value:    "",
 		HTTPOnly: true,
-		Secure:   os.Getenv("ENVIRONMENT") == "production",
+		Secure:   os.Getenv("APP_ENV") == "production",
 		SameSite: "Lax",
 		MaxAge:   -1,
 		Path:     "/",
