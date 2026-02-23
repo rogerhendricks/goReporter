@@ -83,7 +83,7 @@ func SetCSRFCookie(c *fiber.Ctx, token string) {
         Name:     "csrf_token",
         Value:    token,
         HTTPOnly: false, // Must be false so JavaScript can read it
-        Secure:   os.Getenv("ENVIRONMENT") == "production",
+        Secure:   os.Getenv("APP_ENV") == "production",
         SameSite: "Lax",
         MaxAge:   int((1 * time.Hour).Seconds()),
         Path:     "/",
