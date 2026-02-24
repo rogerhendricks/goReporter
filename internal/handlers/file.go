@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/rogerhendricks/goReporter/internal/models"
 )
 
 const (
@@ -153,6 +155,40 @@ func ServeFile(c *fiber.Ctx) error {
 	}
 
 	filePath := c.Params("*")
+
+	// IDOR Check: Verify user has access to the patient's files
+	// We clean the path to resolve any .. traversal attempts before checking the ID
+	cleanPath := filepath.ToSlash(filepath.Clean(filePath))
+	cleanPath = strings.TrimPrefix(cleanPath, "/") // Remove leading slash if present
+	pathParts := strings.Split(cleanPath, "/")
+
+	// Check if this is a patient report file (structure: reports/{patientID}/...)
+	if len(pathParts) >= 2 && pathParts[0] == "reports" {
+		patientIDStr := pathParts[1]
+		// Verify it's a valid patient ID (numeric)
+		if patientID, err := strconv.ParseUint(patientIDStr, 10, 32); err == nil {
+			userRole, _ := c.Locals("userRole").(string)
+			userID, _ := c.Locals("userID").(string)
+
+			// Doctors are restricted to their associated patients
+			if userRole == "doctor" {
+				userIDUint, err := strconv.ParseUint(userID, 10, 32)
+				if err != nil {
+					return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid user ID"})
+				}
+				isAssociated, err := models.IsDoctorAssociatedWithPatient(uint(userIDUint), uint(patientID))
+				if err != nil {
+					log.Printf("Error checking doctor-patient association for file access: %v", err)
+					return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+				}
+				if !isAssociated {
+					return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied: You are not authorized to view this patient's files"})
+				}
+			}
+			// Admin, User, Staff Doctor are allowed access to all files
+		}
+	}
+
 	fullPath := filepath.Join(uploadRootDir, filePath)
 
 	// Security check: ensure the path is within the uploads directory

@@ -195,7 +195,7 @@ func AuthorizeDoctorPatientAccess(c *fiber.Ctx) error {
 		return c.Next()
 	}
 
-	if user.Role == "doctor" || user.Role == "staff_doctor" {
+	if user.Role == "doctor" {
 		isAssociated, err := models.IsDoctorAssociatedWithPatient(user.ID, uint(patientID))
 		if err != nil {
 			log.Printf("Error checking doctor-patient association: %v", err)

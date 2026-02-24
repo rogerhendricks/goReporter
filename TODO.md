@@ -7,7 +7,7 @@ This document tracks active work, planned features, and future ideas for goRepor
 ## 🚧 Active Work
 
 ### Doctor Dashboard Enhancements
-- [ ] Include upcoming appointments for doctor's patients
+- [ x] Include upcoming appointments for doctor's patients
 - [ ] Focus on improving daily workflow efficiency
 
 ### Arrhythmias Data Model

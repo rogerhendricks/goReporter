@@ -32,7 +32,7 @@ export default function StaffDoctorDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto space-y-6">
       <div className="flex flex-col space-y-4">
         <h1 className="text-3xl font-bold">Staff Doctor Dashboard</h1>
         <p className="text-muted-foreground">
