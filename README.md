@@ -81,6 +81,7 @@ goReporter/
 ## ✨ Key Features
 
 ### 🔐 Security & Authentication
+
 - **JWT-based Authentication**: Access tokens (HTTP-only cookies) and refresh tokens
 - **Role-Based Access Control (RBAC)**: Admin, User/Doctor roles with granular permissions
 - **CSRF Protection**: Token-based CSRF prevention
@@ -91,6 +92,7 @@ goReporter/
 - **Security Headers**: Helmet middleware for XSS, clickjacking protection
 
 ### 👥 User Management
+
 - Multi-role user system (Admin, Doctor/User)
 - User profile management with theme preferences
 - Doctor-patient assignment and access control
@@ -98,6 +100,7 @@ goReporter/
 - **Productivity Analytics**: Individual and team performance tracking
 
 ### 🏥 Patient Management
+
 - Comprehensive patient demographics
 - Multiple addresses support
 - Doctor-patient relationships
@@ -106,15 +109,15 @@ goReporter/
 - Report history
 - Advanced search with multiple filters
 - Pagination support
+- Improved patient search table with better layout and performance
 
-### 📱 Medical Device Catalog
-- Device library management
-- Lead catalog management
-- Manufacturer tracking
-- Model and serial number organization
-- Search functionality
+### 👨‍⚕️ Staff Doctor
+
+- Ability to assign staff doctors to patients
+- Staff doctors have access to patient records and can perform actions on their behalf
 
 ### 📊 Clinical Reporting
+
 - Report creation and management
 - PDF upload and storage
 - Report data extraction and parsing
@@ -128,6 +131,7 @@ goReporter/
   - Automatic device capability detection
 
 ### ✅ Task Management System
+
 - Task creation with priorities and due dates
 - Status tracking (pending, in progress, completed)
 - Task templates for common workflows
@@ -144,6 +148,7 @@ goReporter/
   - Charts showing tasks by priority and status
 
 ### 📋 Patient Consent Tracking
+
 - Multiple consent types (Treatment, Data Sharing, Remote Monitoring, etc.)
 - Consent status tracking (Active, Revoked, Expired)
 - Expiration date management
@@ -152,13 +157,14 @@ goReporter/
 - Terms reacceptance workflow
 
 ### 📈 Analytics Dashboard
+
 - Patient count metrics
 - Report statistics
 - Task overview
 - System activity monitoring
 
-
 ### 🔗 Integration & Automation
+
 - **Webhook System**: Event-driven notifications to external systems
   - 13+ event types (report, battery, task, consent, device events)
   - HMAC-SHA256 signature verification
@@ -172,7 +178,8 @@ goReporter/
     - LOINC-coded device data
 
 ### 🎨 User Experience
-- **Theme System**: 
+
+- **Theme System**:
   - Light, dark, and system themes
   - Custom medical-blue and high-contrast themes
   - Smooth color transitions between themes
@@ -180,13 +187,16 @@ goReporter/
 - **Keyboard Shortcuts**: Power user navigation (⌘K/Ctrl+K global search)
 - **Loading States**: Skeleton loaders for better perceived performance
 - **Responsive Design**: Mobile-optimized forms and tables
+
 ### 🔍 Advanced Search
+
 - Multi-field patient search
 - Device and lead search
 - Doctor search
 - Complex query support with multiple filters
 
 ### 🔎 Global Search
+
 - **Unified Search**: Search across all entity types (patients, devices, reports, doctors, tasks, leads) simultaneously
 - **Entity Type Filtering**: Optional filtering by specific entity type
 - **Smart Relevance Ranking**: Results scored and sorted by relevance (exact match > starts with > contains > fuzzy match)
@@ -204,6 +214,7 @@ goReporter/
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **Framework**: Go Fiber v2.52.9
 - **Database**: SQLite with GORM ORM
 - **Authentication**: JWT (golang-jwt/jwt v5)
@@ -211,6 +222,7 @@ goReporter/
 - **Configuration**: godotenv for environment variables
 
 ### Frontend
+
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Routing**: React Router
@@ -221,6 +233,7 @@ goReporter/
 - **Styling**: Tailwind CSS
 
 ### Security Features
+
 - HTTP-only cookies for tokens
 - CSRF token protection
 - Rate limiting on sensitive endpoints
@@ -231,6 +244,7 @@ goReporter/
 ## 🚀 Setup Instructions
 
 ### Prerequisites
+
 - Go 1.23.0 or higher
 - Node.js 18+ and npm (for frontend)
 - Git
@@ -238,81 +252,93 @@ goReporter/
 ### Backend Setup
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd goReporter
    ```
 
 2. **Install Go dependencies:**
+
    ```bash
    go mod download
    ```
 
 3. **Configure environment variables:**
    Create a `.env` file in the root directory:
+
    ```env
    PORT=5000
    URL=http://localhost:5000
    JWT_SECRET=your-secure-random-secret-key-min-32-chars
    FRONTEND_URL=http://localhost:3000
    ```
-   
+
    **Important**: Use a strong, randomly generated JWT_SECRET (minimum 32 characters)
 
 4. **Database Setup and Seeding:**
-   
+
    The application uses SQLite and will automatically create the database file.
-   
+
    **Full database reset with file removal and seeding:**
+
    ```bash
    DB_RESET=file DB_SEED=1 go run cmd/api/main.go
    ```
-   
+
    **Database reset without file removal (drop tables only) and seeding:**
+
    ```bash
    DB_RESET=drop DB_SEED=1 go run cmd/api/main.go
    ```
-   
+
    **Normal start (migrations only, no seeding unless database is empty):**
+
    ```bash
    go run cmd/api/main.go
    ```
-   
+
    Edit `internal/bootstrap/bootstrap.go` to customize seed data.
 
 5. **Run the backend:**
+
    ```bash
    go run cmd/api/main.go
    ```
-   
+
    The server will start on `http://localhost:5000` (or the PORT specified in .env)
 
 ### Frontend Setup
 
 1. **Navigate to frontend directory:**
+
    ```bash
    cd frontend
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment:**
    Create a `.env` file in the frontend directory:
+
    ```env
    VITE_API_URL=http://localhost:5000
    ```
 
 4. **Run development server:**
+
    ```bash
    npm run dev
    ```
-   
+
    The frontend will start on `http://localhost:3000`
 
 5. **Build for production:**
+
    ```bash
    npm run build
    ```
@@ -320,6 +346,7 @@ goReporter/
 ### Default Admin Account
 
 After seeding, you can log in with:
+
 - **Username**: `admin`
 - **Password**: Check `internal/bootstrap/bootstrap.go` for the default password
 - **Role**: Admin (full access)
@@ -329,6 +356,7 @@ After seeding, you can log in with:
 ## 📡 API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/login` - User login (rate limited)
 - `POST /api/auth/register` - Register new user (admin only)
 - `POST /api/auth/logout` - User logout
@@ -337,6 +365,7 @@ After seeding, you can log in with:
 - `GET /api/csrf-token` - Get CSRF token
 
 ### Users
+
 - `GET /api/users` - List all users (admin only)
 - `GET /api/users/:id` - Get user profile
 - `PUT /api/users/:id` - Update user
@@ -344,6 +373,7 @@ After seeding, you can log in with:
 - `POST /api/users` - Create user
 
 ### Patients
+
 - `GET /api/patients` - Get patients (role-filtered)
 - `GET /api/patients/all` - Get paginated patients
 - `GET /api/patients/list` - Get all patients list
@@ -358,6 +388,7 @@ After seeding, you can log in with:
 - `GET /api/patients/:patientId/consents` - Get patient consents
 
 ### Devices & Leads
+
 - `GET /api/devices/all` - Get all devices (basic)
 - `GET /api/devices/search` - Search devices
 - `GET /api/devices` - Get devices (admin)
@@ -373,6 +404,7 @@ After seeding, you can log in with:
 - `DELETE /api/leads/:id` - Delete lead (admin)
 
 ### Doctors
+
 - `GET /api/doctors/all` - Get all doctors
 - `GET /api/doctors` - Get doctors (basic)
 - `GET /api/doctors/search` - Search doctors
@@ -382,11 +414,13 @@ After seeding, you can log in with:
 - `DELETE /api/doctors/:id` - Delete doctor (admin)
 
 ### Reports
+
 - `POST /api/reports` - Create report with file upload
 - `GET /api/reports/recent` - Get recent reports
 - `GET /api/reports/:id` - Get report
 
 ### Webhooks
+
 - `GET /api/webhooks` - List all webhooks (admin/user)
 - `GET /api/webhooks/:id` - Get webhook details (admin/user)
 - `POST /api/webhooks` - Create webhook (admin/user)
@@ -396,6 +430,7 @@ After seeding, you can log in with:
 - `GET /api/webhooks/:id/deliveries` - View delivery logs (admin/user)
 
 ### Productivity Reports
+
 - `GET /api/productivity/my-report` - Get personal productivity report
   - Query params: `startDate`, `endDate` (defaults to last 7 days)
 - `GET /api/productivity/team-report` - Get team productivity report (admin)
@@ -406,6 +441,7 @@ After seeding, you can log in with:
 - `DELETE /api/reports/:id` - Delete report (admin/user)
 
 ### Tasks
+
 - `GET /api/tasks` - Get all tasks (admin/user)
 - `POST /api/tasks` - Create task (admin/user)
 - `GET /api/tasks/:id` - Get task
@@ -416,6 +452,7 @@ After seeding, you can log in with:
 - `DELETE /api/tasks/:id/notes/:noteId` - Delete task note
 
 ### Task Templates
+
 - `GET /api/task-templates` - Get templates (admin/user)
 - `POST /api/task-templates` - Create template (admin)
 - `PUT /api/task-templates/:id` - Update template (admin)
@@ -424,6 +461,7 @@ After seeding, you can log in with:
 - `GET /api/task-templates/:id/patients` - Get patients with template
 
 ### Consents
+
 - `GET /api/patients/:patientId/consents/active` - Get active consents
 - `POST /api/patients/:patientId/consents` - Create consent (admin/user)
 - `PUT /api/consents/:id` - Update consent (admin/user)
@@ -432,20 +470,24 @@ After seeding, you can log in with:
 - `GET /api/patients/:patientId/consents/check` - Check consent status
 
 ### Tags
+
 - `GET /api/tags` - Get all tags
 - `POST /api/tags` - Create tag (admin/user)
 - `PUT /api/tags/:id` - Update tag (admin/user)
 - `DELETE /api/tags/:id` - Delete tag (admin/user)
 
 ### Analytics & Admin
+
 - `GET /api/analytics/summary` - Get dashboard analytics
 - `GET /api/admin/security-logs` - Get security logs (admin)
 - `GET /api/admin/security-logs/export` - Export security logs (admin)
 
 ### Files
+
 - `GET /api/files/*` - Serve uploaded files
 
 ### Search
+
 - `GET /api/search/patients` - Advanced patient search
 - `GET /api/search/global` - Global search across all entities
   - Query params: `q` (query string), `type` (optional entity type filter), `limit`, `offset`
@@ -467,7 +509,8 @@ After seeding, you can log in with:
 9. **Account Lockout** - Automatic locking after failed attempts
 10. **Security Event Logging** - Comprehensive audit trail
 11. **Security Headers** - Helmet middleware (XSS, clickjacking protection)
-12.PRODUCTIVITY_REPORTS.md](PRODUCTIVITY_REPORTS.md) - Weekly productivity reporting system
+    12.PRODUCTIVITY_REPORTS.md](PRODUCTIVITY_REPORTS.md) - Weekly productivity reporting system
+
 - [WEBHOOK_IMPLEMENTATION.md](WEBHOOK_IMPLEMENTATION.md) - Webhook system with event triggers
 - [EPIC_INTEGRATION.md](EPIC_INTEGRATION.md) - Epic EMR FHIR R4 integration
 - [TEAMS_INTEGRATION.md](TEAMS_INTEGRATION.md) - Microsoft Teams Adaptive Cards
@@ -529,17 +572,20 @@ This system handles Protected Health Information (PHI) and includes features des
 ### Building for Production
 
 **Backend:**
+
 ```bash
 go build -o bin/server cmd/api/main.go
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 npm run build
 ```
 
 ### Running Tests
+
 ```bash
 go test ./...
 ```
@@ -564,7 +610,7 @@ go test ./...
 
 This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0-only).
 
-- **Full text**: See the [LICENSE](LICENSE) file or https://www.gnu.org/licenses/agpl-3.0.html
+- **Full text**: See the [LICENSE](LICENSE) file or <https://www.gnu.org/licenses/agpl-3.0.html>
 - **Network use**: If you modify and run this software to provide a service over a network, you must make the complete corresponding source code of your modified version available to users of that service under the AGPL.
 - **Key points**:
   - Free to use, modify, and distribute
@@ -579,3 +625,4 @@ For issues, questions, or contributions, please open an issue on GitHub.
 ---
 
 **⚠️ Important Security Notice**: This application is designed for internal healthcare facility use. Ensure proper security measures are in place before deploying to production, including HTTPS, firewall configuration, regular backups, and compliance with local healthcare regulations.
+
