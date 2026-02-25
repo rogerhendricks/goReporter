@@ -1,8 +1,7 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import useIdleTimer from '../hooks/useIdleTimer';
+import useIdleTimer from '@/hooks/useIdleTimer';
 
-const IdleMonitor = () => {
+export function IdleMonitor() {
   const navigate = useNavigate();
 
   const handleIdleLogout = async () => {
@@ -27,5 +26,3 @@ const IdleMonitor = () => {
 
   return null;
 };
-
-export default IdleMonitor;

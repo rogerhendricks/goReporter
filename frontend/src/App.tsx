@@ -17,7 +17,7 @@ import "./App.css";
 import { fetchCSRFToken } from "./utils/axios";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
-import { IdleMonitor} from "@/hooks/useIdleMonitor";
+import { IdleMonitor} from "@/utils/IdleMonitor";
 
 
 // Loading fallback component

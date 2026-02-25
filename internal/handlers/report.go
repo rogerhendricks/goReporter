@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/security"
 	"github.com/rogerhendricks/goReporter/internal/services"
 	"gorm.io/gorm"
 )
@@ -579,6 +580,12 @@ func CreateReport(c *fiber.Ctx) error {
 		}
 	}
 
+	security.LogEventFromContext(c, security.EventDataModification,
+		fmt.Sprintf("User created report: %d", createdReport.ID),
+		"INFO",
+		map[string]interface{}{"reportId": createdReport.ID, "patientId": createdReport.PatientID},
+	)
+
 	return c.Status(http.StatusCreated).JSON(toReportResponse(*createdReport))
 }
 
@@ -807,6 +814,12 @@ func UpdateReport(c *fiber.Ctx) error {
 		}
 	}
 
+	security.LogEventFromContext(c, security.EventDataModification,
+		fmt.Sprintf("User updated report: %d", finalReport.ID),
+		"INFO",
+		map[string]interface{}{"reportId": finalReport.ID, "patientId": finalReport.PatientID},
+	)
+
 	return c.Status(http.StatusOK).JSON(toReportResponse(*finalReport))
 }
 
@@ -853,6 +866,12 @@ func GetReportsByPatient(c *fiber.Ctx) error {
 	for _, report := range reports {
 		reportResponses = append(reportResponses, toReportResponse(report))
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		fmt.Sprintf("User accessed reports for patient: %d", patientID),
+		"INFO",
+		map[string]interface{}{"patientId": patientID, "count": len(reports)},
+	)
 
 	return c.JSON(reportResponses)
 }
@@ -929,6 +948,12 @@ func GetRecentReports(c *fiber.Ctx) error {
 		items = append(items, item)
 	}
 
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed recent reports list",
+		"INFO",
+		map[string]interface{}{"count": len(reports)},
+	)
+
 	return c.JSON(items)
 }
 
@@ -947,6 +972,12 @@ func GetReport(c *fiber.Ctx) error {
 		log.Printf("Error fetching report %d: %v", reportID, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch report"})
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		fmt.Sprintf("User accessed report: %d", reportID),
+		"INFO",
+		map[string]interface{}{"reportId": reportID, "patientId": report.PatientID},
+	)
 
 	return c.JSON(toReportResponse(*report))
 }
@@ -978,6 +1009,12 @@ func DeleteReport(c *fiber.Ctx) error {
 		log.Printf("Error deleting report %d: %v", reportID, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete report"})
 	}
+
+	security.LogEventFromContext(c, security.EventDataDeletion,
+		fmt.Sprintf("User deleted report: %d", reportID),
+		"WARNING",
+		map[string]interface{}{"reportId": reportID, "patientId": report.PatientID},
+	)
 
 	return c.SendStatus(http.StatusNoContent)
 }

@@ -5,16 +5,22 @@ import { useEffect, useRef, useCallback } from 'react';
  * @param {Function} action - The function to call when the timer expires.
  * @param {number} timeoutMs - The idle duration in milliseconds (default: 15 mins).
  */
-const useIdleTimer = (action, timeoutMs = 900000) => {
-  const timerRef = useRef(null);
-  const actionRef = useRef(action);
+type IdleAction = () => void;
+
+interface UseIdleTimer {
+  (action: IdleAction, timeoutMs?: number): void;
+}
+
+const useIdleTimer: UseIdleTimer = (action, timeoutMs = 900000) => {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actionRef = useRef<IdleAction>(action);
 
   // Keep the action ref current to avoid re-binding the effect if the function identity changes
   useEffect(() => {
     actionRef.current = action;
   }, [action]);
 
-  const resetTimer = useCallback(() => {
+  const resetTimer = useCallback((): void => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
@@ -26,10 +32,10 @@ const useIdleTimer = (action, timeoutMs = 900000) => {
   }, [timeoutMs]);
 
   useEffect(() => {
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+    const events: Array<keyof WindowEventMap> = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
     
     let lastRun = 0;
-    const handleUserActivity = () => {
+    const handleUserActivity = (_event: Event): void => {
       const now = Date.now();
       if (now - lastRun > 1000) { // Throttle resets to once per second
         resetTimer();

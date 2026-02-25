@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/models"
+	"github.com/rogerhendricks/goReporter/internal/security"
 	"github.com/rogerhendricks/goReporter/internal/utils"
 	"gorm.io/gorm"
 )
@@ -242,6 +244,12 @@ func GetPatients(c *fiber.Ctx) error {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
 
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed patient list",
+		"INFO",
+		map[string]interface{}{"count": len(patients), "search": searchQuery},
+	)
+
 	return c.JSON(patientResponses)
 }
 
@@ -271,6 +279,12 @@ func GetAllPatients(c *fiber.Ctx) error {
 	for _, p := range patients {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed full patient list",
+		"INFO",
+		map[string]interface{}{"count": len(patients)},
+	)
 
 	return c.JSON(patientResponses)
 }
@@ -310,6 +324,12 @@ func GetMostRecentPatientList(c *fiber.Ctx) error {
 	for _, p := range patients {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed recent patient list",
+		"INFO",
+		map[string]interface{}{"count": len(patients)},
+	)
 
 	return c.JSON(patientResponses)
 }
@@ -353,6 +373,12 @@ func GetPatientsPaginated(c *fiber.Ctx) error {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
 
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed paginated patient list",
+		"INFO",
+		map[string]interface{}{"page": page, "limit": limit, "total": total, "search": search},
+	)
+
 	return c.JSON(fiber.Map{
 		"data": patientResponses,
 		"pagination": fiber.Map{
@@ -381,6 +407,12 @@ func GetPatient(c *fiber.Ctx) error {
 		log.Printf("Error fetching patient %d: %v", id, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		fmt.Sprintf("User accessed patient record: %d", id),
+		"INFO",
+		map[string]interface{}{"patientId": id, "mrn": patient.MRN},
+	)
 
 	return c.JSON(toPatientResponse(*patient))
 }
@@ -586,6 +618,12 @@ func CreatePatient(c *fiber.Ctx) error {
 		log.Printf("Error fetching created patient: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Patient created but failed to fetch complete data"})
 	}
+
+	security.LogEventFromContext(c, security.EventDataModification,
+		fmt.Sprintf("User created patient record: %d", newPatient.ID),
+		"INFO",
+		map[string]interface{}{"patientId": newPatient.ID, "mrn": newPatient.MRN},
+	)
 
 	return c.Status(http.StatusCreated).JSON(toPatientResponse(*createdPatient))
 }
@@ -840,6 +878,12 @@ func UpdatePatient(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch updated patient data"})
 	}
 
+	security.LogEventFromContext(c, security.EventDataModification,
+		fmt.Sprintf("User updated patient record: %d", existingPatient.ID),
+		"INFO",
+		map[string]interface{}{"patientId": existingPatient.ID, "mrn": existingPatient.MRN},
+	)
+
 	return c.Status(http.StatusOK).JSON(toPatientResponse(*updatedPatient))
 }
 
@@ -877,6 +921,12 @@ func DeletePatient(c *fiber.Ctx) error {
 		log.Printf("Error deleting patient %d: %v", id, err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete patient"})
 	}
+
+	security.LogEventFromContext(c, security.EventDataDeletion,
+		fmt.Sprintf("User deleted patient record: %d", id),
+		"WARNING",
+		map[string]interface{}{"patientId": id},
+	)
 
 	return c.SendStatus(http.StatusNoContent)
 }
@@ -941,6 +991,12 @@ func SearchPatients(c *fiber.Ctx) error {
 	for _, p := range patients {
 		patientResponses = append(patientResponses, toPatientResponse(p))
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User searched patients",
+		"INFO",
+		map[string]interface{}{"query": searchQuery, "count": len(patients)},
+	)
 
 	return c.JSON(patientResponses)
 }
@@ -1157,6 +1213,12 @@ func GetOverduePatients(c *fiber.Ctx) error {
 	if totalPages < 1 {
 		totalPages = 1
 	}
+
+	security.LogEventFromContext(c, security.EventDataAccess,
+		"User accessed overdue patients list",
+		"INFO",
+		map[string]interface{}{"count": len(results), "total": total},
+	)
 
 	return c.JSON(fiber.Map{
 		"patients":   results,
