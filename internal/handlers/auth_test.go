@@ -27,7 +27,7 @@ func setupCSRFIssuanceApp(t *testing.T, env string) *fiber.App {
 	t.Helper()
 	testutil.SetupTestEnv(t)
 	if env != "" {
-		t.Setenv("ENVIRONMENT", env)
+		t.Setenv("APP_ENV", env)
 	}
 	app := fiber.New()
 	app.Get("/api/csrf-token", GetCSRFToken)
@@ -501,6 +501,6 @@ func TestGetCSRFTokensMarksSecureInProduction(t *testing.T) {
 	}
 
 	if !cookie.Secure {
-		t.Fatalf("expected Secure flag when ENVIRONMENT=production")
+		t.Fatalf("expected Secure flag when APP_ENV=production")
 	}
 }

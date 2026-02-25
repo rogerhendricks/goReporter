@@ -66,26 +66,6 @@ func GlobalSearch(c *fiber.Ctx) error {
 		}
 	}
 
-	// Search Devices
-	if params.EntityType == "" || params.EntityType == "device" {
-		devices, err := searchDevices(query, userID, userRole, params.Limit)
-		if err != nil {
-			log.Printf("Error searching devices: %v", err)
-		} else {
-			results = append(results, devices...)
-		}
-	}
-
-	// Search Reports
-	if params.EntityType == "" || params.EntityType == "report" {
-		reports, err := searchReports(query, userID, userRole, params.Limit)
-		if err != nil {
-			log.Printf("Error searching reports: %v", err)
-		} else {
-			results = append(results, reports...)
-		}
-	}
-
 	// Search Doctors
 	if params.EntityType == "" || params.EntityType == "doctor" {
 		doctors, err := searchDoctors(query, params.Limit)
@@ -103,16 +83,6 @@ func GlobalSearch(c *fiber.Ctx) error {
 			log.Printf("Error searching tasks: %v", err)
 		} else {
 			results = append(results, tasks...)
-		}
-	}
-
-	// Search Leads
-	if params.EntityType == "" || params.EntityType == "lead" {
-		leads, err := searchLeads(query, userID, userRole, params.Limit)
-		if err != nil {
-			log.Printf("Error searching leads: %v", err)
-		} else {
-			results = append(results, leads...)
 		}
 	}
 
@@ -143,23 +113,18 @@ func searchPatients(query string, userID, userRole string, limit int) ([]GlobalS
 	var err error
 
 	db := config.DB.Limit(limit).
-		Preload("Tags").
-		Preload("ImplantedDevices.Device").
-		Preload("ImplantedLeads.Lead")
+		Preload("PatientDoctors.Doctor")
 
-	if userRole == "admin" {
-		err = db.Where(
-			"LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ? OR LOWER(first_name || ' ' || last_name) LIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%",
-		).Find(&patients).Error
-	} else {
-		err = db.Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
-			Where("patient_doctors.doctor_id = ?", userID).
-			Where(
-				"LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR CAST(mrn AS TEXT) LIKE ? OR LOWER(first_name || ' ' || last_name) LIKE ?",
-				"%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%",
-			).Find(&patients).Error
+	if userRole != "admin" {
+		db = db.Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
+			Joins("JOIN doctors ON doctors.id = patient_doctors.doctor_id").
+			Where("doctors.user_id = ?", userID)
 	}
+
+	err = db.Where(
+		"(LOWER(patients.first_name) LIKE ? OR LOWER(patients.last_name) LIKE ? OR CAST(patients.mrn AS TEXT) LIKE ? OR LOWER(patients.first_name || ' ' || patients.last_name) LIKE ?)",
+		"%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%",
+	).Find(&patients).Error
 
 	if err != nil {
 		return nil, err
@@ -170,6 +135,25 @@ func searchPatients(query string, userID, userRole string, limit int) ([]GlobalS
 	var results []GlobalSearchResult
 	for _, p := range patients {
 		score := calculateScore(query, p.FirstName+" "+p.LastName)
+
+		var simpleDoctors []map[string]interface{}
+		for _, pd := range p.PatientDoctors {
+			simpleDoctors = append(simpleDoctors, map[string]interface{}{
+				"doctorId":  pd.DoctorID,
+				"fullName":  pd.Doctor.FullName,
+				"isPrimary": pd.IsPrimary,
+			})
+		}
+
+		data := map[string]interface{}{
+			"id":             p.ID,
+			"mrn":            p.MRN,
+			"fname":          p.FirstName,
+			"lname":          p.LastName,
+			"dob":            p.DOB,
+			"patientDoctors": simpleDoctors,
+		}
+
 		results = append(results, GlobalSearchResult{
 			Type:        "patient",
 			ID:          p.ID,
@@ -177,101 +161,7 @@ func searchPatients(query string, userID, userRole string, limit int) ([]GlobalS
 			Subtitle:    "MRN: " + fmt.Sprintf("%d", p.MRN),
 			Description: p.Email,
 			URL:         "/patients/" + fmt.Sprintf("%d", p.ID),
-			Data:        p,
-			Score:       score,
-		})
-	}
-
-	return results, nil
-}
-
-func searchDevices(query string, userID, userRole string, limit int) ([]GlobalSearchResult, error) {
-	var devices []models.ImplantedDevice
-	db := config.DB.Limit(limit).
-		Preload("Device").
-		Preload("Patient")
-
-	if userRole != "admin" {
-		db = db.Joins("JOIN patients ON patients.id = implanted_devices.patient_id").
-			Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
-			Where("patient_doctors.doctor_id = ?", userID)
-	}
-
-	err := db.Where(
-		"LOWER(serial) LIKE ? OR LOWER(status) LIKE ?",
-		"%"+query+"%", "%"+query+"%",
-	).Find(&devices).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var results []GlobalSearchResult
-	for _, d := range devices {
-		deviceName := "Unknown Device"
-		manufacturer := ""
-		if d.Device.ID != 0 {
-			deviceName = d.Device.Name
-			manufacturer = d.Device.Manufacturer
-		}
-
-		patientName := "Unknown Patient"
-		if d.Patient.ID != 0 {
-			patientName = d.Patient.FirstName + " " + d.Patient.LastName
-		}
-
-		score := calculateScore(query, deviceName+" "+d.Serial)
-		results = append(results, GlobalSearchResult{
-			Type:        "device",
-			ID:          d.ID,
-			Title:       deviceName,
-			Subtitle:    "Serial: " + d.Serial,
-			Description: manufacturer + " • " + patientName,
-			URL:         "/devices/" + fmt.Sprintf("%d", d.ID),
-			Data:        d,
-			Score:       score,
-		})
-	}
-
-	return results, nil
-}
-
-func searchReports(query string, userID, userRole string, limit int) ([]GlobalSearchResult, error) {
-	var reports []models.Report
-	db := config.DB.Limit(limit).
-		Preload("Patient")
-
-	if userRole != "admin" {
-		db = db.Joins("JOIN patients ON patients.id = reports.patient_id").
-			Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
-			Where("patient_doctors.doctor_id = ?", userID)
-	}
-
-	err := db.Where(
-		"LOWER(report_type) LIKE ? OR LOWER(report_status) LIKE ? OR LOWER(comments) LIKE ?",
-		"%"+query+"%", "%"+query+"%", "%"+query+"%",
-	).Find(&reports).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var results []GlobalSearchResult
-	for _, r := range reports {
-		patientName := "Unknown Patient"
-		if r.Patient.ID != 0 {
-			patientName = r.Patient.FirstName + " " + r.Patient.LastName
-		}
-
-		score := calculateScore(query, r.ReportType+" "+r.ReportStatus)
-		results = append(results, GlobalSearchResult{
-			Type:        "report",
-			ID:          r.ID,
-			Title:       r.ReportType + " Report",
-			Subtitle:    "Status: " + r.ReportStatus,
-			Description: patientName + " • " + r.ReportDate.Format("Jan 02, 2006"),
-			URL:         "/reports/" + fmt.Sprintf("%d", r.ID),
-			Data:        r,
+			Data:        data,
 			Score:       score,
 		})
 	}
@@ -293,6 +183,13 @@ func searchDoctors(query string, limit int) ([]GlobalSearchResult, error) {
 	var results []GlobalSearchResult
 	for _, d := range doctors {
 		score := calculateScore(query, d.FullName)
+		data := map[string]interface{}{
+			"id":        d.ID,
+			"fullName":  d.FullName,
+			"specialty": d.Specialty,
+			"email":     d.Email,
+		}
+
 		results = append(results, GlobalSearchResult{
 			Type:        "doctor",
 			ID:          d.ID,
@@ -300,7 +197,7 @@ func searchDoctors(query string, limit int) ([]GlobalSearchResult, error) {
 			Subtitle:    d.Specialty,
 			Description: d.Email,
 			URL:         "/doctors/" + fmt.Sprintf("%d", d.ID),
-			Data:        d,
+			Data:        data,
 			Score:       score,
 		})
 	}
@@ -319,7 +216,7 @@ func searchTasks(query string, userID, userRole string, limit int) ([]GlobalSear
 	}
 
 	err := db.Where(
-		"LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(status) LIKE ?",
+		"(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(status) LIKE ?)",
 		"%"+query+"%", "%"+query+"%", "%"+query+"%",
 	).Find(&tasks).Error
 
@@ -335,6 +232,15 @@ func searchTasks(query string, userID, userRole string, limit int) ([]GlobalSear
 		}
 
 		score := calculateScore(query, t.Title)
+		data := map[string]interface{}{
+			"id":        t.ID,
+			"title":     t.Title,
+			"status":    t.Status,
+			"priority":  t.Priority,
+			"dueDate":   t.DueDate,
+			"patientId": t.PatientID,
+		}
+
 		results = append(results, GlobalSearchResult{
 			Type:        "task",
 			ID:          t.ID,
@@ -342,58 +248,7 @@ func searchTasks(query string, userID, userRole string, limit int) ([]GlobalSear
 			Subtitle:    "Status: " + string(t.Status),
 			Description: "Assigned to: " + assignedTo,
 			URL:         "/tasks/" + fmt.Sprintf("%d", t.ID),
-			Data:        t,
-			Score:       score,
-		})
-	}
-
-	return results, nil
-}
-
-func searchLeads(query string, userID, userRole string, limit int) ([]GlobalSearchResult, error) {
-	var leads []models.ImplantedLead
-	db := config.DB.Limit(limit).
-		Preload("Lead").
-		Preload("Patient")
-
-	if userRole != "admin" {
-		db = db.Joins("JOIN patients ON patients.id = implanted_leads.patient_id").
-			Joins("JOIN patient_doctors ON patient_doctors.patient_id = patients.id").
-			Where("patient_doctors.doctor_id = ?", userID)
-	}
-
-	err := db.Where(
-		"LOWER(serial) LIKE ? OR LOWER(status) LIKE ?",
-		"%"+query+"%", "%"+query+"%",
-	).Find(&leads).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	var results []GlobalSearchResult
-	for _, l := range leads {
-		leadName := "Unknown Lead"
-		manufacturer := ""
-		if l.Lead.ID != 0 {
-			leadName = l.Lead.Name
-			manufacturer = l.Lead.Manufacturer
-		}
-
-		patientName := "Unknown Patient"
-		if l.Patient.ID != 0 {
-			patientName = l.Patient.FirstName + " " + l.Patient.LastName
-		}
-
-		score := calculateScore(query, leadName+" "+l.Serial)
-		results = append(results, GlobalSearchResult{
-			Type:        "lead",
-			ID:          l.ID,
-			Title:       leadName,
-			Subtitle:    "Serial: " + l.Serial,
-			Description: manufacturer + " • " + patientName,
-			URL:         "/leads/" + fmt.Sprintf("%d", l.ID),
-			Data:        l,
+			Data:        data,
 			Score:       score,
 		})
 	}

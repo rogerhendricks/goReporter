@@ -40,6 +40,21 @@ func GetPatientTimeline(c *fiber.Ctx) error {
 		})
 	}
 
+	if role, ok := c.Locals("userRole").(string); ok && role == "doctor" {
+		userIDVal := c.Locals("user_id")
+		userID, ok := userIDVal.(uint)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user session"})
+		}
+		allowed, accessErr := models.IsDoctorAssociatedWithPatient(userID, uint(patientID))
+		if accessErr != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to verify access"})
+		}
+		if !allowed {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+		}
+	}
+
 	// Pagination parameters
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	if page < 1 {
@@ -186,6 +201,21 @@ func GetPatientTimelineStats(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid patient ID",
 		})
+	}
+
+	if role, ok := c.Locals("userRole").(string); ok && role == "doctor" {
+		userIDVal := c.Locals("user_id")
+		userID, ok := userIDVal.(uint)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user session"})
+		}
+		allowed, accessErr := models.IsDoctorAssociatedWithPatient(userID, uint(patientID))
+		if accessErr != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to verify access"})
+		}
+		if !allowed {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+		}
 	}
 
 	var stats TimelineStats

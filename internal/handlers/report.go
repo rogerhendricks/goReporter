@@ -817,6 +817,21 @@ func GetReportsByPatient(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid patient ID format"})
 	}
 
+	userRole, _ := c.Locals("userRole").(string)
+	userIDVal := c.Locals("user_id")
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid user session"})
+	}
+
+	allowed, accessErr := canAccessPatient(userRole, userID, uint(patientID))
+	if accessErr != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to verify permissions"})
+	}
+	if !allowed {
+		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
+	}
+
 	limit := 0
 	if limitParam := c.Query("limit", ""); limitParam != "" {
 		if parsed, parseErr := strconv.Atoi(limitParam); parseErr == nil && parsed > 0 {
@@ -856,14 +871,28 @@ func GetRecentReports(c *fiber.Ctx) error {
 		offset = 0
 	}
 
+	userRole, _ := c.Locals("userRole").(string)
+	userIDStr, _ := c.Locals("userID").(string)
+
 	// Optional filter by doctor ID
 	var doctorID *uint
-	doctorIDStr := c.Query("doctorId", "")
-	if doctorIDStr != "" {
-		parsed, err := strconv.ParseUint(doctorIDStr, 10, 32)
-		if err == nil {
-			val := uint(parsed)
-			doctorID = &val
+	if userRole == "doctor" {
+		user, userErr := models.GetUserWithDoctor(userIDStr)
+		if userErr != nil {
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to resolve doctor"})
+		}
+		if user.DoctorID == nil {
+			return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Doctor profile not found"})
+		}
+		doctorID = user.DoctorID
+	} else {
+		doctorIDStr := c.Query("doctorId", "")
+		if doctorIDStr != "" {
+			parsed, err := strconv.ParseUint(doctorIDStr, 10, 32)
+			if err == nil {
+				val := uint(parsed)
+				doctorID = &val
+			}
 		}
 	}
 

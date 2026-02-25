@@ -4,10 +4,71 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rogerhendricks/goReporter/internal/models"
 )
+
+type PatientSearchResponse struct {
+	ID             uint                    `json:"id"`
+	MRN            int                     `json:"mrn"`
+	Fname          string                  `json:"fname"`
+	Lname          string                  `json:"lname"`
+	Dob            string                  `json:"dob"`
+	Phone          string                  `json:"phone"`
+	Email          string                  `json:"email"`
+	Street         string                  `json:"street"`
+	City           string                  `json:"city"`
+	State          string                  `json:"state"`
+	Country        string                  `json:"country"`
+	Postal         string                  `json:"postal"`
+	PatientDoctors []PatientDoctorResponse `json:"patientDoctors"`
+	ReportCount    int                     `json:"reportCount"`
+	CreatedAt      time.Time               `json:"createdAt"`
+	UpdatedAt      time.Time               `json:"updatedAt"`
+	Tags           []models.Tag            `json:"tags"`
+}
+
+func toPatientSearchResponse(patient models.Patient) PatientSearchResponse {
+	resp := PatientSearchResponse{
+		ID:          patient.ID,
+		MRN:         patient.MRN,
+		Fname:       patient.FirstName,
+		Lname:       patient.LastName,
+		Dob:         patient.DOB,
+		Phone:       patient.Phone,
+		Email:       patient.Email,
+		Street:      patient.Street,
+		City:        patient.City,
+		State:       patient.State,
+		Country:     patient.Country,
+		Postal:      patient.Postal,
+		ReportCount: len(patient.Reports),
+		CreatedAt:   patient.CreatedAt,
+		UpdatedAt:   patient.UpdatedAt,
+	}
+
+	for _, pd := range patient.PatientDoctors {
+		resp.PatientDoctors = append(resp.PatientDoctors, PatientDoctorResponse{
+			ID:        pd.ID,
+			DoctorID:  pd.DoctorID,
+			AddressID: pd.AddressID,
+			IsPrimary: pd.IsPrimary,
+			Doctor:    toDoctorResponse(pd.Doctor),
+			Address:   pd.Address,
+		})
+	}
+
+	if len(patient.Tags) > 0 {
+		resp.Tags = patient.Tags
+	} else {
+		resp.Tags = []models.Tag{}
+	}
+
+	return resp
+}
 
 // // SearchPatientsComplex handles advanced patient searches with multiple filters.
 // func SearchPatientsComplex(c *fiber.Ctx) error {
@@ -123,7 +184,254 @@ func SearchPatientsComplex(c *fiber.Ctx) error {
 			log.Printf("Error fetching patients for doctor %s: %v", userID, err)
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch patients"})
 		}
-		patients = allPatients
+
+		// Filter patients based on search parameters
+		if params.FirstName == "" && params.LastName == "" && params.MRN == "" && len(params.Tags) == 0 &&
+			params.DOB == "" && params.DoctorName == "" &&
+			params.DeviceSerial == "" && params.DeviceManufacturer == "" && params.DeviceName == "" && params.DeviceModel == "" &&
+			params.LeadManufacturer == "" && params.LeadName == "" {
+			patients = allPatients
+		} else {
+			var filtered []models.Patient
+			isOr := strings.ToUpper(params.BooleanOperator) == "OR"
+
+			for _, p := range allPatients {
+				matchCount := 0
+				criteriaCount := 0
+
+				if params.FirstName != "" {
+					criteriaCount++
+					if params.FuzzyMatch {
+						if strings.Contains(strings.ToLower(p.FirstName), strings.ToLower(params.FirstName)) {
+							matchCount++
+						}
+					} else {
+						if strings.EqualFold(p.FirstName, params.FirstName) {
+							matchCount++
+						}
+					}
+				}
+
+				if params.LastName != "" {
+					criteriaCount++
+					if params.FuzzyMatch {
+						if strings.Contains(strings.ToLower(p.LastName), strings.ToLower(params.LastName)) {
+							matchCount++
+						}
+					} else {
+						if strings.EqualFold(p.LastName, params.LastName) {
+							matchCount++
+						}
+					}
+				}
+
+				if params.MRN != "" {
+					criteriaCount++
+					mrnStr := strconv.Itoa(p.MRN)
+					if params.FuzzyMatch {
+						if strings.Contains(mrnStr, params.MRN) {
+							matchCount++
+						}
+					} else {
+						if mrnStr == params.MRN {
+							matchCount++
+						}
+					}
+				}
+
+				if params.DOB != "" {
+					criteriaCount++
+					if params.FuzzyMatch {
+						if strings.Contains(p.DOB, params.DOB) {
+							matchCount++
+						}
+					} else {
+						if p.DOB == params.DOB {
+							matchCount++
+						}
+					}
+				}
+
+				if params.DoctorName != "" {
+					criteriaCount++
+					found := false
+					for _, pd := range p.PatientDoctors {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(pd.Doctor.FullName), strings.ToLower(params.DoctorName)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(pd.Doctor.FullName, params.DoctorName) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.DeviceSerial != "" {
+					criteriaCount++
+					found := false
+					for _, d := range p.ImplantedDevices {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(d.Serial), strings.ToLower(params.DeviceSerial)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(d.Serial, params.DeviceSerial) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.DeviceManufacturer != "" {
+					criteriaCount++
+					found := false
+					for _, d := range p.ImplantedDevices {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(d.Device.Manufacturer), strings.ToLower(params.DeviceManufacturer)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(d.Device.Manufacturer, params.DeviceManufacturer) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.DeviceName != "" {
+					criteriaCount++
+					found := false
+					for _, d := range p.ImplantedDevices {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(d.Device.Name), strings.ToLower(params.DeviceName)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(d.Device.Name, params.DeviceName) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.DeviceModel != "" {
+					criteriaCount++
+					found := false
+					for _, d := range p.ImplantedDevices {
+						// Assuming DevModel maps to dev_model column
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(d.Device.DevModel), strings.ToLower(params.DeviceModel)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(d.Device.DevModel, params.DeviceModel) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.LeadManufacturer != "" {
+					criteriaCount++
+					found := false
+					for _, l := range p.ImplantedLeads {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(l.Lead.Manufacturer), strings.ToLower(params.LeadManufacturer)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(l.Lead.Manufacturer, params.LeadManufacturer) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if params.LeadName != "" {
+					criteriaCount++
+					found := false
+					for _, l := range p.ImplantedLeads {
+						if params.FuzzyMatch {
+							if strings.Contains(strings.ToLower(l.Lead.Name), strings.ToLower(params.LeadName)) {
+								found = true
+								break
+							}
+						} else {
+							if strings.EqualFold(l.Lead.Name, params.LeadName) {
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						matchCount++
+					}
+				}
+
+				if len(params.Tags) > 0 {
+					criteriaCount++
+					tagMatch := false
+					for _, t := range p.Tags {
+						for _, searchTagID := range params.Tags {
+							if int(t.ID) == searchTagID {
+								tagMatch = true
+								break
+							}
+						}
+						if tagMatch {
+							break
+						}
+					}
+					if tagMatch {
+						matchCount++
+					}
+				}
+
+				include := false
+				if isOr {
+					include = matchCount > 0
+				} else {
+					include = matchCount == criteriaCount
+				}
+
+				if include {
+					filtered = append(filtered, p)
+				}
+			}
+			patients = filtered
+		}
 	default:
 		return c.Status(http.StatusForbidden).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
@@ -154,12 +462,12 @@ func SearchPatientsComplex(c *fiber.Ctx) error {
 	}()
 
 	if patients == nil {
-		return c.JSON([]PatientResponse{})
+		return c.JSON([]PatientSearchResponse{})
 	}
 
-	var patientResponses []PatientResponse
+	var patientResponses []PatientSearchResponse
 	for _, p := range patients {
-		patientResponses = append(patientResponses, toPatientResponse(p))
+		patientResponses = append(patientResponses, toPatientSearchResponse(p))
 	}
 
 	return c.JSON(patientResponses)
