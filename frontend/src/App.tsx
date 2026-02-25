@@ -17,6 +17,8 @@ import "./App.css";
 import { fetchCSRFToken } from "./utils/axios";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
+import { IdleMonitor} from "@/hooks/useIdleMonitor";
+
 
 // Loading fallback component
 function RouteLoader() {
@@ -143,6 +145,7 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <IdleMonitor />
       <AppContent />
     </ThemeProvider>
   );
