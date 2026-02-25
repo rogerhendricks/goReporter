@@ -1,19 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import useIdleTimer from '@/hooks/useIdleTimer';
+import { useAuthStore } from '@/stores/authStore';
 
 export function IdleMonitor() {
   const navigate = useNavigate();
+  const { logout, isAuthenticated } = useAuthStore();
 
   const handleIdleLogout = async () => {
+    if (!isAuthenticated) return;
+
     try {
-      // Call the backend logout endpoint to revoke tokens/cookies
-      // Note: If CSRF protection is enabled, ensure the CSRF token header is included here.
-      await fetch('/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      await logout();
     } catch (error) {
       console.error('Error during auto-logout:', error);
     } finally {
@@ -21,8 +18,11 @@ export function IdleMonitor() {
     }
   };
 
-  // 15 minutes = 15 * 60 * 1000 = 900000 ms
-  useIdleTimer(handleIdleLogout, 900000);
+  // Get timeout from env or default to 15 minutes (900000 ms)
+  const envTimeout = Number(import.meta.env.VITE_IDLE_TIMEOUT);
+  const timeoutMs = isNaN(envTimeout) || envTimeout <= 0 ? 900000 : envTimeout;
+
+  useIdleTimer(handleIdleLogout, timeoutMs);
 
   return null;
-};
+}
