@@ -20,7 +20,7 @@ export function IdleMonitor() {
 
   // Get timeout from env or default to 15 minutes (900000 ms) 8 minutes = 480000 ms
   const envTimeout = Number(import.meta.env.VITE_IDLE_TIMEOUT);
-  const timeoutMs = isNaN(envTimeout) || envTimeout <= 0 ? 900000 : envTimeout;
+  const timeoutMs = isNaN(envTimeout) || envTimeout <= 0 ? 480000 : envTimeout;
 
   useIdleTimer(handleIdleLogout, timeoutMs);
 

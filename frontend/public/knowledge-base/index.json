@@ -36,6 +36,17 @@
           "path": "/knowledge-base/devices/loop-recorder.md"
         }
       ]
+    },
+    {
+      "id": "policies",
+      "title": "Policies",
+      "articles":[
+        {
+          "id": "privacy-policy",
+          "title": "Privacy Policy",
+          "path": "/knowledge-base/policies/privacy_policy.md"
+        }
+      ]
     }
   ]
 }
