@@ -9,6 +9,7 @@ import (
 
 type Lead struct {
 	gorm.Model
+	UDID         uint64          `json:"udid" gorm:"type:bigint"`
 	Name         string          `json:"name" gorm:"type:varchar(255);not null"`
 	Manufacturer string          `json:"manufacturer" gorm:"type:varchar(255)"`
 	LeadModel    string          `json:"leadModel" gorm:"type:varchar(50)"`
@@ -35,7 +36,10 @@ func GetAllLeadsBySearch(query string) ([]Lead, error) {
 
 	if query != "" {
 		searchQuery := "%" + strings.ToLower(query) + "%"
-		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?", searchQuery, searchQuery, searchQuery)
+		tx = tx.Where(
+			"LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ? OR CAST(udid AS TEXT) LIKE ?",
+			searchQuery, searchQuery, searchQuery, strings.TrimSpace("%"+query+"%"),
+		)
 	}
 
 	err := tx.Find(&leads).Error
@@ -87,8 +91,10 @@ func GetLeadsPaginated(search string, page, limit int) ([]Lead, int64, error) {
 	// Apply search filter if provided
 	if search != "" {
 		searchQuery := "%" + strings.ToLower(search) + "%"
-		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ?",
-			searchQuery, searchQuery, searchQuery)
+		tx = tx.Where(
+			"LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(lead_model) LIKE ? OR CAST(udid AS TEXT) LIKE ?",
+			searchQuery, searchQuery, searchQuery, strings.TrimSpace("%"+search+"%"),
+		)
 	}
 
 	// Get total count

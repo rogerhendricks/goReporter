@@ -1008,6 +1008,9 @@ export default function PatientForm() {
                           {implanted.device.manufacturer
                             ? `(${implanted.device.manufacturer})`
                             : ""}
+                          {implanted.device.udid
+                            ? ` • UDID: ${implanted.device.udid}`
+                            : ""}
                         </>
                       ) : (
                         <span className="text-yellow-600">
@@ -1117,6 +1120,9 @@ export default function PatientForm() {
                                 <div className="text-sm text-muted-foreground">
                                   {device.manufacturer} {device.model}
                                 </div>
+                                <div className="text-xs text-muted-foreground">
+                                  UDID: {device.udid}
+                                </div>
                               </div>
                             </CommandItem>
                           ))}
@@ -1160,6 +1166,7 @@ export default function PatientForm() {
                       ) : implanted.lead ? (
                         <>
                           {implanted.lead.name} ({implanted.lead.manufacturer})
+                          {implanted.lead.udid ? ` • UDID: ${implanted.lead.udid}` : ""}
                         </>
                       ) : (
                         <span className="text-yellow-600">
@@ -1286,6 +1293,9 @@ export default function PatientForm() {
                                 <div className="font-medium">{lead.name}</div>
                                 <div className="text-sm text-muted-foreground">
                                   {lead.manufacturer} {lead.leadModel}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  UDID: {lead.udid}
                                 </div>
                               </div>
                             </CommandItem>

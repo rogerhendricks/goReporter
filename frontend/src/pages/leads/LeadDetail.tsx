@@ -80,6 +80,9 @@ export default function LeadDetail() {
             <strong>Model:</strong> {currentLead.leadModel}
           </div>
           <div>
+            <strong>UDID:</strong> {currentLead.udid}
+          </div>
+          <div>
             <strong>Manufacturer:</strong> {currentLead.manufacturer}
           </div>
           <div>

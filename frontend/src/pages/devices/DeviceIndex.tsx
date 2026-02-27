@@ -175,7 +175,7 @@ export default function DeviceIndex() {
               <form onSubmit={handleSearch} className="flex flex-1">
                 <ButtonGroup className="w-full">
                   <Input
-                    placeholder="Search by name or model..."
+                    placeholder="Search by name, model, or UDID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-1"
@@ -199,7 +199,7 @@ export default function DeviceIndex() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <TableSkeleton rows={10} columns={5} />
+            <TableSkeleton rows={10} columns={7} />
           ) : devices.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No devices found.
@@ -210,6 +210,7 @@ export default function DeviceIndex() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-left">Name</TableHead>
+                    <TableHead className="text-left">UDID</TableHead>
                     <TableHead className="text-left">Model</TableHead>
                     <TableHead className="text-left">Manufacturer</TableHead>
                     <TableHead className="text-left">Type</TableHead>
@@ -228,6 +229,7 @@ export default function DeviceIndex() {
                           {device.name}
                         </Link>
                       </TableCell>
+                      <TableCell className="text-left">{device.udid}</TableCell>
                       <TableCell className="text-left">
                         {device.model}
                       </TableCell>

@@ -16,6 +16,7 @@ import (
 // --- DTO for API Responses ---
 type DeviceResponse struct {
 	ID           uint   `json:"id"`
+	UDID         uint64 `json:"udid"`
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
 	Model        string `json:"model"`
@@ -115,6 +116,7 @@ func SearchDevices(c *fiber.Ctx) error {
 	// Create a simplified response with consistent field names
 	type DeviceBasic struct {
 		ID           uint   `json:"id"`
+		UDID         uint64 `json:"udid"`
 		Name         string `json:"name"`
 		Manufacturer string `json:"manufacturer"`
 		Type         string `json:"type"`
@@ -127,6 +129,7 @@ func SearchDevices(c *fiber.Ctx) error {
 	for _, device := range devices {
 		basicDevices = append(basicDevices, DeviceBasic{
 			ID:           device.ID,
+			UDID:         device.UDID,
 			Name:         device.Name,
 			Manufacturer: device.Manufacturer,
 			Type:         device.Type,
@@ -231,6 +234,9 @@ func UpdateDevice(c *fiber.Ctx) error {
 	if updateData.Type != "" {
 		existingDevice.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
 	}
+	if updateData.UDID != 0 {
+		existingDevice.UDID = updateData.UDID
+	}
 
 	// Update boolean field
 	existingDevice.IsMri = updateData.IsMri
@@ -286,6 +292,10 @@ func DeleteDevice(c *fiber.Ctx) error {
 func validateDevice(device *models.Device) error {
 	if strings.TrimSpace(device.Name) == "" {
 		return errors.New("device name is required")
+	}
+
+	if device.UDID == 0 {
+		return errors.New("device UDID is required")
 	}
 
 	if len(strings.TrimSpace(device.Name)) > 255 {

@@ -177,7 +177,7 @@ export default function LeadIndex() {
               <form onSubmit={handleSearch} className="flex flex-1">
                 <ButtonGroup className="w-full">
                     <Input
-                      placeholder="Search by name or model..."
+                      placeholder="Search by name, model, or UDID..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="flex-1"
@@ -198,7 +198,7 @@ export default function LeadIndex() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <TableSkeleton rows={10} columns={5} />
+            <TableSkeleton rows={10} columns={6} />
           ) : leads.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No leads found.
@@ -209,6 +209,7 @@ export default function LeadIndex() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-left">Name</TableHead>
+                    <TableHead className="text-left">UDID</TableHead>
                     <TableHead className="text-left">Model</TableHead>
                     <TableHead className="text-left">Manufacturer</TableHead>
                     <TableHead className="text-left">Connector</TableHead>
@@ -227,6 +228,7 @@ export default function LeadIndex() {
                           {lead.name}
                         </Link>
                       </TableCell>
+                      <TableCell className="text-left">{lead.udid}</TableCell>
                       <TableCell className="text-left">
                         {lead.leadModel}
                       </TableCell>

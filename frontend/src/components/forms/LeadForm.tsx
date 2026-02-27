@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 
 interface LeadFormData {
+  udid: string;
   name: string;
   manufacturer: string;
   leadModel: string;
@@ -45,6 +46,7 @@ export default function LeadForm() {
   } = useLeadStore();
 
   const [formData, setFormData] = useState<LeadFormData>({
+    udid: "",
     name: "",
     manufacturer: "",
     leadModel: "",
@@ -63,6 +65,7 @@ export default function LeadForm() {
   useEffect(() => {
     if (isEdit && currentLead) {
       setFormData({
+        udid: currentLead.udid?.toString() || "",
         name: currentLead.name,
         manufacturer: currentLead.manufacturer,
         leadModel: currentLead.leadModel,
@@ -99,11 +102,17 @@ export default function LeadForm() {
     e.preventDefault();
     clearError();
     try {
+      const udidNumber = Number(formData.udid);
+      if (!udidNumber || udidNumber <= 0) {
+        toast.error("UDID must be a positive number");
+        return;
+      }
+
       if (isEdit && id) {
-        await updateLead(parseInt(id), formData);
+        await updateLead(parseInt(id), { ...formData, udid: udidNumber });
         toast.success("Lead updated successfully");
       } else {
-        await createLead(formData);
+        await createLead({ ...formData, udid: udidNumber });
         toast.success("Lead created successfully");
       }
       navigate("/leads");
@@ -132,7 +141,19 @@ export default function LeadForm() {
             </Alert>
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="udid">UDID</Label>
+                <Input
+                  id="udid"
+                  name="udid"
+                  type="number"
+                  min={1}
+                  value={formData.udid}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
               <div>
                 <Label htmlFor="name">Lead Name</Label>
                 <Input

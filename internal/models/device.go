@@ -9,6 +9,7 @@ import (
 
 type Device struct {
 	gorm.Model
+	UDID         uint64            `json:"udid" gorm:"type:bigint"`
 	Name         string            `json:"name" gorm:"type:varchar(255);not null"`
 	Manufacturer string            `json:"manufacturer" gorm:"type:text"`
 	DevModel     string            `json:"model" gorm:"type:varchar(100)"`
@@ -35,7 +36,10 @@ func GetAllDevicesBySearch(query string) ([]Device, error) {
 
 	if query != "" {
 		searchQuery := "%" + strings.ToLower(query) + "%"
-		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?", searchQuery, searchQuery, searchQuery)
+		tx = tx.Where(
+			"LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ? OR CAST(udid AS TEXT) LIKE ?",
+			searchQuery, searchQuery, searchQuery, strings.TrimSpace("%"+query+"%"),
+		)
 	}
 
 	err := tx.Find(&devices).Error
@@ -87,8 +91,10 @@ func GetDevicesPaginated(search string, page, limit int) ([]Device, int64, error
 	// Apply search filter if provided
 	if search != "" {
 		searchQuery := "%" + strings.ToLower(search) + "%"
-		tx = tx.Where("LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ?",
-			searchQuery, searchQuery, searchQuery)
+		tx = tx.Where(
+			"LOWER(name) LIKE ? OR LOWER(manufacturer) LIKE ? OR LOWER(dev_model) LIKE ? OR CAST(udid AS TEXT) LIKE ?",
+			searchQuery, searchQuery, searchQuery, strings.TrimSpace("%"+search+"%"),
+		)
 	}
 
 	// Get total count

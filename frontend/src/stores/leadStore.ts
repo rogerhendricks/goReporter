@@ -3,6 +3,7 @@ import api from "../utils/axios";
 
 export interface Lead {
   ID: number;
+  udid: number;
   name: string;
   manufacturer: string;
   leadModel: string;
@@ -90,7 +91,7 @@ export const useLeadStore = create<LeadState>((set) => ({
       const response = await api.post("/leads", data);
       const newLead = response.data;
       set((state) => ({
-        Leads: [newLead, ...state.leads],
+        leads: [newLead, ...state.leads],
         loading: false,
       }));
       return newLead;

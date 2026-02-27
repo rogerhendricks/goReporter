@@ -19,6 +19,7 @@ import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 import { toast } from "sonner";
 
 interface DeviceFormData {
+  udid: string;
   name: string;
   manufacturer: string;
   model: string;
@@ -45,6 +46,7 @@ export default function DeviceForm() {
   } = useDeviceStore();
 
   const [formData, setFormData] = useState<DeviceFormData>({
+    udid: "",
     name: "",
     manufacturer: "",
     model: "",
@@ -63,6 +65,7 @@ export default function DeviceForm() {
   useEffect(() => {
     if (isEdit && currentDevice) {
       setFormData({
+        udid: currentDevice.udid?.toString() || "",
         name: currentDevice.name,
         manufacturer: currentDevice.manufacturer,
         model: currentDevice.model,
@@ -99,9 +102,16 @@ export default function DeviceForm() {
     e.preventDefault();
     clearError();
     try {
+      const udidNumber = Number(formData.udid);
+      if (!udidNumber || udidNumber <= 0) {
+        toast.error("UDID must be a positive number");
+        return;
+      }
+
       // Ensure polarity is set to empty string if undefined for required field
       const submitData = {
         ...formData,
+        udid: udidNumber,
         polarity: formData.polarity || "",
       };
 
@@ -138,7 +148,19 @@ export default function DeviceForm() {
             </Alert>
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="udid">UDID</Label>
+                <Input
+                  id="udid"
+                  name="udid"
+                  type="number"
+                  min={1}
+                  value={formData.udid}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
               <div>
                 <Label htmlFor="name">Device Name</Label>
                 <Input

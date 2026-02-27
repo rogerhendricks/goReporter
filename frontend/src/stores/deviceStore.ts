@@ -3,6 +3,7 @@ import api from "../utils/axios";
 
 export interface Device {
   ID: number;
+  udid: number;
   name: string;
   manufacturer: string;
   model: string;

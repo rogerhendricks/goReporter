@@ -94,6 +94,9 @@ export default function DeviceDetail() {
             <strong>Model:</strong> {currentDevice.model}
           </div>
           <div>
+            <strong>UDID:</strong> {currentDevice.udid}
+          </div>
+          <div>
             <strong>Manufacturer:</strong> {currentDevice.manufacturer}
           </div>
           <div>

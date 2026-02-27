@@ -34,6 +34,7 @@ export interface PatientDoctor {
 
 export interface Device {
   ID: number;
+  udid: number;
   name: string;
   manufacturer: string;
   model: string;
@@ -44,6 +45,7 @@ export interface Device {
 
 export interface Lead {
   ID: number;
+  udid: number;
   name: string;
   manufacturer: string;
   leadModel: string;
