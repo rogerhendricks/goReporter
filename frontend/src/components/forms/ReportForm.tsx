@@ -514,6 +514,24 @@ export function ReportForm({ patient }: ReportFormProps) {
   console.log("Rendering ReportForm with patient:", patient);
 
   const handleDataImported = (data: ParsedData, file: File) => {
+    // Check if the imported serial number matches the patient's active device
+    const activeSerials = (patient?.devices ?? [])
+      .filter(
+        (d: any) =>
+          String(d?.status || "").toLowerCase() === "active" && !d?.explantedAt,
+      )
+      .map((d: any) => d.serial);
+
+    if (
+      data.mdc_idc_dev_serial_number &&
+      activeSerials.length > 0 &&
+      !activeSerials.includes(data.mdc_idc_dev_serial_number)
+    ) {
+      toast.error("Serial number mismatch", {
+        description: `The imported file belongs to ${data.name || "an unknown patient"}.`,
+      });
+      return; // Stop processing
+    }
     // If the imported file is a PDF, add it to the upload queue
     if (file.name.toLowerCase().endsWith(".pdf")) {
       const dataTransfer = new DataTransfer();
