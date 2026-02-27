@@ -21,11 +21,6 @@ This document tracks active work, planned features, and future ideas for goRepor
 
 ## 📋 Planned Features
 
-### Reporting & Reminders
-- [ ] Unsigned reports pending >24/48 hours
-- [ ] Reports awaiting co-signature with escalation
-- [ ] Pre-appointment task checklist reminders
-- [ ] Patient confirmation status tracking
 
 ### Task Management
 - [ ] Escalation rules for overdue tasks
@@ -35,12 +30,10 @@ This document tracks active work, planned features, and future ideas for goRepor
 - [ ] Response compression for API endpoints
 - [ ] GraphQL endpoint alongside REST
 - [ ] API versioning (/api/v1/, /api/v2/)
-- [ ] Swagger/OpenAPI documentation
 - [ ] Comprehensive testing infrastructure (unit, integration, E2E)
 - [ ] Automated daily backups with encryption
 
 ### Security Enhancements
-- [ ] Two-factor authentication (TOTP)
 - [x] Automatic session timeout
 - [ ] IP whitelisting for admin access
 - [ ] API key management for integrations
@@ -72,6 +65,14 @@ This document tracks active work, planned features, and future ideas for goRepor
 - Inventory Management: Device stock tracking
 - Multi-tenancy: Support for multiple healthcare facilities
 - Language Localization: i18n for multiple languages
+
+### Patient Safety
+- **Manufacturer Recall & Advisory Tracker**: Build a module that allows staff to input specific serial numbers, lot numbers, or device models that have been flagged by manufacturers (like Medtronic or Boston Scientific) for recalls or advisories. The system would then cross-reference this list against the implantedDevice and lead databases, immediately alerting staff to affected patients and automatically generating a task list for follow-ups.
+- **Safety Alerts**:Threshold Alert Workflows: Create a system where clinical staff can set custom acceptable ranges for specific device metrics (e.g., battery voltage, impedance). When a new report is uploaded or parsed, the system highlights any values falling outside these predefined safety thresholds.
+
+### Financial Operations
+- **Medical Billing & Coding Export (ICD-10/CPT)**: Integrate standard medical billing codes into the report builder. When a doctor finalizes a report for a specific type of device check, the system could automatically generate the corresponding billing codes and compile them into a batch export format suitable for the clinic's billing department.
+
 
 ### Mobile & Offline
 - Progressive Web App (PWA) capabilities
