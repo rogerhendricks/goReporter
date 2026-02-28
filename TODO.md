@@ -70,10 +70,6 @@ This document tracks active work, planned features, and future ideas for goRepor
 - **Manufacturer Recall & Advisory Tracker**: Build a module that allows staff to input specific serial numbers, lot numbers, or device models that have been flagged by manufacturers (like Medtronic or Boston Scientific) for recalls or advisories. The system would then cross-reference this list against the implantedDevice and lead databases, immediately alerting staff to affected patients and automatically generating a task list for follow-ups.
 - **Safety Alerts**:Threshold Alert Workflows: Create a system where clinical staff can set custom acceptable ranges for specific device metrics (e.g., battery voltage, impedance). When a new report is uploaded or parsed, the system highlights any values falling outside these predefined safety thresholds.
 
-### Financial Operations
-- **Medical Billing & Coding Export (ICD-10/CPT)**: Integrate standard medical billing codes into the report builder. When a doctor finalizes a report for a specific type of device check, the system could automatically generate the corresponding billing codes and compile them into a batch export format suitable for the clinic's billing department.
-
-
 ### Mobile & Offline
 - Progressive Web App (PWA) capabilities
 - Offline mode for critical data entry
@@ -136,6 +132,7 @@ Items moved here were previously considered but deprioritized:
 - Loading skeletons
 - Keyboard shortcuts
 - Weekly productivity reports
+- Medical Billing & Coding Export
 
 ### Quick Wins Delivered
 - Toast notifications across the app
