@@ -18,6 +18,7 @@ Complete guide to goReporter features organized by user role.
 ### Reports
 - **[Report Tags](reports/REPORT_TAGS.md)** - Organize reports with custom tags
 - **[Productivity Reports](reports/PRODUCTIVITY_REPORTS.md)** - Track task completion and performance
+- **[Billing Code Integration](reports/BILLING_CODE_INTEGRATION.md)** - Automated billing code mapping and CSV export
 
 ## For Administrators
 

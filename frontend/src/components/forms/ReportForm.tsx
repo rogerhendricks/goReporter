@@ -71,6 +71,7 @@ import { AutocompleteTextarea } from "@/components/ui/autocomplete-textarea";
 import { REPORT_COMMENT_SUGGESTIONS } from "@/data/commentSuggestions";
 import { tagService } from "@/services/tagService";
 import type { Tag } from "@/services/tagService";
+import { billingService, type BillingCode } from "@/services/billingService";
 import { useFormShortcuts } from "@/hooks/useFormShortcuts";
 import { fieldValidators } from "@/validation/reportSchema";
 import { cn } from "@/lib/utils";
@@ -229,6 +230,22 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { fillReportForm, getFormFields, isGenerating } = usePdfFormFiller();
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [billingCategories, setBillingCategories] = useState<BillingCode[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const codes = await billingService.getBillingCodes();
+        if (mounted) setBillingCategories(codes);
+      } catch (e) {
+        console.error("Failed to fetch billing categories", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Auto-save draft state
   const [draftStatus, setDraftStatus] = useState<
@@ -451,9 +468,9 @@ export function ReportForm({ patient }: ReportFormProps) {
       mdc_idc_set_brady_mode: previousReport.mdc_idc_set_brady_mode,
       mdc_idc_set_brady_lowrate: previousReport.mdc_idc_set_brady_lowrate,
       mdc_idc_set_brady_max_tracking_rate:
-      previousReport.mdc_idc_set_brady_max_tracking_rate,
+        previousReport.mdc_idc_set_brady_max_tracking_rate,
       mdc_idc_set_brady_max_sensor_rate:
-      previousReport.mdc_idc_set_brady_max_sensor_rate,
+        previousReport.mdc_idc_set_brady_max_sensor_rate,
       mdc_idc_dev_sav: previousReport.mdc_idc_dev_sav,
       mdc_idc_dev_pav: previousReport.mdc_idc_dev_pav,
 
@@ -492,7 +509,10 @@ export function ReportForm({ patient }: ReportFormProps) {
       VF_therapy_4_energy: previousReport.VF_therapy_4_energy,
       VF_therapy_4_max_num_shocks: previousReport.VF_therapy_4_max_num_shocks,
     };
-    console.log("🔍 Pre-population - Fields to pre-populate:", fieldsToPrePopulate);
+    console.log(
+      "🔍 Pre-population - Fields to pre-populate:",
+      fieldsToPrePopulate,
+    );
     setFormData((prev) => ({
       ...prev,
       ...fieldsToPrePopulate,
@@ -1251,8 +1271,14 @@ export function ReportForm({ patient }: ReportFormProps) {
       return;
     }
 
-    if (formData.isCompleted && requireSignature && !formData.completedBySignature) {
-      toast.error("Signature is required for staff doctors when completing a report.");
+    if (
+      formData.isCompleted &&
+      requireSignature &&
+      !formData.completedBySignature
+    ) {
+      toast.error(
+        "Signature is required for staff doctors when completing a report.",
+      );
       return;
     }
 
@@ -1716,9 +1742,14 @@ export function ReportForm({ patient }: ReportFormProps) {
                     <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="In Clinic">In Clinic</SelectItem>
-                    <SelectItem value="Remote">Remote</SelectItem>
-                    <SelectItem value="Triage">Triage</SelectItem>
+                    {billingCategories.map((bc) => (
+                      <SelectItem key={bc.category} value={bc.category}>
+                        <span className="capitalize">{bc.category}</span>
+                      </SelectItem>
+                    ))}
+                    {billingCategories.length === 0 && (
+                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1858,11 +1889,10 @@ export function ReportForm({ patient }: ReportFormProps) {
                     onClick={() => toggleTag(tag.ID)}
                     className={`
                     cursor-pointer px-3 py-1 rounded-full text-sm font-medium transition-colors
-                    ${
-                      isSelected
+                    ${isSelected
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }
+                      }
                   `}
                     style={
                       isSelected && tag.color
@@ -1937,7 +1967,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                     }
                     error={
                       validationErrors.heartRate &&
-                      formData.mdc_idc_set_brady_lowrate !== undefined
+                        formData.mdc_idc_set_brady_lowrate !== undefined
                         ? validationErrors.heartRate
                         : undefined
                     }
@@ -1961,7 +1991,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                     }
                     error={
                       validationErrors.heartRate &&
-                      formData.mdc_idc_set_brady_max_tracking_rate !== undefined
+                        formData.mdc_idc_set_brady_max_tracking_rate !== undefined
                         ? validationErrors.heartRate
                         : undefined
                     }
@@ -1985,7 +2015,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                     }
                     error={
                       validationErrors.heartRate &&
-                      formData.mdc_idc_set_brady_max_sensor_rate !== undefined
+                        formData.mdc_idc_set_brady_max_sensor_rate !== undefined
                         ? validationErrors.heartRate
                         : undefined
                     }
@@ -2006,7 +2036,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[100px]">Zone</TableHead>
+                        <TableHead className="w-25">Zone</TableHead>
                         <TableHead>Detection</TableHead>
                         <TableHead>1. ATP</TableHead>
                         <TableHead>2. ATP</TableHead>
@@ -2214,7 +2244,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                     }
                     error={
                       validationErrors.sensing &&
-                      formData.mdc_idc_msmt_rv_sensing !== undefined
+                        formData.mdc_idc_msmt_rv_sensing !== undefined
                         ? validationErrors.sensing
                         : undefined
                     }
@@ -2233,9 +2263,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-left">Episode Type</TableHead>
-                      <TableHead className="w-[180px] text-left">
-                        Count
-                      </TableHead>
+                      <TableHead className="w-45] text-left">Count</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2531,7 +2559,7 @@ export function ReportForm({ patient }: ReportFormProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Chamber</TableHead>
+                    <TableHead className="w-20">Chamber</TableHead>
                     <TableHead>Impedance (Ω)</TableHead>
                     <TableHead>Sensing (mV)</TableHead>
                     <TableHead>Threshold (V)</TableHead>
@@ -2558,7 +2586,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.impedance &&
-                            formData.mdc_idc_msmt_ra_impedance_mean !==
+                              formData.mdc_idc_msmt_ra_impedance_mean !==
                               undefined
                               ? validationErrors.impedance
                               : undefined
@@ -2581,7 +2609,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.sensing &&
-                            formData.mdc_idc_msmt_ra_sensing !== undefined
+                              formData.mdc_idc_msmt_ra_sensing !== undefined
                               ? validationErrors.sensing
                               : undefined
                           }
@@ -2605,7 +2633,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.threshold &&
-                            formData.mdc_idc_msmt_ra_pacing_threshold !==
+                              formData.mdc_idc_msmt_ra_pacing_threshold !==
                               undefined
                               ? validationErrors.threshold
                               : undefined
@@ -2628,7 +2656,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.pulseWidth &&
-                            formData.mdc_idc_msmt_ra_pw !== undefined
+                              formData.mdc_idc_msmt_ra_pw !== undefined
                               ? validationErrors.pulseWidth
                               : undefined
                           }
@@ -2654,7 +2682,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                         }
                         error={
                           validationErrors.impedance &&
-                          formData.mdc_idc_msmt_rv_impedance_mean !== undefined
+                            formData.mdc_idc_msmt_rv_impedance_mean !== undefined
                             ? validationErrors.impedance
                             : undefined
                         }
@@ -2676,7 +2704,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                         }
                         error={
                           validationErrors.sensing &&
-                          formData.mdc_idc_msmt_rv_sensing !== undefined
+                            formData.mdc_idc_msmt_rv_sensing !== undefined
                             ? validationErrors.sensing
                             : undefined
                         }
@@ -2698,7 +2726,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                         }
                         error={
                           validationErrors.threshold &&
-                          formData.mdc_idc_msmt_rv_pacing_threshold !==
+                            formData.mdc_idc_msmt_rv_pacing_threshold !==
                             undefined
                             ? validationErrors.threshold
                             : undefined
@@ -2721,7 +2749,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                         }
                         error={
                           validationErrors.pulseWidth &&
-                          formData.mdc_idc_msmt_rv_pw !== undefined
+                            formData.mdc_idc_msmt_rv_pw !== undefined
                             ? validationErrors.pulseWidth
                             : undefined
                         }
@@ -2747,7 +2775,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.impedance &&
-                            formData.mdc_idc_msmt_lv_impedance_mean !==
+                              formData.mdc_idc_msmt_lv_impedance_mean !==
                               undefined
                               ? validationErrors.impedance
                               : undefined
@@ -2770,7 +2798,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.sensing &&
-                            formData.mdc_idc_msmt_lv_sensing !== undefined
+                              formData.mdc_idc_msmt_lv_sensing !== undefined
                               ? validationErrors.sensing
                               : undefined
                           }
@@ -2794,7 +2822,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.threshold &&
-                            formData.mdc_idc_msmt_lv_pacing_threshold !==
+                              formData.mdc_idc_msmt_lv_pacing_threshold !==
                               undefined
                               ? validationErrors.threshold
                               : undefined
@@ -2817,7 +2845,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           }
                           error={
                             validationErrors.pulseWidth &&
-                            formData.mdc_idc_msmt_lv_pw !== undefined
+                              formData.mdc_idc_msmt_lv_pw !== undefined
                               ? validationErrors.pulseWidth
                               : undefined
                           }
@@ -3003,7 +3031,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                 }
                 suggestions={REPORT_COMMENT_SUGGESTIONS}
                 placeholder="Add any relevant comments here... (Start typing to see suggestions)"
-                className="min-h-[120px]"
+                className="min-h-30"
               />
               <p className="text-xs text-muted-foreground">
                 Start typing to see suggestions. Use ↑↓ arrows to navigate,
@@ -3021,7 +3049,10 @@ export function ReportForm({ patient }: ReportFormProps) {
                     isCompleted: !!checked,
                     ...(checked
                       ? {}
-                      : { completedByName: "", completedBySignature: undefined }),
+                      : {
+                        completedByName: "",
+                        completedBySignature: undefined,
+                      }),
                   }))
                 }
               />
@@ -3085,9 +3116,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           ? "Signature required for staff doctors."
                           : "Signature optional for admins."}
                       </span>
-                      {formData.completedBySignature && (
-                        <span>Captured</span>
-                      )}
+                      {formData.completedBySignature && <span>Captured</span>}
                     </div>
                     {formData.completedBySignature && (
                       <div className="mt-2">
@@ -3179,7 +3208,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                       : "Select Doctor"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-2" align="end">
+              <PopoverContent className="w-75 p-2" align="end">
                 <div className="space-y-1">
                   <p className="text-sm font-medium px-2 py-1.5">
                     Select Doctor for PDF
@@ -3201,7 +3230,7 @@ export function ReportForm({ patient }: ReportFormProps) {
                           (selectedDoctorForPdf?.id === patientDoctor.id ||
                             (!selectedDoctorForPdf &&
                               patientDoctor.id === availableDoctors[0]?.id)) &&
-                            "bg-accent",
+                          "bg-accent",
                         )}
                       >
                         <Check

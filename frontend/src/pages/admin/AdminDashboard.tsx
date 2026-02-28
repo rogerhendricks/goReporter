@@ -49,6 +49,7 @@ import { OverduePatientsCard } from "@/components/dashboard/OverduePatientsCard"
 import { IncompleteReportsCard } from "@/components/dashboard/IncompleteReportsCard";
 import { AccessRequestsCard } from "@/components/admin/AccessRequestsCard";
 import { MissedAppointments } from "@/components/admin/MissedAppointments";
+import { BillingCodeManagement } from "@/components/admin/BillingCodeManagement";
 
 type Slice = { label: string; count: number };
 type ReportSummary = {
@@ -372,7 +373,7 @@ export default function AdminDashboard() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Popover >
+                      <Popover>
                         <PopoverTrigger asChild>
                           <Button size="sm" variant="outline">
                             {reportYear}-{String(reportMonth).padStart(2, "0")}
@@ -389,7 +390,7 @@ export default function AdminDashboard() {
                                 setPendingReportYear(Number(value))
                               }
                             >
-                              <SelectTrigger className="h-8 w-[120px]">
+                              <SelectTrigger className="h-8 w-30">
                                 <SelectValue placeholder="Year" />
                               </SelectTrigger>
                               <SelectContent>
@@ -412,7 +413,7 @@ export default function AdminDashboard() {
                                 setPendingReportMonth(Number(value))
                               }
                             >
-                              <SelectTrigger className="h-8 w-[120px]">
+                              <SelectTrigger className="h-8 w-30">
                                 <SelectValue placeholder="Month" />
                               </SelectTrigger>
                               <SelectContent>
@@ -508,6 +509,7 @@ export default function AdminDashboard() {
           <AccessRequestsCard />
           <TagManagement />
           <TaskTemplateManager />
+          <BillingCodeManagement />
         </TabsContent>
         <TabsContent value="management" className="space-y-6">
           <TeamManagement />

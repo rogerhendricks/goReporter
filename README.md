@@ -129,6 +129,7 @@ goReporter/
   - Conditional field display based on device type (ICD, CRT, dual/single chamber)
   - Smart pre-population from previous reports (one-click auto-fill)
   - Automatic device capability detection
+  - **Billing Code Integration**: Automated billing code mapping and CSV export for clinic billing departments
 
 ### ✅ Task Management System
 
@@ -478,9 +479,15 @@ After seeding, you can log in with:
 
 ### Analytics & Admin
 
-- `GET /api/analytics/summary` - Get dashboard analytics
 - `GET /api/admin/security-logs` - Get security logs (admin)
 - `GET /api/admin/security-logs/export` - Export security logs (admin)
+
+### Billing Codes
+
+- `GET /api/billing-codes` - Get all billing categories (admin)
+- `PUT /api/billing-codes/:category` - Update or create a billing code mapping (admin)
+- `GET /api/billing-codes/export` - Export billing data CSV (admin)
+  - Query params: `startDate`, `endDate` (defaults to last 7 days)
 
 ### Files
 

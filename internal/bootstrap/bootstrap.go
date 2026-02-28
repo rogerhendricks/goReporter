@@ -82,6 +82,7 @@ func migrate(db *gorm.DB) error {
 		&models.AppointmentSlot{},
 		&models.Appointment{},
 		&models.PatientNote{},
+		&models.BillingCode{},
 	)
 }
 
@@ -262,7 +263,6 @@ func seed(db *gorm.DB) error {
 		newDevice(1000099, "Aveir VR", "Abbott", "LSP112V ", true, false, "pacemaker"),
 		newDevice(1000100, "Aveir AR", "Abbott", "LSP201A ", true, false, "pacemaker"),
 		newDevice(1000101, "Aveir AR2", "Abbott", "LSP203A ", true, false, "pacemaker"),
-
 	}
 	if err := db.Create(&devices).Error; err != nil {
 		return err
@@ -750,6 +750,27 @@ func seed(db *gorm.DB) error {
 	for _, note := range patientNotes {
 		if err := db.Create(&note).Error; err != nil {
 			return err
+		}
+	}
+
+	// Seed Billing codes
+	billingCategories := []string{
+		"in clinic pacemaker",
+		"remote pacemaker",
+		"call back pacemaker",
+		"in clinic defibrillator",
+		"remote defibrillator",
+		"call back defibrillator",
+		"in clinic loop recorder",
+		"remote loop recorder",
+		"call back loop recorder",
+	}
+
+	for _, cat := range billingCategories {
+		// Just seed the categories with an empty code initially
+		_, err := models.UpdateBillingCode(cat, "")
+		if err != nil {
+			log.Printf("Error seeding billing code for %s: %v", cat, err)
 		}
 	}
 
