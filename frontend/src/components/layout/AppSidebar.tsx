@@ -135,7 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     href: "/appointments",
                     label: "Appointments",
                     icon: Calendar,
-                    roles: ["admin", "doctor", "staff_doctor" ,"user", "viewer"],
+                    roles: ["admin", "doctor", "staff_doctor", "user", "viewer"],
                 },
                 {
                     href: "/tasks",

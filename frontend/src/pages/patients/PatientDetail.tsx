@@ -234,7 +234,7 @@ export default function PatientDetail() {
     <div className="container mx-auto">
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap gap-2">
-          {!isDoctor  && !isStaffDoctor && (
+          {!isDoctor && !isStaffDoctor && (
             <>
               <Dialog
                 open={openTemplateDialog}
@@ -374,16 +374,16 @@ export default function PatientDetail() {
 
           {!isDoctor && !isStaffDoctor && (
             <>
-          <Button
+              <Button
                 onClick={() => navigate(`/patients/${currentPatient.id}/edit`)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
             </>
           )}
         </div>
@@ -589,7 +589,7 @@ export default function PatientDetail() {
               </CardHeader>
               <CardContent>
                 {currentPatient.patientDoctors &&
-                currentPatient.patientDoctors.length > 0 ? (
+                  currentPatient.patientDoctors.length > 0 ? (
                   <div className="relative">
                     <div className="max-h-[240px] overflow-y-auto pr-2 space-y-3 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-muted/10">
                       {currentPatient.patientDoctors.map((patientDoctor) => (
@@ -643,6 +643,7 @@ export default function PatientDetail() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="text-left">Type</TableHead>
                         <TableHead className="text-left">Device</TableHead>
                         <TableHead className="text-left">Serial</TableHead>
                         <TableHead className="text-left">
@@ -662,6 +663,9 @@ export default function PatientDetail() {
                               hasDeviceAlert ? "bg-destructive/10" : undefined
                             }
                           >
+                            <TableCell className="text-left">
+                              {implanted.device.type}
+                            </TableCell>
                             <TableCell className="text-left">
                               <div className="flex flex-col gap-1">
                                 <div className="text-sm text-muted-foreground">
