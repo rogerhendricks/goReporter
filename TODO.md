@@ -7,7 +7,6 @@ This document tracks active work, planned features, and future ideas for goRepor
 ## 🚧 Active Work
 
 ### Doctor Dashboard Enhancements
-- [x] Include upcoming appointments for doctor's patients
 - [ ] Focus on improving daily workflow efficiency
 
 ### Arrhythmias Data Model
@@ -34,7 +33,6 @@ This document tracks active work, planned features, and future ideas for goRepor
 - [ ] Automated daily backups with encryption
 
 ### Security Enhancements
-- [x] Automatic session timeout
 - [ ] IP whitelisting for admin access
 - [ ] API key management for integrations
 
@@ -133,6 +131,8 @@ Items moved here were previously considered but deprioritized:
 - Keyboard shortcuts
 - Weekly productivity reports
 - Medical Billing & Coding Export
+- Automatic session timeout
+- Include upcoming appointments for doctor's patients
 
 ### Quick Wins Delivered
 - Toast notifications across the app
