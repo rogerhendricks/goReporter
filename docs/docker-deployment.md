@@ -109,6 +109,23 @@ docker run -d \
 | `JWT_SECRET` | Secret key for JWT tokens | - | Yes |
 | `DB_RESET` | Reset database (`drop` to drop all tables) | - | No |
 | `DB_SEED` | Force re-seeding (`1` to enable) | - | No |
+| `COOKIE_SECURE` | Override secure cookie flag (`true`/`false`) | `APP_ENV`-based | No |
+| `COOKIE_SAMESITE` | Cookie SameSite mode (`Lax`, `Strict`, `None`) | `Lax` | No |
+| `COOKIE_DOMAIN` | Optional cookie domain (e.g. `.example.com`) | empty | No |
+
+### Cookie configuration for login/CSRF
+
+Authentication and CSRF rely on browser cookies (`access_token`, `refresh_token`, `csrf_token`).
+
+- If you serve the app over **HTTPS**, use:
+  - `APP_ENV=production`
+  - `COOKIE_SECURE=true` (or omit, production defaults to secure)
+  - `COOKIE_SAMESITE=Lax` for same-origin frontend/API, or `COOKIE_SAMESITE=None` for cross-origin frontend/API
+- If you serve over **HTTP** (internal network/testing only), use:
+  - `COOKIE_SECURE=false`
+  - `COOKIE_SAMESITE=Lax`
+
+> Note: Browsers require `Secure` when `SameSite=None` is used.
 
 ## Docker Compose (Recommended for Production)
 
