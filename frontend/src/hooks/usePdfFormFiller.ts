@@ -223,7 +223,9 @@ export function usePdfFormFiller() {
 
       // Generate the PDF
       const pdfBytes = await pdfDoc.save()
-      return new Blob([pdfBytes], { type: 'application/pdf' })
+      const pdfBuffer = new ArrayBuffer(pdfBytes.byteLength)
+      new Uint8Array(pdfBuffer).set(pdfBytes)
+      return new Blob([pdfBuffer], { type: 'application/pdf' })
 
     } catch (error) {
       console.error('Error filling PDF form:', error)

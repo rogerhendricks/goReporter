@@ -48,7 +48,11 @@ export function usePdfManager() {
       }
 
       const mergedPdfBytes = await mergedPdf.save()
-      return new Blob([mergedPdfBytes], { type: 'application/pdf' })
+      const mergedPdfBuffer = mergedPdfBytes.buffer.slice(
+        mergedPdfBytes.byteOffset,
+        mergedPdfBytes.byteOffset + mergedPdfBytes.byteLength
+      ) as ArrayBuffer
+      return new Blob([mergedPdfBuffer], { type: 'application/pdf' })
     } catch (err) {
       console.error('Failed to merge PDFs:', err)
       setError('An error occurred while merging the PDFs.')
@@ -75,7 +79,11 @@ export function usePdfManager() {
       }
 
       const pdfBytes = await pdfDoc.save()
-      return new Blob([pdfBytes], { type: 'application/pdf' })
+      const pdfBuffer = pdfBytes.buffer.slice(
+        pdfBytes.byteOffset,
+        pdfBytes.byteOffset + pdfBytes.byteLength
+      ) as ArrayBuffer
+      return new Blob([pdfBuffer], { type: 'application/pdf' })
     } catch (err) {
       console.error('Error merging PDFs:', err)
       setError('Failed to merge PDF files')
