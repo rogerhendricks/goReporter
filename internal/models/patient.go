@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -780,90 +781,60 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 	var results []OverduePatient
 	var total int64
 
-	// Base query to get all patients with active implanted devices (excludes explanted and deleted)
-	query := `
+	isPostgres := config.DB.Dialector.Name() == "postgres"
+
+	// 1. Calculate thresholds in Go. This makes the WHERE clause index-friendly (SARGable)
+	// and dialect-agnostic for both SQLite and Postgres.
+	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+	twelveMonthsAgo := time.Now().AddDate(0, -12, 0)
+
+	// 2. The only dialect-specific part is the display of "days since"
+	dayDiffSql := "CAST(JULIANDAY('now') - JULIANDAY(lr.last_report_date) AS INTEGER)"
+	if isPostgres {
+		dayDiffSql = "EXTRACT(DAY FROM (NOW() - lr.last_report_date))::integer"
+	}
+
+	// 3. Unified CTE string
+	cte := fmt.Sprintf(`
 		WITH patient_devices AS (
-			SELECT 
-				p.id as patient_id,
-				p.first_name,
-				p.last_name,
-				p.mrn,
-				id.id as implanted_device_id,
-				id.serial as device_serial,
-				d.type as device_type
+			SELECT p.id as patient_id, p.first_name, p.last_name, p.mrn,
+			       id.id as implanted_device_id, id.serial as device_serial, d.type as device_type
 			FROM patients p
 			INNER JOIN implanted_devices id ON p.id = id.patient_id
 			INNER JOIN devices d ON id.device_id = d.id
-			WHERE id.status = 'Active'
-				AND (id.explanted_at IS NULL OR id.explanted_at = '')
-				AND id.deleted_at IS NULL
-				AND (LOWER(d.type) = 'defibrillator' OR LOWER(d.type) = 'pacemaker')
+			WHERE id.status = 'Active' AND id.explanted_at IS NULL AND id.deleted_at IS NULL
+			  AND (LOWER(d.type) = 'defibrillator' OR LOWER(d.type) = 'pacemaker')
 		),
 		latest_reports AS (
-			SELECT 
-				r.patient_id,
-				r.report_type,
-				MAX(r.report_date) as last_report_date
+			SELECT r.patient_id, r.report_type, MAX(r.report_date) as last_report_date
 			FROM reports r
 			WHERE r.report_type IN ('In Clinic', 'Remote')
 			GROUP BY r.patient_id, r.report_type
 		),
 		overdue_list AS (
-			SELECT 
-				pd.patient_id,
-				pd.first_name,
-				pd.last_name,
-				pd.mrn,
-				pd.device_type,
-				pd.device_serial,
-				pd.implanted_device_id,
-				'In Clinic' as report_type,
-				lr.last_report_date,
-				CASE 
-					WHEN lr.last_report_date IS NULL THEN NULL
-					ELSE CAST(JULIANDAY('now') - JULIANDAY(lr.last_report_date) AS INTEGER)
-				END as days_since_report
+			SELECT pd.*, 'In Clinic' as report_type, lr.last_report_date,
+			       (CASE WHEN lr.last_report_date IS NULL THEN NULL ELSE %s END) as days_since_report
 			FROM patient_devices pd
 			LEFT JOIN latest_reports lr ON pd.patient_id = lr.patient_id AND lr.report_type = 'In Clinic'
 			WHERE (
-				-- Defibrillator: In Clinic report needed every 6 months (183 days)
-				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR JULIANDAY('now') - JULIANDAY(lr.last_report_date) > 183))
-				OR
-				-- Pacemaker: In Clinic report needed every 12 months (365 days)
-				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR JULIANDAY('now') - JULIANDAY(lr.last_report_date) > 365))
+				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?)) OR
+				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?))
 			)
-			
 			UNION ALL
-			
-			SELECT 
-				pd.patient_id,
-				pd.first_name,
-				pd.last_name,
-				pd.mrn,
-				pd.device_type,
-				pd.device_serial,
-				pd.implanted_device_id,
-				'Remote' as report_type,
-				lr.last_report_date,
-				CASE 
-					WHEN lr.last_report_date IS NULL THEN NULL
-					ELSE CAST(JULIANDAY('now') - JULIANDAY(lr.last_report_date) AS INTEGER)
-				END as days_since_report
+			SELECT pd.*, 'Remote' as report_type, lr.last_report_date,
+			       (CASE WHEN lr.last_report_date IS NULL THEN NULL ELSE %s END) as days_since_report
 			FROM patient_devices pd
 			LEFT JOIN latest_reports lr ON pd.patient_id = lr.patient_id AND lr.report_type = 'Remote'
 			WHERE (
-				-- Defibrillator: Remote report needed every 6 months (183 days)
-				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR JULIANDAY('now') - JULIANDAY(lr.last_report_date) > 183))
-				OR
-				-- Pacemaker: Remote report needed every 12 months (365 days)
-				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR JULIANDAY('now') - JULIANDAY(lr.last_report_date) > 365))
+				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?)) OR
+				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?))
 			)
-		)
-		SELECT * FROM overdue_list`
+		)`, dayDiffSql, dayDiffSql)
 
 	// If doctor is specified, filter by their patients
 	doctorFilter := ""
-	var args []interface{}
+	// We need to pass the thresholds twice because of the UNION ALL
+	args := []interface{}{sixMonthsAgo, twelveMonthsAgo, sixMonthsAgo, twelveMonthsAgo}
 
 	if doctorID != nil {
 		doctorFilter = `
@@ -874,21 +845,26 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 	}
 
 	// Get total count
-	countQuery := `SELECT COUNT(*) FROM (` + query + doctorFilter + `) as counted`
-	if err := config.DB.Raw(countQuery, args...).Count(&total).Error; err != nil {
+	countQuery := cte + ` SELECT COUNT(*) FROM overdue_list` + doctorFilter
+	if err := config.DB.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return []OverduePatient{}, 0, err
 	}
 
 	// Get paginated results with ordering (most overdue first)
 	offset := (page - 1) * limit
-	paginatedQuery := query + doctorFilter + ` ORDER BY 
-		days_since_report DESC NULLS LAST,
-		last_name ASC
-		LIMIT ? OFFSET ?`
 
-	args = append(args, limit, offset)
+	orderBy := ` ORDER BY days_since_report DESC NULLS LAST, last_name ASC`
+	if !isPostgres {
+		// SQLite fallback for NULLS LAST (supported in 3.30+, but let's be safe for older dev environments)
+		orderBy = ` ORDER BY CASE WHEN days_since_report IS NULL THEN 1 ELSE 0 END, days_since_report DESC, last_name ASC`
+	}
 
-	if err := config.DB.Raw(paginatedQuery, args...).Scan(&results).Error; err != nil {
+	paginatedQuery := cte + ` SELECT * FROM overdue_list` + doctorFilter + orderBy + ` LIMIT ? OFFSET ?`
+
+	// Use a separate slice for paginated arguments to avoid side effects
+	paginatedArgs := append(args, limit, offset)
+
+	if err := config.DB.Raw(paginatedQuery, paginatedArgs...).Scan(&results).Error; err != nil {
 		return []OverduePatient{}, 0, err
 	}
 

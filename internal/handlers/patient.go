@@ -1198,6 +1198,7 @@ func GetOverduePatients(c *fiber.Ctx) error {
 	// Get overdue patients
 	results, total, err := models.GetOverduePatients(page, limit, doctorID)
 	if err != nil {
+		log.Printf("Error retrieving overdue patients: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to retrieve overdue patients",
 		})
