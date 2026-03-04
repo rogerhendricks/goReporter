@@ -3,15 +3,18 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rogerhendricks/goReporter/internal/config"
 	"github.com/rogerhendricks/goReporter/internal/models"
 	"github.com/rogerhendricks/goReporter/internal/security"
 	"github.com/rogerhendricks/goReporter/internal/utils"
-	"net/http"
-	"strings"
-	"time"
+
 	// "html"
 	"errors"
 	// "gorm.io/gorm"
@@ -19,6 +22,61 @@ import (
 	"log"
 	"os"
 )
+
+type cookieSettings struct {
+	secure   bool
+	sameSite string
+	domain   string
+}
+
+func getCookieSettings(c *fiber.Ctx) cookieSettings {
+	sameSite := normalizeSameSite(os.Getenv("COOKIE_SAMESITE"))
+	secure := shouldUseSecureCookies(c)
+
+	if sameSite == "None" && !secure {
+		log.Println("COOKIE_SAMESITE=None requires Secure cookies; forcing Secure=true")
+		secure = true
+	}
+
+	return cookieSettings{
+		secure:   secure,
+		sameSite: sameSite,
+		domain:   strings.TrimSpace(os.Getenv("COOKIE_DOMAIN")),
+	}
+}
+
+func shouldUseSecureCookies(c *fiber.Ctx) bool {
+	if value, exists := os.LookupEnv("COOKIE_SECURE"); exists {
+		if parsed, err := strconv.ParseBool(strings.TrimSpace(value)); err == nil {
+			return parsed
+		}
+	}
+
+	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
+	if appEnv == "production" {
+		return true
+	}
+
+	if strings.EqualFold(c.Protocol(), "https") {
+		return true
+	}
+
+	forwardedProto := strings.ToLower(strings.TrimSpace(c.Get("X-Forwarded-Proto")))
+	return strings.Contains(forwardedProto, "https")
+}
+
+func normalizeSameSite(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "none":
+		return "None"
+	case "strict":
+		return "Strict"
+	case "lax", "":
+		return "Lax"
+	default:
+		return "Lax"
+	}
+}
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -316,14 +374,15 @@ func setAuthCookies(c *fiber.Ctx, user *models.User) error {
 			"refreshExpiresAt": result.RefreshExpiresAt,
 		})
 
-	isProduction := os.Getenv("APP_ENV") == "production"
+	settings := getCookieSettings(c)
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    result.AccessToken,
 		HTTPOnly: true,
-		Secure:   isProduction,
-		SameSite: "Lax",
+		Secure:   settings.secure,
+		SameSite: settings.sameSite,
+		Domain:   settings.domain,
 		MaxAge:   int(AccessTokenDuration.Seconds()),
 		Path:     "/",
 	})
@@ -332,8 +391,9 @@ func setAuthCookies(c *fiber.Ctx, user *models.User) error {
 		Name:     "refresh_token",
 		Value:    result.RefreshToken,
 		HTTPOnly: true,
-		Secure:   isProduction,
-		SameSite: "Lax",
+		Secure:   settings.secure,
+		SameSite: settings.sameSite,
+		Domain:   settings.domain,
 		MaxAge:   int(RefreshTokenDuration.Seconds()),
 		Path:     "/",
 	})
@@ -426,6 +486,8 @@ func RefreshToken(c *fiber.Ctx) error {
 
 // GetCSRFToken returns the CSRF token for the client
 func GetCSRFToken(c *fiber.Ctx) error {
+	settings := getCookieSettings(c)
+
 	// Check if token already exists
 	token := c.Cookies("csrf_token")
 
@@ -438,8 +500,9 @@ func GetCSRFToken(c *fiber.Ctx) error {
 			Name:     "csrf_token",
 			Value:    token,
 			HTTPOnly: false, // Must be false so JavaScript can read it
-			Secure:   os.Getenv("APP_ENV") == "production",
-			SameSite: "Lax",
+			Secure:   settings.secure,
+			SameSite: settings.sameSite,
+			Domain:   settings.domain,
 			MaxAge:   int((1 * time.Hour).Seconds()),
 			Path:     "/",
 		})
@@ -461,6 +524,8 @@ func generateCSRFToken() string {
 
 // Logout handles user logout
 func Logout(c *fiber.Ctx) error {
+	settings := getCookieSettings(c)
+
 	// Get refresh token from cookie
 	refreshToken := c.Cookies("refresh_token")
 
@@ -487,8 +552,9 @@ func Logout(c *fiber.Ctx) error {
 		Name:     "access_token",
 		Value:    "",
 		HTTPOnly: true,
-		Secure:   os.Getenv("APP_ENV") == "production",
-		SameSite: "Lax",
+		Secure:   settings.secure,
+		SameSite: settings.sameSite,
+		Domain:   settings.domain,
 		MaxAge:   -1,
 		Path:     "/",
 	})
@@ -497,8 +563,9 @@ func Logout(c *fiber.Ctx) error {
 		Name:     "refresh_token",
 		Value:    "",
 		HTTPOnly: true,
-		Secure:   os.Getenv("APP_ENV") == "production",
-		SameSite: "Lax",
+		Secure:   settings.secure,
+		SameSite: settings.sameSite,
+		Domain:   settings.domain,
 		MaxAge:   -1,
 		Path:     "/",
 	})

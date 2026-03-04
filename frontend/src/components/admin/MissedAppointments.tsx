@@ -215,7 +215,8 @@ export function MissedAppointments() {
       }
 
       const pdfBytes = await pdfDoc.save()
-      const blob = new Blob([pdfBytes], { type: "application/pdf" })
+      const pdfBytesForBlob = new Uint8Array(pdfBytes)
+      const blob = new Blob([pdfBytesForBlob], { type: "application/pdf" })
       const url = URL.createObjectURL(blob)
       const win = window.open(url, "_blank")
       if (!win) {

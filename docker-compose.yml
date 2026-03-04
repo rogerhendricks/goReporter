@@ -30,6 +30,12 @@ services:
       - "5000:5000"
     environment:
       APP_ENV: production
+      # For HTTPS deployments keep true. For plain HTTP internal testing set to false.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # Use None only when frontend/API are on different origins and served over HTTPS.
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-Lax}
+      # Optional shared cookie domain (example: .example.com)
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: goreporter

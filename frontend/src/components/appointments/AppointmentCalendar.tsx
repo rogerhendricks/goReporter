@@ -43,12 +43,14 @@ interface AppointmentCalendarProps {
 
 const statusStyles: Record<AppointmentStatus, string> = {
   scheduled: 'bg-sky-100 text-sky-700 border border-sky-200',
+  arrived: 'bg-blue-100 text-blue-700 border border-blue-200',
   completed: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
   cancelled: 'bg-rose-100 text-rose-700 border border-rose-200',
 }
 
 const statusDotColors: Record<AppointmentStatus, string> = {
   scheduled: 'bg-sky-500',
+  arrived: 'bg-blue-500',
   completed: 'bg-emerald-500',
   cancelled: 'bg-rose-500',
 }
