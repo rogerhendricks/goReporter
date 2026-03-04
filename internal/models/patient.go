@@ -835,7 +835,7 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?)) OR
 				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?))
 			)
-		)`, dayDiffSql, reportDateExpr, dayDiffSql)
+		)`, reportDateExpr, dayDiffSql, dayDiffSql)
 
 	// If doctor is specified, filter by their patients
 	doctorFilter := ""
