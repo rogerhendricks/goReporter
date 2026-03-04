@@ -794,6 +794,12 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 		dayDiffSql = "EXTRACT(DAY FROM (NOW() - lr.last_report_date))::integer"
 	}
 
+	// Normalize potentially invalid/legacy empty-string report_date values to NULL.
+	reportDateExpr := "NULLIF(r.report_date, '')"
+	if isPostgres {
+		reportDateExpr = "NULLIF(r.report_date::text, '')::timestamptz"
+	}
+
 	// 3. Unified CTE string
 	cte := fmt.Sprintf(`
 		WITH patient_devices AS (
@@ -806,7 +812,7 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 			  AND (LOWER(d.type) = 'defibrillator' OR LOWER(d.type) = 'pacemaker')
 		),
 		latest_reports AS (
-			SELECT r.patient_id, r.report_type, MAX(r.report_date) as last_report_date
+			SELECT r.patient_id, r.report_type, MAX(%s) as last_report_date
 			FROM reports r
 			WHERE r.report_type IN ('In Clinic', 'Remote')
 			GROUP BY r.patient_id, r.report_type
@@ -829,7 +835,7 @@ func GetOverduePatients(page int, limit int, doctorID *uint) ([]OverduePatient, 
 				(LOWER(pd.device_type) = 'defibrillator' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?)) OR
 				(LOWER(pd.device_type) = 'pacemaker' AND (lr.last_report_date IS NULL OR lr.last_report_date < ?))
 			)
-		)`, dayDiffSql, dayDiffSql)
+		)`, dayDiffSql, reportDateExpr, dayDiffSql)
 
 	// If doctor is specified, filter by their patients
 	doctorFilter := ""
