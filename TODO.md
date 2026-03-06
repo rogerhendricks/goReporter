@@ -134,11 +134,6 @@ Items moved here were previously considered but deprioritized:
 - Automatic session timeout
 - Include upcoming appointments for doctor's patients
 
-### Quick Wins Delivered
-- Toast notifications across the app
-- Theme-aware components
-- Smooth theme transitions
-
 ---
 
 ## How to Use This Document
