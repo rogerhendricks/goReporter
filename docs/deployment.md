@@ -282,29 +282,83 @@ chown -R 1000:1000 uploads logs
 chmod 750 uploads logs
 ```
 
-### Backup Strategy
+### Backup & Restore Strategy
 
-#### Backup Uploaded Files
+Regular backups are critical for disaster recovery. Backups must include both the **database** and the **uploads** directory.
+
+#### 1. Creating a Full Backup
+
+Back up both the file uploads and the database dump:
+
+**Backup Uploaded Files:**
 ```bash
 tar -czf uploads-backup-$(date +%Y%m%d).tar.gz uploads/
 ```
 
-#### Backup Database
+**Backup Database:**
 ```bash
-# Docker Compose
-docker-compose exec postgres pg_dump -U goreporter goreporter > backup-$(date +%Y%m%d).sql
+# Docker Compose Deployment
+docker-compose exec postgres pg_dump -U goreporter goreporter > db_backup_$(date +%Y%m%d).sql
 
-# Direct PostgreSQL
-pg_dump -U goreporter -h localhost goreporter > backup-$(date +%Y%m%d).sql
+# Direct PostgreSQL Deployment
+pg_dump -U goreporter -h localhost goreporter > db_backup_$(date +%Y%m%d).sql
 ```
 
-#### Restore Database
-```bash
-# Docker Compose
-docker-compose exec -T postgres psql -U goreporter goreporter < backup-20260114.sql
+> **Tip (Automated Backups):** You can automate backups using a cron job. Create a simple bash script containing the above commands, configure it to run daily at 3 AM (e.g., `0 3 * * * /path/to/backup.sh`), and store the generated files securely.
 
-# Direct PostgreSQL
-psql -U goreporter -h localhost goreporter < backup-20260114.sql
+#### 2. Restoring from a Backup
+
+Restoring the database requires stopping the application to prevent new writes and clearing the existing database to avoid conflicts.
+
+> **Caution:** This process will overwrite the current database.
+
+**Step 1: Stop the application**
+```bash
+# Docker Compose Deployment
+docker-compose stop app
+
+# Direct Build Deployment
+# Stop the running ./bin/server process
+pkill server 
+```
+
+**Step 2: Drop and recreate the database**
+This ensures a clean slate before importing the backup.
+```bash
+# Docker Compose Deployment
+docker-compose exec postgres dropdb -U goreporter goreporter
+docker-compose exec postgres createdb -U goreporter goreporter
+
+# Direct PostgreSQL Deployment
+dropdb -U goreporter -h localhost goreporter
+createdb -U goreporter -h localhost goreporter
+```
+
+**Step 3: Restore the database dump**
+```bash
+# Docker Compose Deployment
+docker-compose exec -T postgres psql -U goreporter -d goreporter < db_backup_YYYYMMDD.sql
+
+# Direct PostgreSQL Deployment
+psql -U goreporter -h localhost goreporter < db_backup_YYYYMMDD.sql
+```
+
+**Step 4: Restore the file uploads**
+Extract the uploads archive into the application directory.
+```bash
+tar -xzf uploads-backup-YYYYMMDD.tar.gz
+
+# If using Docker deployment, ensure permissions are correct
+chown -R 1000:1000 uploads
+```
+
+**Step 5: Restart the application**
+```bash
+# Docker Compose Deployment
+docker-compose start app
+
+# Direct Build Deployment
+./bin/server
 ```
 
 ---```
