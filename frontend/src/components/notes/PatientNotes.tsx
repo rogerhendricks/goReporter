@@ -221,7 +221,7 @@ export function PatientNotes({ patientId }: PatientNotesProps) {
                 ) : (
                   <>
                     <div className="mb-4">
-                      <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                      <p className="text-sm whitespace-pre-wrap text-left">{note.content}</p>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-3">
                       <div>
