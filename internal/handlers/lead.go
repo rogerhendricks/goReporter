@@ -16,7 +16,7 @@ import (
 // --- DTO for API Responses ---
 type LeadResponse struct {
 	ID           uint   `json:"id"`
-	UDID         uint64 `json:"udid"`
+	Udid         uint64 `json:"udid"`
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
 	LeadModel    string `json:"leadModel"`
@@ -163,7 +163,7 @@ func SearchLeads(c *fiber.Ctx) error {
 	type LeadBasic struct {
 		ID           uint   `json:"id"`
 		Name         string `json:"name"`
-		UDID         uint64 `json:"udid"`
+		Udid         uint64 `json:"udid"`
 		Manufacturer string `json:"manufacturer"`
 		LeadModel    string `json:"leadModel"`
 		IsMri        bool   `json:"isMri"`
@@ -176,7 +176,7 @@ func SearchLeads(c *fiber.Ctx) error {
 	for _, lead := range leads {
 		basicLeads = append(basicLeads, LeadBasic{
 			ID:           lead.ID,
-			UDID:         lead.UDID,
+			Udid:         lead.Udid,
 			Name:         lead.Name,
 			Manufacturer: lead.Manufacturer,
 			LeadModel:    lead.LeadModel,
@@ -285,8 +285,8 @@ func UpdateLead(c *fiber.Ctx) error {
 	if updateData.Polarity != "" {
 		existingLead.Polarity = html.EscapeString(strings.TrimSpace(updateData.Polarity))
 	}
-	if updateData.UDID != 0 {
-		existingLead.UDID = updateData.UDID
+	if updateData.Udid != 0 {
+		existingLead.Udid = updateData.Udid
 	}
 	// Update boolean field
 	existingLead.IsMri = updateData.IsMri
@@ -344,7 +344,7 @@ func validateLead(lead *models.Lead) error {
 		return errors.New("lead name is required")
 	}
 
-	if lead.UDID == 0 {
+	if lead.Udid == 0 {
 		return errors.New("lead UDID is required")
 	}
 

@@ -9,7 +9,7 @@ import (
 
 type Device struct {
 	gorm.Model
-	UDID         uint64            `json:"udid" gorm:"type:bigint"`
+	Udid         uint64            `json:"udid" gorm:"type:bigint"`
 	Name         string            `json:"name" gorm:"type:varchar(255);not null"`
 	Manufacturer string            `json:"manufacturer" gorm:"type:text"`
 	DevModel     string            `json:"model" gorm:"type:varchar(100)"`

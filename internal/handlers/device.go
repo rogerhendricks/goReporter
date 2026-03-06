@@ -16,7 +16,7 @@ import (
 // --- DTO for API Responses ---
 type DeviceResponse struct {
 	ID           uint   `json:"id"`
-	UDID         uint64 `json:"udid"`
+	Udid         uint64 `json:"udid"`
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
 	Model        string `json:"model"`
@@ -116,7 +116,7 @@ func SearchDevices(c *fiber.Ctx) error {
 	// Create a simplified response with consistent field names
 	type DeviceBasic struct {
 		ID           uint   `json:"id"`
-		UDID         uint64 `json:"udid"`
+		Udid         uint64 `json:"udid"`
 		Name         string `json:"name"`
 		Manufacturer string `json:"manufacturer"`
 		Type         string `json:"type"`
@@ -129,7 +129,7 @@ func SearchDevices(c *fiber.Ctx) error {
 	for _, device := range devices {
 		basicDevices = append(basicDevices, DeviceBasic{
 			ID:           device.ID,
-			UDID:         device.UDID,
+			Udid:         device.Udid,
 			Name:         device.Name,
 			Manufacturer: device.Manufacturer,
 			Type:         device.Type,
@@ -234,8 +234,8 @@ func UpdateDevice(c *fiber.Ctx) error {
 	if updateData.Type != "" {
 		existingDevice.Type = html.EscapeString(strings.TrimSpace(updateData.Type))
 	}
-	if updateData.UDID != 0 {
-		existingDevice.UDID = updateData.UDID
+	if updateData.Udid != 0 {
+		existingDevice.Udid = updateData.Udid
 	}
 
 	// Update boolean field
@@ -294,7 +294,7 @@ func validateDevice(device *models.Device) error {
 		return errors.New("device name is required")
 	}
 
-	if device.UDID == 0 {
+	if device.Udid == 0 {
 		return errors.New("device UDID is required")
 	}
 

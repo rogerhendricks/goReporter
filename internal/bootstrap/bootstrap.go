@@ -153,7 +153,7 @@ func seed(db *gorm.DB) error {
 	}
 
 	newDevice := func(udid uint64, name, manufacturer, model string, isMri bool, hasAlert bool, typ string) models.Device {
-		return models.Device{UDID: udid, Name: name, Manufacturer: manufacturer, DevModel: model, IsMri: isMri, HasAlert: hasAlert, Type: typ}
+		return models.Device{Udid: udid, Name: name, Manufacturer: manufacturer, DevModel: model, IsMri: isMri, HasAlert: hasAlert, Type: typ}
 	}
 
 	// Devices (UDIDs hardcoded per device)
@@ -270,7 +270,7 @@ func seed(db *gorm.DB) error {
 
 	// Leads
 	leadSeed := func(udid uint64, name, manufacturer, model, connector, polarity string, isMri bool) models.Lead {
-		return models.Lead{UDID: udid, Name: name, Manufacturer: manufacturer, LeadModel: model, Connector: connector, Polarity: polarity, IsMri: isMri}
+		return models.Lead{Udid: udid, Name: name, Manufacturer: manufacturer, LeadModel: model, Connector: connector, Polarity: polarity, IsMri: isMri}
 	}
 
 	leads := []models.Lead{

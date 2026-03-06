@@ -9,7 +9,7 @@ import (
 
 type Lead struct {
 	gorm.Model
-	UDID         uint64          `json:"udid" gorm:"type:bigint"`
+	Udid         uint64          `json:"udid" gorm:"type:bigint"`
 	Name         string          `json:"name" gorm:"type:varchar(255);not null"`
 	Manufacturer string          `json:"manufacturer" gorm:"type:varchar(255)"`
 	LeadModel    string          `json:"leadModel" gorm:"type:varchar(50)"`
