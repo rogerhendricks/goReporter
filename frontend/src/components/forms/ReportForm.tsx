@@ -58,6 +58,8 @@ import {
   Clock,
   Check,
   User,
+  PanelRight,
+  X,
 } from "lucide-react";
 import api from "@/utils/axios";
 import { usePdfManager } from "@/hooks/usePdfManager";
@@ -253,6 +255,7 @@ export function ReportForm({ patient }: ReportFormProps) {
   >("saved");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [sideBySidePdfUrl, setSideBySidePdfUrl] = useState<string | null>(null);
   // draftKey moved above useState
   const draftToastShownRef = useRef(false);
   const isInitialMount = useRef(true);
@@ -1077,6 +1080,26 @@ export function ReportForm({ patient }: ReportFormProps) {
       toast.error("Failed to generate PDF report");
     }
   };
+
+  const handleViewLocalPdf = (file: File) => {
+    try {
+      const url = window.URL.createObjectURL(file);
+      setSideBySidePdfUrl(url);
+    } catch (error) {
+      console.error("Failed to create blob URL for local file:", error);
+      toast.error("Failed to view file");
+    }
+  };
+
+  // Cleanup blob URLs when sideBySidePdfUrl changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (sideBySidePdfUrl && sideBySidePdfUrl.startsWith("blob:")) {
+        window.URL.revokeObjectURL(sideBySidePdfUrl);
+      }
+    };
+  }, [sideBySidePdfUrl]);
+
   // Available doctors for selection
   const availableDoctors = (patient as any)?.patientDoctors || [];
 
@@ -1499,1823 +1522,1933 @@ export function ReportForm({ patient }: ReportFormProps) {
   }, [patient.id, patient.fname, patient.lname, isEdit, setItems]);
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
-          {!isEdit && (
-            <>
-              {draftStatus === "saved" && lastSaved && (
-                <Badge variant="outline" className="gap-1.5">
-                  <Save className="h-3 w-3" />
-                  Draft saved {format(lastSaved, "HH:mm:ss")}
-                </Badge>
-              )}
-              {draftStatus === "saving" && (
-                <Badge variant="secondary" className="gap-1.5">
-                  <Clock className="h-3 w-3 animate-pulse" />
-                  Saving draft...
-                </Badge>
-              )}
-              {draftStatus === "unsaved" && (
-                <Badge variant="secondary" className="gap-1.5 opacity-60">
-                  <Clock className="h-3 w-3" />
-                  Unsaved changes
-                </Badge>
-              )}
-            </>
-          )}
-          {!isEdit && prePopulatedFrom && (
-            <Badge variant="default" className="gap-1.5">
-              <FileText className="h-3 w-3" />
-              Loaded from previous report
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {!isEdit && previousReport && (
-            <>
-              <HoverCard>
-                <HoverCardTrigger asChild>
+    <div
+      className={`flex w-full gap-4 ${sideBySidePdfUrl ? "h-[calc(100vh-4rem)]" : ""}`}
+    >
+      <div
+        className={`py-6 flex-1 transition-all duration-300 ${sideBySidePdfUrl ? "overflow-y-auto px-4 w-1/2" : "container mx-auto"}`}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            {!isEdit && (
+              <>
+                {draftStatus === "saved" && lastSaved && (
+                  <Badge variant="outline" className="gap-1.5">
+                    <Save className="h-3 w-3" />
+                    Draft saved {format(lastSaved, "HH:mm:ss")}
+                  </Badge>
+                )}
+                {draftStatus === "saving" && (
+                  <Badge variant="secondary" className="gap-1.5">
+                    <Clock className="h-3 w-3 animate-pulse" />
+                    Saving draft...
+                  </Badge>
+                )}
+                {draftStatus === "unsaved" && (
+                  <Badge variant="secondary" className="gap-1.5 opacity-60">
+                    <Clock className="h-3 w-3" />
+                    Unsaved changes
+                  </Badge>
+                )}
+              </>
+            )}
+            {!isEdit && prePopulatedFrom && (
+              <Badge variant="default" className="gap-1.5">
+                <FileText className="h-3 w-3" />
+                Loaded from previous report
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {!isEdit && previousReport && (
+              <>
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={prePopulatedFrom ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={loadFromPreviousReport}
+                      disabled={
+                        isLoadingPrevious ||
+                        prePopulatedFrom === previousReport.id
+                      }
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Load from Previous
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold">
+                        Auto-fill from Previous Report
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Loads device settings and tachy parameters from your
+                        last report dated{" "}
+                        <span className="font-medium">
+                          {new Date(
+                            previousReport.reportDate,
+                          ).toLocaleDateString()}
+                        </span>
+                      </p>
+                      <div className="text-xs text-muted-foreground">
+                        <p className="font-medium">What gets loaded:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5">
+                          <li>Pacing mode & rate limits</li>
+                          <li>AV delays</li>
+                          <li>Tachy zones & therapies</li>
+                        </ul>
+                        <p className="font-medium mt-2">What stays blank:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5">
+                          <li>Measurements (impedances, sensing)</li>
+                          <li>Battery diagnostics</li>
+                          <li>Pacing percentages</li>
+                          <li>Arrhythmias & comments</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+                {prePopulatedFrom && (
                   <Button
                     type="button"
-                    variant={prePopulatedFrom ? "secondary" : "outline"}
+                    variant="ghost"
                     size="sm"
-                    onClick={loadFromPreviousReport}
-                    disabled={
-                      isLoadingPrevious ||
-                      prePopulatedFrom === previousReport.id
-                    }
+                    onClick={clearPrePopulatedData}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Load from Previous
+                    Clear
                   </Button>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-80">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold">
-                      Auto-fill from Previous Report
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Loads device settings and tachy parameters from your last
-                      report dated{" "}
-                      <span className="font-medium">
-                        {new Date(
-                          previousReport.reportDate,
-                        ).toLocaleDateString()}
-                      </span>
-                    </p>
-                    <div className="text-xs text-muted-foreground">
-                      <p className="font-medium">What gets loaded:</p>
-                      <ul className="list-disc list-inside mt-1 space-y-0.5">
-                        <li>Pacing mode & rate limits</li>
-                        <li>AV delays</li>
-                        <li>Tachy zones & therapies</li>
-                      </ul>
-                      <p className="font-medium mt-2">What stays blank:</p>
-                      <ul className="list-disc list-inside mt-1 space-y-0.5">
-                        <li>Measurements (impedances, sensing)</li>
-                        <li>Battery diagnostics</li>
-                        <li>Pacing percentages</li>
-                        <li>Arrhythmias & comments</li>
-                      </ul>
-                    </div>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-              {prePopulatedFrom && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearPrePopulatedData}
-                >
-                  Clear
-                </Button>
-              )}
-            </>
-          )}
-          <FileImporter onDataImported={handleDataImported} />
+                )}
+              </>
+            )}
+            <FileImporter onDataImported={handleDataImported} />
+          </div>
         </div>
-      </div>
-      <div>
-        {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
-        {(() => {
-          const p =
-            typeof patient !== "undefined" && patient
-              ? patient
-              : typeof patient !== "undefined"
+        <div>
+          {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
+          {(() => {
+            const p =
+              typeof patient !== "undefined" && patient
                 ? patient
-                : null;
-          const activeDevices = (p?.devices ?? []).filter(
-            (d: any) =>
-              String(d?.status || "").toLowerCase() === "active" &&
-              !d?.explantedAt,
-          );
-          const activeLeads = (p?.leads ?? []).filter(
-            (l: any) =>
-              String(l?.status || "").toLowerCase() === "active" &&
-              !l?.explantedAt,
-          );
+                : typeof patient !== "undefined"
+                  ? patient
+                  : null;
+            const activeDevices = (p?.devices ?? []).filter(
+              (d: any) =>
+                String(d?.status || "").toLowerCase() === "active" &&
+                !d?.explantedAt,
+            );
+            const activeLeads = (p?.leads ?? []).filter(
+              (l: any) =>
+                String(l?.status || "").toLowerCase() === "active" &&
+                !l?.explantedAt,
+            );
 
-          if (!p) return null;
+            if (!p) return null;
 
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded-2xl shadow dark:bg-[#1c2430]">
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Active Implanted Device(s)
-                </h4>
-                {activeDevices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No active devices.
-                  </p>
-                ) : (
-                  <ul className="space-y-1">
-                    {activeDevices.map((d: any) => (
-                      <li key={d.id} className="text-sm">
-                        <span className="font-medium">
-                          {d?.device?.manufacturer}
-                        </span>
-                        {" • "}
-                        {d?.device?.name}
-                        {" • "}
-                        <span id="deviceSerial">SN: {d?.serial}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border rounded-2xl shadow dark:bg-[#1c2430]">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">
+                    Active Implanted Device(s)
+                  </h4>
+                  {activeDevices.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No active devices.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {activeDevices.map((d: any) => (
+                        <li key={d.id} className="text-sm">
+                          <span className="font-medium">
+                            {d?.device?.manufacturer}
+                          </span>
+                          {" • "}
+                          {d?.device?.name}
+                          {" • "}
+                          <span id="deviceSerial">SN: {d?.serial}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">
+                    Active Implanted Lead(s)
+                  </h4>
+                  {activeLeads.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No active leads.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {activeLeads.map((l: any) => (
+                        <li key={l.id} className="text-sm">
+                          <span className="font-medium">
+                            {l?.lead?.manufacturer}
+                          </span>
+                          {" • "}
+                          {l?.lead?.name}
+                          {" • "}
+                          SN: {l?.serial}
+                          {l?.chamber ? (
+                            <>
+                              {" "}
+                              {" • "} {l.chamber}
+                            </>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
+            );
+          })()}
+        </div>
 
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Active Implanted Lead(s)
-                </h4>
-                {activeLeads.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No active leads.
-                  </p>
-                ) : (
-                  <ul className="space-y-1">
-                    {activeLeads.map((l: any) => (
-                      <li key={l.id} className="text-sm">
-                        <span className="font-medium">
-                          {l?.lead?.manufacturer}
-                        </span>
-                        {" • "}
-                        {l?.lead?.name}
-                        {" • "}
-                        SN: {l?.serial}
-                        {l?.chamber ? (
-                          <>
-                            {" "}
-                            {" • "} {l.chamber}
-                          </>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-      </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Information</CardTitle>
+              <CardDescription>
+                High-level details about this report.
+              </CardDescription>
+            </CardHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>General Information</CardTitle>
-            <CardDescription>
-              High-level details about this report.
-            </CardDescription>
-          </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    Report Date
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-full justify-start px-2 py-0 text-left text-sm"
+                      >
+                        <CalendarIcon className="mr-2 h-3 w-3" />
+                        {formData.reportDate ? (
+                          format(new Date(formData.reportDate), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={
+                          formData.reportDate
+                            ? new Date(formData.reportDate)
+                            : undefined
+                        }
+                        onSelect={handleDateChange}
+                        autoFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-          <CardContent className="space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  Report Date
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-full justify-start px-2 py-0 text-left text-sm"
-                    >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {formData.reportDate ? (
-                        format(new Date(formData.reportDate), "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        formData.reportDate
-                          ? new Date(formData.reportDate)
-                          : undefined
-                      }
-                      onSelect={handleDateChange}
-                      autoFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  Report Type <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  name="reportType"
-                  value={formData.reportType || ""}
-                  onValueChange={(value) =>
-                    handleSelectChange("reportType", value)
-                  }
-                  required
-                >
-                  <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                    <SelectValue placeholder="Select type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {billingCategories.map((bc) => (
-                      <SelectItem key={bc.category} value={bc.category}>
-                        <span className="capitalize">{bc.category}</span>
-                      </SelectItem>
-                    ))}
-                    {billingCategories.length === 0 && (
-                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  Report Status <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  name="reportStatus"
-                  value={formData.reportStatus || ""}
-                  onValueChange={(value) =>
-                    handleSelectChange("reportStatus", value)
-                  }
-                  required
-                >
-                  <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                    <SelectValue placeholder="Select status..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="reviewed">Reviewed</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label
-                  htmlFor="currentHeartRate"
-                  className="text-xs font-medium leading-tight"
-                >
-                  Heart Rate (bpm)
-                </Label>
-                <ValidatedInput
-                  id="currentHeartRate"
-                  name="currentHeartRate"
-                  type="number"
-                  value={formData.currentHeartRate || ""}
-                  onChange={handleChange}
-                  onBlurValidation={(value) =>
-                    handleBlurValidation(
-                      "heartRate",
-                      parseFloat(value) || undefined,
-                    )
-                  }
-                  error={validationErrors.heartRate}
-                  placeholder="e.g., 60"
-                  className="h-8 text-sm"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  Current Rhythm
-                </Label>
-                <Select
-                  name="currentRhythm"
-                  value={formData.currentRhythm || ""}
-                  onValueChange={(value) =>
-                    handleSelectChange("currentRhythm", value)
-                  }
-                >
-                  <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                    <SelectValue placeholder="Select rhythm..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NSR">NSR</SelectItem>
-                    <SelectItem value="AFib">AFib</SelectItem>
-                    <SelectItem value="AFL">AFL</SelectItem>
-                    <SelectItem value="Paced">Paced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  Pacing Dependency
-                </Label>
-                <Select
-                  name="currentDependency"
-                  value={formData.currentDependency || ""}
-                  onValueChange={(value) =>
-                    handleSelectChange("currentDependency", value)
-                  }
-                >
-                  <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                    <SelectValue placeholder="Select dependency..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dependent">Dependent</SelectItem>
-                    <SelectItem value="Non-Dependent">Non-Dependent</SelectItem>
-                    <SelectItem value="Intermittent">Intermittent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-medium leading-tight">
-                  QRS Duration (ms)
-                </Label>
-                <ValidatedInput
-                  id="qrs_duration"
-                  name="qrs_duration"
-                  type="number"
-                  value={formData.qrs_duration || ""}
-                  onChange={handleChange}
-                  onBlurValidation={(value) =>
-                    handleBlurValidation(
-                      "qrsDuration",
-                      parseFloat(value) || undefined,
-                    )
-                  }
-                  error={validationErrors.qrsDuration}
-                  placeholder="e.g., 80-120"
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* tags card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Tags</CardTitle>
-            <CardDescription>Select tags for this report.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => {
-                const isSelected = (formData.tags || []).some(
-                  (t) => t.ID === tag.ID,
-                );
-                return (
-                  <div
-                    key={tag.ID}
-                    onClick={() => toggleTag(tag.ID)}
-                    className={`
-                    cursor-pointer px-3 py-1 rounded-full text-sm font-medium transition-colors
-                    ${isSelected
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      }
-                  `}
-                    style={
-                      isSelected && tag.color
-                        ? { backgroundColor: tag.color, color: "#fff" }
-                        : {}
-                    }
-                  >
-                    {tag.name}
-                  </div>
-                );
-              })}
-              {availableTags.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No tags available.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {!hasLoopRecorder && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bradycardia Settings</CardTitle>
-                <CardDescription>
-                  Programmed parameters for bradycardia pacing.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2 min-w-0">
-                  <Label>Mode</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    Report Type <span className="text-red-500">*</span>
+                  </Label>
                   <Select
-                    name="mdc_idc_set_brady_mode"
-                    value={formData.mdc_idc_set_brady_mode || ""}
+                    name="reportType"
+                    value={formData.reportType || ""}
                     onValueChange={(value) =>
-                      handleSelectChange("mdc_idc_set_brady_mode", value)
+                      handleSelectChange("reportType", value)
                     }
+                    required
                   >
                     <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                      <SelectValue placeholder="Select mode..." />
+                      <SelectValue placeholder="Select type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="AAI">AAI</SelectItem>
-                      <SelectItem value="VVI">VVI</SelectItem>
-                      <SelectItem value="AAIR">AAIR</SelectItem>
-                      <SelectItem value="VVIR">VVIR</SelectItem>
-                      <SelectItem value="VVI-CLS">VVI-CLS</SelectItem>
-                      <SelectItem value="DDD-CLS">DDD-CLS</SelectItem>
-                      <SelectItem value="DDD">DDD</SelectItem>
-                      <SelectItem value="DDDR">DDDR</SelectItem>
-                      <SelectItem value="DDI">DDI</SelectItem>
-                      <SelectItem value="DDIR">DDIR</SelectItem>
-                      <SelectItem value="AAI DDD">AAI DDD</SelectItem>
-                      <SelectItem value="AAIR DDDR">AAIR DDDR</SelectItem>
+                      {billingCategories.map((bc) => (
+                        <SelectItem key={bc.category} value={bc.category}>
+                          <span className="capitalize">{bc.category}</span>
+                        </SelectItem>
+                      ))}
+                      {billingCategories.length === 0 && (
+                        <SelectItem value="loading" disabled>
+                          Loading categories...
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 min-w-0">
-                  <Label htmlFor="mdc_idc_set_brady_lowrate">LRL (bpm)</Label>
-                  <ValidatedInput
-                    id="mdc_idc_set_brady_lowrate"
-                    name="mdc_idc_set_brady_lowrate"
-                    type="number"
-                    value={formData.mdc_idc_set_brady_lowrate || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "heartRate",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={
-                      validationErrors.heartRate &&
-                        formData.mdc_idc_set_brady_lowrate !== undefined
-                        ? validationErrors.heartRate
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_set_brady_max_tracking_rate">
-                    MTR (bpm)
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    Report Status <span className="text-red-500">*</span>
                   </Label>
-                  <ValidatedInput
-                    id="mdc_idc_set_brady_max_tracking_rate"
-                    name="mdc_idc_set_brady_max_tracking_rate"
-                    type="number"
-                    value={formData.mdc_idc_set_brady_max_tracking_rate || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "heartRate",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={
-                      validationErrors.heartRate &&
-                        formData.mdc_idc_set_brady_max_tracking_rate !== undefined
-                        ? validationErrors.heartRate
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_set_brady_max_sensor_rate">
-                    MSR (bpm)
-                  </Label>
-                  <ValidatedInput
-                    id="mdc_idc_set_brady_max_sensor_rate"
-                    name="mdc_idc_set_brady_max_sensor_rate"
-                    type="number"
-                    value={formData.mdc_idc_set_brady_max_sensor_rate || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "heartRate",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={
-                      validationErrors.heartRate &&
-                        formData.mdc_idc_set_brady_max_sensor_rate !== undefined
-                        ? validationErrors.heartRate
-                        : undefined
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            {/* tachy settings card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Tachy Settings</CardTitle>
-                <CardDescription>
-                  Programmed parameters for tachycardia.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                {hasDefibrillator ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-25">Zone</TableHead>
-                        <TableHead>Detection</TableHead>
-                        <TableHead>1. ATP</TableHead>
-                        <TableHead>2. ATP</TableHead>
-                        <TableHead>1. Shock</TableHead>
-                        <TableHead>2. Shock</TableHead>
-                        <TableHead>3. nth</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {/* VT1 row */}
-                      <TableRow>
-                        <TableCell className="font-medium">VT1</TableCell>
-                        <TableCell>
-                          {formData.VT1_detection_interval
-                            ? `${formData.VT1_detection_interval} ms`
-                            : ""}
-                        </TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT1_therapy_1_atp,
-                            formData.VT1_therapy_1_no_bursts,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT1_therapy_2_atp,
-                            formData.VT1_therapy_2_no_bursts,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[formData.VT1_therapy_3_energy].filter(Boolean)}
-                        </TableCell>
-                        <TableCell>{formData.VT1_therapy_4_energy}</TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT1_therapy_5_energy,
-                            formData.VT1_therapy_5_max_num_shocks,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* VT2 row */}
-                      <TableRow>
-                        <TableCell className="font-medium">VT2</TableCell>
-                        <TableCell>
-                          {formData.VT2_detection_interval
-                            ? `${formData.VT2_detection_interval} ms`
-                            : ""}
-                        </TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT2_therapy_1_atp,
-                            formData.VT2_therapy_1_no_bursts,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT2_therapy_2_atp,
-                            formData.VT2_therapy_2_no_bursts,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[formData.VT2_therapy_3_energy]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[formData.VT2_therapy_4_energy]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>
-                          {[
-                            formData.VT2_therapy_5_energy,
-                            formData.VT2_therapy_5_max_num_shocks,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                      </TableRow>
-
-                      {/* VF row */}
-                      <TableRow>
-                        <TableCell className="font-medium">VF</TableCell>
-                        <TableCell>
-                          {formData.VF_detection_interval
-                            ? `${formData.VF_detection_interval} ms`
-                            : ""}
-                        </TableCell>
-                        <TableCell colSpan={2}>
-                          {[
-                            formData.VF_therapy_1_atp,
-                            formData.VF_therapy_1_no_bursts,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell>{[formData.VF_therapy_2_energy]}</TableCell>
-                        <TableCell>{[formData.VF_therapy_3_energy]}</TableCell>
-                        <TableCell>
-                          {[
-                            formData.VF_therapy_4_energy,
-                            formData.VF_therapy_4_max_num_shocks,
-                          ]
-                            .filter(Boolean)
-                            .join(" • ")}
-                        </TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Implanted device has no tachy settings.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {hasLoopRecorder && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>ILR Measurements</CardTitle>
-                <CardDescription>
-                  Battery and sensing measurements only.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_batt_volt">Battery Voltage (V)</Label>
-                  <ValidatedInput
-                    id="mdc_idc_batt_volt"
-                    name="mdc_idc_batt_volt"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_batt_volt || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "batteryVoltage",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={validationErrors.batteryVoltage}
-                  />
-                </div>
-
-                <div className="space-y-2 min-w-0">
-                  <Label>Battery Status</Label>
                   <Select
-                    name="mdc_idc_batt_status"
-                    value={formData.mdc_idc_batt_status || ""}
+                    name="reportStatus"
+                    value={formData.reportStatus || ""}
                     onValueChange={(value) =>
-                      handleSelectChange("mdc_idc_batt_status", value)
+                      handleSelectChange("reportStatus", value)
                     }
+                    required
                   >
                     <SelectTrigger className="h-8 text-sm w-full min-w-0">
                       <SelectValue placeholder="Select status..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="BOL">
-                        BOL (Beginning Of Life)
-                      </SelectItem>
-                      <SelectItem value="OK">OK</SelectItem>
-                      <SelectItem value="MOS">
-                        MOS (Middle Of Service)
-                      </SelectItem>
-                      <SelectItem value="ERI">
-                        ERI (Elective Replacement)
-                      </SelectItem>
-                      <SelectItem value="EOL">EOL (End of Life)</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="reviewed">Reviewed</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_msmt_rv_sensing">
-                    RV Sensing Mean (mV)
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="currentHeartRate"
+                    className="text-xs font-medium leading-tight"
+                  >
+                    Heart Rate (bpm)
                   </Label>
                   <ValidatedInput
-                    id="mdc_idc_msmt_rv_sensing"
-                    name="mdc_idc_msmt_rv_sensing"
+                    id="currentHeartRate"
+                    name="currentHeartRate"
                     type="number"
-                    step="any"
-                    value={formData.mdc_idc_msmt_rv_sensing || ""}
-                    onChange={(e) =>
-                      handleValidatedMeasurementChange(
-                        "mdc_idc_msmt_rv_sensing",
-                        e.target.value,
-                        "sensing",
+                    value={formData.currentHeartRate || ""}
+                    onChange={handleChange}
+                    onBlurValidation={(value) =>
+                      handleBlurValidation(
+                        "heartRate",
+                        parseFloat(value) || undefined,
                       )
                     }
-                    error={
-                      validationErrors.sensing &&
-                        formData.mdc_idc_msmt_rv_sensing !== undefined
-                        ? validationErrors.sensing
-                        : undefined
-                    }
+                    error={validationErrors.heartRate}
+                    placeholder="e.g., 60"
+                    className="h-8 text-sm"
                   />
                 </div>
-              </CardContent>
-            </Card>
 
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    Current Rhythm
+                  </Label>
+                  <Select
+                    name="currentRhythm"
+                    value={formData.currentRhythm || ""}
+                    onValueChange={(value) =>
+                      handleSelectChange("currentRhythm", value)
+                    }
+                  >
+                    <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                      <SelectValue placeholder="Select rhythm..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NSR">NSR</SelectItem>
+                      <SelectItem value="AFib">AFib</SelectItem>
+                      <SelectItem value="AFL">AFL</SelectItem>
+                      <SelectItem value="Paced">Paced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    Pacing Dependency
+                  </Label>
+                  <Select
+                    name="currentDependency"
+                    value={formData.currentDependency || ""}
+                    onValueChange={(value) =>
+                      handleSelectChange("currentDependency", value)
+                    }
+                  >
+                    <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                      <SelectValue placeholder="Select dependency..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dependent">Dependent</SelectItem>
+                      <SelectItem value="Non-Dependent">
+                        Non-Dependent
+                      </SelectItem>
+                      <SelectItem value="Intermittent">Intermittent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium leading-tight">
+                    QRS Duration (ms)
+                  </Label>
+                  <ValidatedInput
+                    id="qrs_duration"
+                    name="qrs_duration"
+                    type="number"
+                    value={formData.qrs_duration || ""}
+                    onChange={handleChange}
+                    onBlurValidation={(value) =>
+                      handleBlurValidation(
+                        "qrsDuration",
+                        parseFloat(value) || undefined,
+                      )
+                    }
+                    error={validationErrors.qrsDuration}
+                    placeholder="e.g., 80-120"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* tags card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tags</CardTitle>
+              <CardDescription>Select tags for this report.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const isSelected = (formData.tags || []).some(
+                    (t) => t.ID === tag.ID,
+                  );
+                  return (
+                    <div
+                      key={tag.ID}
+                      onClick={() => toggleTag(tag.ID)}
+                      className={`
+                    cursor-pointer px-3 py-1 rounded-full text-sm font-medium transition-colors
+                    ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }
+                  `}
+                      style={
+                        isSelected && tag.color
+                          ? { backgroundColor: tag.color, color: "#fff" }
+                          : {}
+                      }
+                    >
+                      {tag.name}
+                    </div>
+                  );
+                })}
+                {availableTags.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No tags available.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {!hasLoopRecorder && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bradycardia Settings</CardTitle>
+                  <CardDescription>
+                    Programmed parameters for bradycardia pacing.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2 min-w-0">
+                    <Label>Mode</Label>
+                    <Select
+                      name="mdc_idc_set_brady_mode"
+                      value={formData.mdc_idc_set_brady_mode || ""}
+                      onValueChange={(value) =>
+                        handleSelectChange("mdc_idc_set_brady_mode", value)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                        <SelectValue placeholder="Select mode..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AAI">AAI</SelectItem>
+                        <SelectItem value="VVI">VVI</SelectItem>
+                        <SelectItem value="AAIR">AAIR</SelectItem>
+                        <SelectItem value="VVIR">VVIR</SelectItem>
+                        <SelectItem value="VVI-CLS">VVI-CLS</SelectItem>
+                        <SelectItem value="DDD-CLS">DDD-CLS</SelectItem>
+                        <SelectItem value="DDD">DDD</SelectItem>
+                        <SelectItem value="DDDR">DDDR</SelectItem>
+                        <SelectItem value="DDI">DDI</SelectItem>
+                        <SelectItem value="DDIR">DDIR</SelectItem>
+                        <SelectItem value="AAI DDD">AAI DDD</SelectItem>
+                        <SelectItem value="AAIR DDDR">AAIR DDDR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 min-w-0">
+                    <Label htmlFor="mdc_idc_set_brady_lowrate">LRL (bpm)</Label>
+                    <ValidatedInput
+                      id="mdc_idc_set_brady_lowrate"
+                      name="mdc_idc_set_brady_lowrate"
+                      type="number"
+                      value={formData.mdc_idc_set_brady_lowrate || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "heartRate",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={
+                        validationErrors.heartRate &&
+                        formData.mdc_idc_set_brady_lowrate !== undefined
+                          ? validationErrors.heartRate
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_set_brady_max_tracking_rate">
+                      MTR (bpm)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_set_brady_max_tracking_rate"
+                      name="mdc_idc_set_brady_max_tracking_rate"
+                      type="number"
+                      value={formData.mdc_idc_set_brady_max_tracking_rate || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "heartRate",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={
+                        validationErrors.heartRate &&
+                        formData.mdc_idc_set_brady_max_tracking_rate !==
+                          undefined
+                          ? validationErrors.heartRate
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_set_brady_max_sensor_rate">
+                      MSR (bpm)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_set_brady_max_sensor_rate"
+                      name="mdc_idc_set_brady_max_sensor_rate"
+                      type="number"
+                      value={formData.mdc_idc_set_brady_max_sensor_rate || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "heartRate",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={
+                        validationErrors.heartRate &&
+                        formData.mdc_idc_set_brady_max_sensor_rate !== undefined
+                          ? validationErrors.heartRate
+                          : undefined
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              {/* tachy settings card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tachy Settings</CardTitle>
+                  <CardDescription>
+                    Programmed parameters for tachycardia.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                  {hasDefibrillator ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-25">Zone</TableHead>
+                          <TableHead>Detection</TableHead>
+                          <TableHead>1. ATP</TableHead>
+                          <TableHead>2. ATP</TableHead>
+                          <TableHead>1. Shock</TableHead>
+                          <TableHead>2. Shock</TableHead>
+                          <TableHead>3. nth</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* VT1 row */}
+                        <TableRow>
+                          <TableCell className="font-medium">VT1</TableCell>
+                          <TableCell>
+                            {formData.VT1_detection_interval
+                              ? `${formData.VT1_detection_interval} ms`
+                              : ""}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT1_therapy_1_atp,
+                              formData.VT1_therapy_1_no_bursts,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT1_therapy_2_atp,
+                              formData.VT1_therapy_2_no_bursts,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[formData.VT1_therapy_3_energy].filter(Boolean)}
+                          </TableCell>
+                          <TableCell>{formData.VT1_therapy_4_energy}</TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT1_therapy_5_energy,
+                              formData.VT1_therapy_5_max_num_shocks,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* VT2 row */}
+                        <TableRow>
+                          <TableCell className="font-medium">VT2</TableCell>
+                          <TableCell>
+                            {formData.VT2_detection_interval
+                              ? `${formData.VT2_detection_interval} ms`
+                              : ""}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT2_therapy_1_atp,
+                              formData.VT2_therapy_1_no_bursts,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT2_therapy_2_atp,
+                              formData.VT2_therapy_2_no_bursts,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[formData.VT2_therapy_3_energy]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[formData.VT2_therapy_4_energy]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VT2_therapy_5_energy,
+                              formData.VT2_therapy_5_max_num_shocks,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* VF row */}
+                        <TableRow>
+                          <TableCell className="font-medium">VF</TableCell>
+                          <TableCell>
+                            {formData.VF_detection_interval
+                              ? `${formData.VF_detection_interval} ms`
+                              : ""}
+                          </TableCell>
+                          <TableCell colSpan={2}>
+                            {[
+                              formData.VF_therapy_1_atp,
+                              formData.VF_therapy_1_no_bursts,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell>
+                            {[formData.VF_therapy_2_energy]}
+                          </TableCell>
+                          <TableCell>
+                            {[formData.VF_therapy_3_energy]}
+                          </TableCell>
+                          <TableCell>
+                            {[
+                              formData.VF_therapy_4_energy,
+                              formData.VF_therapy_4_max_num_shocks,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Implanted device has no tachy settings.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {hasLoopRecorder && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>ILR Measurements</CardTitle>
+                  <CardDescription>
+                    Battery and sensing measurements only.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_batt_volt">
+                      Battery Voltage (V)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_batt_volt"
+                      name="mdc_idc_batt_volt"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_batt_volt || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "batteryVoltage",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={validationErrors.batteryVoltage}
+                    />
+                  </div>
+
+                  <div className="space-y-2 min-w-0">
+                    <Label>Battery Status</Label>
+                    <Select
+                      name="mdc_idc_batt_status"
+                      value={formData.mdc_idc_batt_status || ""}
+                      onValueChange={(value) =>
+                        handleSelectChange("mdc_idc_batt_status", value)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                        <SelectValue placeholder="Select status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BOL">
+                          BOL (Beginning Of Life)
+                        </SelectItem>
+                        <SelectItem value="OK">OK</SelectItem>
+                        <SelectItem value="MOS">
+                          MOS (Middle Of Service)
+                        </SelectItem>
+                        <SelectItem value="ERI">
+                          ERI (Elective Replacement)
+                        </SelectItem>
+                        <SelectItem value="EOL">EOL (End of Life)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_msmt_rv_sensing">
+                      RV Sensing Mean (mV)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_msmt_rv_sensing"
+                      name="mdc_idc_msmt_rv_sensing"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_msmt_rv_sensing || ""}
+                      onChange={(e) =>
+                        handleValidatedMeasurementChange(
+                          "mdc_idc_msmt_rv_sensing",
+                          e.target.value,
+                          "sensing",
+                        )
+                      }
+                      error={
+                        validationErrors.sensing &&
+                        formData.mdc_idc_msmt_rv_sensing !== undefined
+                          ? validationErrors.sensing
+                          : undefined
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Episode Counts</CardTitle>
+                  <CardDescription>Since last check.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left">
+                          Episode Type
+                        </TableHead>
+                        <TableHead className="w-45] text-left">Count</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-semibold text-left">
+                          AF
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Input
+                            name="episode_af_count_since_last_check"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={
+                              formData.episode_af_count_since_last_check ?? ""
+                            }
+                            onChange={handleChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-semibold text-left">
+                          Tachy
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Input
+                            name="episode_tachy_count_since_last_check"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={
+                              formData.episode_tachy_count_since_last_check ??
+                              ""
+                            }
+                            onChange={handleChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-semibold text-left">
+                          Pause
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Input
+                            name="episode_pause_count_since_last_check"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={
+                              formData.episode_pause_count_since_last_check ??
+                              ""
+                            }
+                            onChange={handleChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-semibold text-left">
+                          Symptom (All)
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Input
+                            name="episode_symptom_all_count_since_last_check"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={
+                              formData.episode_symptom_all_count_since_last_check ??
+                              ""
+                            }
+                            onChange={handleChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-semibold text-left">
+                          Symptom (With Detection)
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Input
+                            name="episode_symptom_with_detection_count_since_last_check"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={
+                              formData.episode_symptom_with_detection_count_since_last_check ??
+                              ""
+                            }
+                            onChange={handleChange}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {!hasLoopRecorder && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pacing Percentages</CardTitle>
+                  <CardDescription>
+                    Enter the percentage of time each chamber was paced.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {hasAtrialPacing && (
+                    <div className="space-y-2">
+                      <Label htmlFor="mdc_idc_stat_brady_ra_percent_paced">
+                        RA Paced (%)
+                      </Label>
+                      <Input
+                        id="mdc_idc_stat_brady_ra_percent_paced"
+                        name="mdc_idc_stat_brady_ra_percent_paced"
+                        type="number"
+                        step="any"
+                        value={
+                          formData.mdc_idc_stat_brady_ra_percent_paced || ""
+                        }
+                        onChange={handleChange}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_stat_brady_rv_percent_paced">
+                      RV Paced (%)
+                    </Label>
+                    <Input
+                      id="mdc_idc_stat_brady_rv_percent_paced"
+                      name="mdc_idc_stat_brady_rv_percent_paced"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_stat_brady_rv_percent_paced || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {hasBiventricularPacing && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="mdc_idc_stat_brady_lv_percent_paced">
+                          LV Paced (%)
+                        </Label>
+                        <Input
+                          id="mdc_idc_stat_brady_lv_percent_paced"
+                          name="mdc_idc_stat_brady_lv_percent_paced"
+                          type="number"
+                          step="any"
+                          value={
+                            formData.mdc_idc_stat_brady_lv_percent_paced || ""
+                          }
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">
+                          BiV Paced (%)
+                        </Label>
+                        <Input
+                          id="mdc_idc_stat_brady_biv_percent_paced"
+                          name="mdc_idc_stat_brady_biv_percent_paced"
+                          type="number"
+                          step="any"
+                          value={
+                            formData.mdc_idc_stat_brady_biv_percent_paced || ""
+                          }
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Battery & Device Diagnostics</CardTitle>
+                  <CardDescription>
+                    Details about the device's battery and health.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_batt_volt">
+                      Battery Voltage (V)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_batt_volt"
+                      name="mdc_idc_batt_volt"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_batt_volt || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "batteryVoltage",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={validationErrors.batteryVoltage}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_batt_remaining">
+                      Longevity (yrs)
+                    </Label>
+                    <Input
+                      id="mdc_idc_batt_remaining"
+                      name="mdc_idc_batt_remaining"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_batt_remaining || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mdc_idc_batt_percentage">
+                      Longevity (%)
+                    </Label>
+                    <ValidatedInput
+                      id="mdc_idc_batt_percentage"
+                      name="mdc_idc_batt_percentage"
+                      type="number"
+                      step="any"
+                      value={formData.mdc_idc_batt_percentage || ""}
+                      onChange={handleChange}
+                      onBlurValidation={(value) =>
+                        handleBlurValidation(
+                          "percentage",
+                          parseFloat(value) || undefined,
+                        )
+                      }
+                      error={validationErrors.percentage}
+                    />
+                  </div>
+                  <div className="space-y-2 min-w-0">
+                    <Label>Battery Status</Label>
+                    <Select
+                      name="mdc_idc_batt_status"
+                      value={formData.mdc_idc_batt_status || ""}
+                      onValueChange={(value) =>
+                        handleSelectChange("mdc_idc_batt_status", value)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-sm w-full min-w-0">
+                        <SelectValue placeholder="Select status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BOL">
+                          BOL (Beginning Of Life)
+                        </SelectItem>
+                        <SelectItem value="OK">OK</SelectItem>
+                        <SelectItem value="MOS">
+                          MOS (Middle Of Service)
+                        </SelectItem>
+                        <SelectItem value="ERI">
+                          ERI (Elective Replacement)
+                        </SelectItem>
+                        <SelectItem value="EOL">EOL (End of Life)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {hasDefibrillator && (
+                    <div className="space-y-2 min-w-0">
+                      <Label htmlFor="mdc_idc_cap_charge_time">
+                        Charge Time (s)
+                      </Label>
+                      <ValidatedInput
+                        id="mdc_idc_cap_charge_time"
+                        name="mdc_idc_cap_charge_time"
+                        type="number"
+                        step="any"
+                        value={formData.mdc_idc_cap_charge_time || ""}
+                        onChange={handleChange}
+                        onBlurValidation={(value) =>
+                          handleBlurValidation(
+                            "chargeTime",
+                            parseFloat(value) || undefined,
+                          )
+                        }
+                        error={validationErrors.chargeTime}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {!hasLoopRecorder && (
             <Card>
               <CardHeader>
-                <CardTitle>Episode Counts</CardTitle>
-                <CardDescription>Since last check.</CardDescription>
+                <CardTitle>Lead Measurements</CardTitle>
+                <CardDescription>
+                  Enter the measured values for each lead chamber.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-left">Episode Type</TableHead>
-                      <TableHead className="w-45] text-left">Count</TableHead>
+                      <TableHead className="w-20">Chamber</TableHead>
+                      <TableHead>Impedance (Ω)</TableHead>
+                      <TableHead>Sensing (mV)</TableHead>
+                      <TableHead>Threshold (V)</TableHead>
+                      <TableHead>Pulse Width (ms)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {hasAtrialPacing && (
+                      <TableRow>
+                        <TableCell className="font-semibold">RA</TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_ra_impedance_mean"
+                            name="mdc_idc_msmt_ra_impedance_mean"
+                            type="number"
+                            step="any"
+                            value={
+                              formData.mdc_idc_msmt_ra_impedance_mean || ""
+                            }
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_ra_impedance_mean",
+                                e.target.value,
+                                "impedance",
+                              )
+                            }
+                            error={
+                              validationErrors.impedance &&
+                              formData.mdc_idc_msmt_ra_impedance_mean !==
+                                undefined
+                                ? validationErrors.impedance
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_ra_sensing"
+                            name="mdc_idc_msmt_ra_sensing"
+                            type="number"
+                            step="any"
+                            value={formData.mdc_idc_msmt_ra_sensing || ""}
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_ra_sensing",
+                                e.target.value,
+                                "sensing",
+                              )
+                            }
+                            error={
+                              validationErrors.sensing &&
+                              formData.mdc_idc_msmt_ra_sensing !== undefined
+                                ? validationErrors.sensing
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_ra_pacing_threshold"
+                            name="mdc_idc_msmt_ra_pacing_threshold"
+                            type="number"
+                            step="any"
+                            value={
+                              formData.mdc_idc_msmt_ra_pacing_threshold || ""
+                            }
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_ra_pacing_threshold",
+                                e.target.value,
+                                "threshold",
+                              )
+                            }
+                            error={
+                              validationErrors.threshold &&
+                              formData.mdc_idc_msmt_ra_pacing_threshold !==
+                                undefined
+                                ? validationErrors.threshold
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_ra_pw"
+                            name="mdc_idc_msmt_ra_pw"
+                            type="number"
+                            step="any"
+                            value={formData.mdc_idc_msmt_ra_pw || ""}
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_ra_pw",
+                                e.target.value,
+                                "pulseWidth",
+                              )
+                            }
+                            error={
+                              validationErrors.pulseWidth &&
+                              formData.mdc_idc_msmt_ra_pw !== undefined
+                                ? validationErrors.pulseWidth
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
                     <TableRow>
-                      <TableCell className="font-semibold text-left">
-                        AF
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Input
-                          name="episode_af_count_since_last_check"
+                      <TableCell className="font-semibold">RV</TableCell>
+                      <TableCell>
+                        <ValidatedInput
+                          id="mdc_idc_msmt_rv_impedance_mean"
+                          name="mdc_idc_msmt_rv_impedance_mean"
                           type="number"
-                          min={0}
-                          step={1}
-                          value={
-                            formData.episode_af_count_since_last_check ?? ""
+                          step="any"
+                          value={formData.mdc_idc_msmt_rv_impedance_mean || ""}
+                          onChange={(e) =>
+                            handleValidatedMeasurementChange(
+                              "mdc_idc_msmt_rv_impedance_mean",
+                              e.target.value,
+                              "impedance",
+                            )
                           }
-                          onChange={handleChange}
+                          error={
+                            validationErrors.impedance &&
+                            formData.mdc_idc_msmt_rv_impedance_mean !==
+                              undefined
+                              ? validationErrors.impedance
+                              : undefined
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <ValidatedInput
+                          id="mdc_idc_msmt_rv_sensing"
+                          name="mdc_idc_msmt_rv_sensing"
+                          type="number"
+                          step="any"
+                          value={formData.mdc_idc_msmt_rv_sensing || ""}
+                          onChange={(e) =>
+                            handleValidatedMeasurementChange(
+                              "mdc_idc_msmt_rv_sensing",
+                              e.target.value,
+                              "sensing",
+                            )
+                          }
+                          error={
+                            validationErrors.sensing &&
+                            formData.mdc_idc_msmt_rv_sensing !== undefined
+                              ? validationErrors.sensing
+                              : undefined
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <ValidatedInput
+                          id="mdc_idc_msmt_rv_pacing_threshold"
+                          name="mdc_idc_msmt_rv_pacing_threshold"
+                          type="number"
+                          step="any"
+                          value={
+                            formData.mdc_idc_msmt_rv_pacing_threshold || ""
+                          }
+                          onChange={(e) =>
+                            handleValidatedMeasurementChange(
+                              "mdc_idc_msmt_rv_pacing_threshold",
+                              e.target.value,
+                              "threshold",
+                            )
+                          }
+                          error={
+                            validationErrors.threshold &&
+                            formData.mdc_idc_msmt_rv_pacing_threshold !==
+                              undefined
+                              ? validationErrors.threshold
+                              : undefined
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <ValidatedInput
+                          id="mdc_idc_msmt_rv_pw"
+                          name="mdc_idc_msmt_rv_pw"
+                          type="number"
+                          step="any"
+                          value={formData.mdc_idc_msmt_rv_pw || ""}
+                          onChange={(e) =>
+                            handleValidatedMeasurementChange(
+                              "mdc_idc_msmt_rv_pw",
+                              e.target.value,
+                              "pulseWidth",
+                            )
+                          }
+                          error={
+                            validationErrors.pulseWidth &&
+                            formData.mdc_idc_msmt_rv_pw !== undefined
+                              ? validationErrors.pulseWidth
+                              : undefined
+                          }
                         />
                       </TableCell>
                     </TableRow>
-                    <TableRow>
-                      <TableCell className="font-semibold text-left">
-                        Tachy
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Input
-                          name="episode_tachy_count_since_last_check"
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={
-                            formData.episode_tachy_count_since_last_check ?? ""
-                          }
-                          onChange={handleChange}
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-semibold text-left">
-                        Pause
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Input
-                          name="episode_pause_count_since_last_check"
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={
-                            formData.episode_pause_count_since_last_check ?? ""
-                          }
-                          onChange={handleChange}
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-semibold text-left">
-                        Symptom (All)
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Input
-                          name="episode_symptom_all_count_since_last_check"
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={
-                            formData.episode_symptom_all_count_since_last_check ??
-                            ""
-                          }
-                          onChange={handleChange}
-                        />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-semibold text-left">
-                        Symptom (With Detection)
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Input
-                          name="episode_symptom_with_detection_count_since_last_check"
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={
-                            formData.episode_symptom_with_detection_count_since_last_check ??
-                            ""
-                          }
-                          onChange={handleChange}
-                        />
-                      </TableCell>
-                    </TableRow>
+                    {hasBiventricularPacing && (
+                      <TableRow>
+                        <TableCell className="font-semibold">LV</TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_lv_impedance_mean"
+                            name="mdc_idc_msmt_lv_impedance_mean"
+                            type="number"
+                            step="any"
+                            value={
+                              formData.mdc_idc_msmt_lv_impedance_mean || ""
+                            }
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_lv_impedance_mean",
+                                e.target.value,
+                                "impedance",
+                              )
+                            }
+                            error={
+                              validationErrors.impedance &&
+                              formData.mdc_idc_msmt_lv_impedance_mean !==
+                                undefined
+                                ? validationErrors.impedance
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_lv_sensing"
+                            name="mdc_idc_msmt_lv_sensing"
+                            type="number"
+                            step="any"
+                            value={formData.mdc_idc_msmt_lv_sensing || ""}
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_lv_sensing",
+                                e.target.value,
+                                "sensing",
+                              )
+                            }
+                            error={
+                              validationErrors.sensing &&
+                              formData.mdc_idc_msmt_lv_sensing !== undefined
+                                ? validationErrors.sensing
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_lv_pacing_threshold"
+                            name="mdc_idc_msmt_lv_pacing_threshold"
+                            type="number"
+                            step="any"
+                            value={
+                              formData.mdc_idc_msmt_lv_pacing_threshold || ""
+                            }
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_lv_pacing_threshold",
+                                e.target.value,
+                                "threshold",
+                              )
+                            }
+                            error={
+                              validationErrors.threshold &&
+                              formData.mdc_idc_msmt_lv_pacing_threshold !==
+                                undefined
+                                ? validationErrors.threshold
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ValidatedInput
+                            id="mdc_idc_msmt_lv_pw"
+                            name="mdc_idc_msmt_lv_pw"
+                            type="number"
+                            step="any"
+                            value={formData.mdc_idc_msmt_lv_pw || ""}
+                            onChange={(e) =>
+                              handleValidatedMeasurementChange(
+                                "mdc_idc_msmt_lv_pw",
+                                e.target.value,
+                                "pulseWidth",
+                              )
+                            }
+                            error={
+                              validationErrors.pulseWidth &&
+                              formData.mdc_idc_msmt_lv_pw !== undefined
+                                ? validationErrors.pulseWidth
+                                : undefined
+                            }
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {!hasLoopRecorder && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pacing Percentages</CardTitle>
-                <CardDescription>
-                  Enter the percentage of time each chamber was paced.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {hasAtrialPacing && (
-                  <div className="space-y-2">
-                    <Label htmlFor="mdc_idc_stat_brady_ra_percent_paced">
-                      RA Paced (%)
-                    </Label>
-                    <Input
-                      id="mdc_idc_stat_brady_ra_percent_paced"
-                      name="mdc_idc_stat_brady_ra_percent_paced"
-                      type="number"
-                      step="any"
-                      value={formData.mdc_idc_stat_brady_ra_percent_paced || ""}
-                      onChange={handleChange}
-                    />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_stat_brady_rv_percent_paced">
-                    RV Paced (%)
-                  </Label>
-                  <Input
-                    id="mdc_idc_stat_brady_rv_percent_paced"
-                    name="mdc_idc_stat_brady_rv_percent_paced"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_stat_brady_rv_percent_paced || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                {hasBiventricularPacing && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="mdc_idc_stat_brady_lv_percent_paced">
-                        LV Paced (%)
-                      </Label>
-                      <Input
-                        id="mdc_idc_stat_brady_lv_percent_paced"
-                        name="mdc_idc_stat_brady_lv_percent_paced"
-                        type="number"
-                        step="any"
-                        value={
-                          formData.mdc_idc_stat_brady_lv_percent_paced || ""
-                        }
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mdc_idc_stat_brady_biv_percent_paced">
-                        BiV Paced (%)
-                      </Label>
-                      <Input
-                        id="mdc_idc_stat_brady_biv_percent_paced"
-                        name="mdc_idc_stat_brady_biv_percent_paced"
-                        type="number"
-                        step="any"
-                        value={
-                          formData.mdc_idc_stat_brady_biv_percent_paced || ""
-                        }
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Battery & Device Diagnostics</CardTitle>
-                <CardDescription>
-                  Details about the device's battery and health.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_batt_volt">Battery Voltage (V)</Label>
-                  <ValidatedInput
-                    id="mdc_idc_batt_volt"
-                    name="mdc_idc_batt_volt"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_batt_volt || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "batteryVoltage",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={validationErrors.batteryVoltage}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_batt_remaining">
-                    Longevity (yrs)
-                  </Label>
-                  <Input
-                    id="mdc_idc_batt_remaining"
-                    name="mdc_idc_batt_remaining"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_batt_remaining || ""}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mdc_idc_batt_percentage">Longevity (%)</Label>
-                  <ValidatedInput
-                    id="mdc_idc_batt_percentage"
-                    name="mdc_idc_batt_percentage"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_batt_percentage || ""}
-                    onChange={handleChange}
-                    onBlurValidation={(value) =>
-                      handleBlurValidation(
-                        "percentage",
-                        parseFloat(value) || undefined,
-                      )
-                    }
-                    error={validationErrors.percentage}
-                  />
-                </div>
-                <div className="space-y-2 min-w-0">
-                  <Label>Battery Status</Label>
-                  <Select
-                    name="mdc_idc_batt_status"
-                    value={formData.mdc_idc_batt_status || ""}
-                    onValueChange={(value) =>
-                      handleSelectChange("mdc_idc_batt_status", value)
-                    }
-                  >
-                    <SelectTrigger className="h-8 text-sm w-full min-w-0">
-                      <SelectValue placeholder="Select status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BOL">
-                        BOL (Beginning Of Life)
-                      </SelectItem>
-                      <SelectItem value="OK">OK</SelectItem>
-                      <SelectItem value="MOS">
-                        MOS (Middle Of Service)
-                      </SelectItem>
-                      <SelectItem value="ERI">
-                        ERI (Elective Replacement)
-                      </SelectItem>
-                      <SelectItem value="EOL">EOL (End of Life)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 {hasDefibrillator && (
-                  <div className="space-y-2 min-w-0">
-                    <Label htmlFor="mdc_idc_cap_charge_time">
-                      Charge Time (s)
-                    </Label>
+                  <div className="mt-4 border-t pt-4">
+                    <Label className="pb-2">RV Shock Impedance (Ω)</Label>
                     <ValidatedInput
-                      id="mdc_idc_cap_charge_time"
-                      name="mdc_idc_cap_charge_time"
+                      id="mdc_idc_msmt_hv_impedance_mean"
+                      name="mdc_idc_msmt_hv_impedance_mean"
                       type="number"
                       step="any"
-                      value={formData.mdc_idc_cap_charge_time || ""}
-                      onChange={handleChange}
-                      onBlurValidation={(value) =>
-                        handleBlurValidation(
-                          "chargeTime",
-                          parseFloat(value) || undefined,
+                      value={formData.mdc_idc_msmt_hv_impedance_mean || ""}
+                      onChange={(e) =>
+                        handleValidatedMeasurementChange(
+                          "mdc_idc_msmt_hv_impedance_mean",
+                          e.target.value,
+                          "shockImpedance",
                         )
                       }
-                      error={validationErrors.chargeTime}
+                      error={validationErrors.shockImpedance}
+                      className="max-w-xs"
                     />
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-        )}
+          )}
 
-        {!hasLoopRecorder && (
           <Card>
             <CardHeader>
-              <CardTitle>Lead Measurements</CardTitle>
+              <CardTitle>Arrhythmia Events</CardTitle>
               <CardDescription>
-                Enter the measured values for each lead chamber.
+                Add one or more arrhythmia events observed in this report.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">Chamber</TableHead>
-                    <TableHead>Impedance (Ω)</TableHead>
-                    <TableHead>Sensing (mV)</TableHead>
-                    <TableHead>Threshold (V)</TableHead>
-                    <TableHead>Pulse Width (ms)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {hasAtrialPacing && (
-                    <TableRow>
-                      <TableCell className="font-semibold">RA</TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_ra_impedance_mean"
-                          name="mdc_idc_msmt_ra_impedance_mean"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_ra_impedance_mean || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_ra_impedance_mean",
-                              e.target.value,
-                              "impedance",
-                            )
-                          }
-                          error={
-                            validationErrors.impedance &&
-                              formData.mdc_idc_msmt_ra_impedance_mean !==
-                              undefined
-                              ? validationErrors.impedance
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_ra_sensing"
-                          name="mdc_idc_msmt_ra_sensing"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_ra_sensing || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_ra_sensing",
-                              e.target.value,
-                              "sensing",
-                            )
-                          }
-                          error={
-                            validationErrors.sensing &&
-                              formData.mdc_idc_msmt_ra_sensing !== undefined
-                              ? validationErrors.sensing
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_ra_pacing_threshold"
-                          name="mdc_idc_msmt_ra_pacing_threshold"
-                          type="number"
-                          step="any"
-                          value={
-                            formData.mdc_idc_msmt_ra_pacing_threshold || ""
-                          }
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_ra_pacing_threshold",
-                              e.target.value,
-                              "threshold",
-                            )
-                          }
-                          error={
-                            validationErrors.threshold &&
-                              formData.mdc_idc_msmt_ra_pacing_threshold !==
-                              undefined
-                              ? validationErrors.threshold
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_ra_pw"
-                          name="mdc_idc_msmt_ra_pw"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_ra_pw || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_ra_pw",
-                              e.target.value,
-                              "pulseWidth",
-                            )
-                          }
-                          error={
-                            validationErrors.pulseWidth &&
-                              formData.mdc_idc_msmt_ra_pw !== undefined
-                              ? validationErrors.pulseWidth
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell className="font-semibold">RV</TableCell>
-                    <TableCell>
-                      <ValidatedInput
-                        id="mdc_idc_msmt_rv_impedance_mean"
-                        name="mdc_idc_msmt_rv_impedance_mean"
+            <CardContent className="space-y-4">
+              {(formData.arrhythmias || []).map((arr, index) => (
+                <div
+                  key={index}
+                  className="p-4 border rounded-lg space-y-4 relative bg-muted/50"
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 pb-2"
+                    onClick={() => removeArrhythmia(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="pb-2">Name</Label>
+                      <Select
+                        value={arr.name}
+                        onValueChange={(value) =>
+                          handleArrhythmiaChange(index, "name", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select arrhythmia type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="af">
+                            Atrial Fibrillation
+                          </SelectItem>
+                          <SelectItem value="afl">Atrial Flutter</SelectItem>
+                          <SelectItem value="svt">
+                            Superventricular Tachycardia
+                          </SelectItem>
+                          <SelectItem value="nsvt">
+                            Non Sustained Ventricular Tachycardia
+                          </SelectItem>
+                          <SelectItem value="vt">
+                            Ventricular Tachycardia
+                          </SelectItem>
+                          <SelectItem value="vf">
+                            Ventricular Fibrillation
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* <div><Label className='pb-2'>Symptoms</Label><Input value={arr.symptoms} onChange={e => handleArrhythmiaChange(index, 'symptoms', e.target.value)} placeholder="e.g., Palpitations" /></div> */}
+
+                    <div>
+                      <Label className="pb-2">Symptoms</Label>
+                      <Select
+                        value={arr.symptoms}
+                        onValueChange={(value) =>
+                          handleArrhythmiaChange(index, "symptoms", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select symptom type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="palpatations">
+                            Palpatations
+                          </SelectItem>
+                          <SelectItem value="pre-syncope">
+                            Pre-syncope
+                          </SelectItem>
+                          <SelectItem value="syncope">Syncope</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="pb-2">Rate (bpm)</Label>
+                      <Input
                         type="number"
-                        step="any"
-                        value={formData.mdc_idc_msmt_rv_impedance_mean || ""}
+                        value={arr.rate}
                         onChange={(e) =>
-                          handleValidatedMeasurementChange(
-                            "mdc_idc_msmt_rv_impedance_mean",
+                          handleArrhythmiaChange(index, "rate", e.target.value)
+                        }
+                        placeholder="e.g., 150"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* <div><Label className='pb-2'>Termination</Label><Input value={arr.termination} onChange={e => handleArrhythmiaChange(index, 'termination', e.target.value)} placeholder="e.g., Spontaneous" /></div> */}
+                    <div>
+                      <Label className="pb-2">Termination</Label>
+                      <Select
+                        value={arr.termination}
+                        onValueChange={(value) =>
+                          handleArrhythmiaChange(index, "termination", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select temination method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ongoing">On Going</SelectItem>
+                          <SelectItem value="spontanous">Spontanous</SelectItem>
+                          <SelectItem value="atp">Ant Tachy pacing</SelectItem>
+                          <SelectItem value="shock">Cardioversion</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="pb-2">Therapies</Label>
+                      <Input
+                        value={arr.therapies}
+                        onChange={(e) =>
+                          handleArrhythmiaChange(
+                            index,
+                            "therapies",
                             e.target.value,
-                            "impedance",
                           )
                         }
-                        error={
-                          validationErrors.impedance &&
-                            formData.mdc_idc_msmt_rv_impedance_mean !== undefined
-                            ? validationErrors.impedance
-                            : undefined
-                        }
+                        placeholder="e.g., ATP"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <ValidatedInput
-                        id="mdc_idc_msmt_rv_sensing"
-                        name="mdc_idc_msmt_rv_sensing"
-                        type="number"
-                        step="any"
-                        value={formData.mdc_idc_msmt_rv_sensing || ""}
-                        onChange={(e) =>
-                          handleValidatedMeasurementChange(
-                            "mdc_idc_msmt_rv_sensing",
-                            e.target.value,
-                            "sensing",
-                          )
-                        }
-                        error={
-                          validationErrors.sensing &&
-                            formData.mdc_idc_msmt_rv_sensing !== undefined
-                            ? validationErrors.sensing
-                            : undefined
-                        }
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" onClick={addArrhythmia}>
+                <Plus className="mr-2 h-4 w-4" /> Add Arrhythmia Event
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Comments</CardTitle>
+              <CardDescription>
+                Any notes or comments about this report.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="space-y-2 pt-2">
+                <AutocompleteTextarea
+                  id="comments"
+                  name="comments"
+                  value={formData.comments || ""}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, comments: value }))
+                  }
+                  suggestions={REPORT_COMMENT_SUGGESTIONS}
+                  placeholder="Add any relevant comments here... (Start typing to see suggestions)"
+                  className="min-h-30"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Start typing to see suggestions. Use ↑↓ arrows to navigate,
+                  Enter to select, Esc to dismiss.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="isCompleted"
+                  name="isCompleted"
+                  checked={!!formData.isCompleted}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isCompleted: !!checked,
+                      ...(checked
+                        ? {}
+                        : {
+                            completedByName: "",
+                            completedBySignature: undefined,
+                          }),
+                    }))
+                  }
+                />
+                <Label htmlFor="isCompleted" className="font-normal">
+                  Mark as Completed
+                </Label>
+              </div>
+
+              {canComplete && formData.isCompleted && (
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="completedByName">Reviewer Name</Label>
+                    <Input
+                      id="completedByName"
+                      name="completedByName"
+                      value={formData.completedByName || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          completedByName: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Digital Signature</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={clearSignature}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-2">
+                      <canvas
+                        ref={signatureCanvasRef}
+                        width={480}
+                        height={160}
+                        className="w-full bg-white rounded border"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          const target = e.currentTarget;
+                          target.setPointerCapture?.(e.pointerId);
+                          handleSignaturePointerDown(e);
+                        }}
+                        onPointerMove={handleSignaturePointerMove}
+                        onPointerUp={(e) => {
+                          e.preventDefault();
+                          handleSignaturePointerUp();
+                        }}
+                        onPointerLeave={handleSignaturePointerUp}
                       />
-                    </TableCell>
-                    <TableCell>
-                      <ValidatedInput
-                        id="mdc_idc_msmt_rv_pacing_threshold"
-                        name="mdc_idc_msmt_rv_pacing_threshold"
-                        type="number"
-                        step="any"
-                        value={formData.mdc_idc_msmt_rv_pacing_threshold || ""}
-                        onChange={(e) =>
-                          handleValidatedMeasurementChange(
-                            "mdc_idc_msmt_rv_pacing_threshold",
-                            e.target.value,
-                            "threshold",
-                          )
-                        }
-                        error={
-                          validationErrors.threshold &&
-                            formData.mdc_idc_msmt_rv_pacing_threshold !==
-                            undefined
-                            ? validationErrors.threshold
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <ValidatedInput
-                        id="mdc_idc_msmt_rv_pw"
-                        name="mdc_idc_msmt_rv_pw"
-                        type="number"
-                        step="any"
-                        value={formData.mdc_idc_msmt_rv_pw || ""}
-                        onChange={(e) =>
-                          handleValidatedMeasurementChange(
-                            "mdc_idc_msmt_rv_pw",
-                            e.target.value,
-                            "pulseWidth",
-                          )
-                        }
-                        error={
-                          validationErrors.pulseWidth &&
-                            formData.mdc_idc_msmt_rv_pw !== undefined
-                            ? validationErrors.pulseWidth
-                            : undefined
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                  {hasBiventricularPacing && (
-                    <TableRow>
-                      <TableCell className="font-semibold">LV</TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_lv_impedance_mean"
-                          name="mdc_idc_msmt_lv_impedance_mean"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_lv_impedance_mean || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_lv_impedance_mean",
-                              e.target.value,
-                              "impedance",
-                            )
-                          }
-                          error={
-                            validationErrors.impedance &&
-                              formData.mdc_idc_msmt_lv_impedance_mean !==
-                              undefined
-                              ? validationErrors.impedance
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_lv_sensing"
-                          name="mdc_idc_msmt_lv_sensing"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_lv_sensing || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_lv_sensing",
-                              e.target.value,
-                              "sensing",
-                            )
-                          }
-                          error={
-                            validationErrors.sensing &&
-                              formData.mdc_idc_msmt_lv_sensing !== undefined
-                              ? validationErrors.sensing
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_lv_pacing_threshold"
-                          name="mdc_idc_msmt_lv_pacing_threshold"
-                          type="number"
-                          step="any"
-                          value={
-                            formData.mdc_idc_msmt_lv_pacing_threshold || ""
-                          }
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_lv_pacing_threshold",
-                              e.target.value,
-                              "threshold",
-                            )
-                          }
-                          error={
-                            validationErrors.threshold &&
-                              formData.mdc_idc_msmt_lv_pacing_threshold !==
-                              undefined
-                              ? validationErrors.threshold
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ValidatedInput
-                          id="mdc_idc_msmt_lv_pw"
-                          name="mdc_idc_msmt_lv_pw"
-                          type="number"
-                          step="any"
-                          value={formData.mdc_idc_msmt_lv_pw || ""}
-                          onChange={(e) =>
-                            handleValidatedMeasurementChange(
-                              "mdc_idc_msmt_lv_pw",
-                              e.target.value,
-                              "pulseWidth",
-                            )
-                          }
-                          error={
-                            validationErrors.pulseWidth &&
-                              formData.mdc_idc_msmt_lv_pw !== undefined
-                              ? validationErrors.pulseWidth
-                              : undefined
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              {hasDefibrillator && (
-                <div className="mt-4 border-t pt-4">
-                  <Label className="pb-2">RV Shock Impedance (Ω)</Label>
-                  <ValidatedInput
-                    id="mdc_idc_msmt_hv_impedance_mean"
-                    name="mdc_idc_msmt_hv_impedance_mean"
-                    type="number"
-                    step="any"
-                    value={formData.mdc_idc_msmt_hv_impedance_mean || ""}
-                    onChange={(e) =>
-                      handleValidatedMeasurementChange(
-                        "mdc_idc_msmt_hv_impedance_mean",
-                        e.target.value,
-                        "shockImpedance",
-                      )
-                    }
-                    error={validationErrors.shockImpedance}
-                    className="max-w-xs"
-                  />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+                        <span>
+                          {requireSignature
+                            ? "Signature required for staff doctors."
+                            : "Signature optional for admins."}
+                        </span>
+                        {formData.completedBySignature && <span>Captured</span>}
+                      </div>
+                      {formData.completedBySignature && (
+                        <div className="mt-2">
+                          <img
+                            src={formData.completedBySignature}
+                            alt="Signature preview"
+                            className="h-16 object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Arrhythmia Events</CardTitle>
-            <CardDescription>
-              Add one or more arrhythmia events observed in this report.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(formData.arrhythmias || []).map((arr, index) => (
-              <div
-                key={index}
-                className="p-4 border rounded-lg space-y-4 relative bg-muted/50"
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 pb-2"
-                  onClick={() => removeArrhythmia(index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="pb-2">Name</Label>
-                    <Select
-                      value={arr.name}
-                      onValueChange={(value) =>
-                        handleArrhythmiaChange(index, "name", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select arrhythmia type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="af">Atrial Fibrillation</SelectItem>
-                        <SelectItem value="afl">Atrial Flutter</SelectItem>
-                        <SelectItem value="svt">
-                          Superventricular Tachycardia
-                        </SelectItem>
-                        <SelectItem value="nsvt">
-                          Non Sustained Ventricular Tachycardia
-                        </SelectItem>
-                        <SelectItem value="vt">
-                          Ventricular Tachycardia
-                        </SelectItem>
-                        <SelectItem value="vf">
-                          Ventricular Fibrillation
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* <div><Label className='pb-2'>Symptoms</Label><Input value={arr.symptoms} onChange={e => handleArrhythmiaChange(index, 'symptoms', e.target.value)} placeholder="e.g., Palpitations" /></div> */}
-
-                  <div>
-                    <Label className="pb-2">Symptoms</Label>
-                    <Select
-                      value={arr.symptoms}
-                      onValueChange={(value) =>
-                        handleArrhythmiaChange(index, "symptoms", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select symptom type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="palpatations">
-                          Palpatations
-                        </SelectItem>
-                        <SelectItem value="pre-syncope">Pre-syncope</SelectItem>
-                        <SelectItem value="syncope">Syncope</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="pb-2">Rate (bpm)</Label>
-                    <Input
-                      type="number"
-                      value={arr.rate}
-                      onChange={(e) =>
-                        handleArrhythmiaChange(index, "rate", e.target.value)
-                      }
-                      placeholder="e.g., 150"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* <div><Label className='pb-2'>Termination</Label><Input value={arr.termination} onChange={e => handleArrhythmiaChange(index, 'termination', e.target.value)} placeholder="e.g., Spontaneous" /></div> */}
-                  <div>
-                    <Label className="pb-2">Termination</Label>
-                    <Select
-                      value={arr.termination}
-                      onValueChange={(value) =>
-                        handleArrhythmiaChange(index, "termination", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select temination method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ongoing">On Going</SelectItem>
-                        <SelectItem value="spontanous">Spontanous</SelectItem>
-                        <SelectItem value="atp">Ant Tachy pacing</SelectItem>
-                        <SelectItem value="shock">Cardioversion</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="pb-2">Therapies</Label>
-                    <Input
-                      value={arr.therapies}
-                      onChange={(e) =>
-                        handleArrhythmiaChange(
-                          index,
-                          "therapies",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="e.g., ATP"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <Button type="button" variant="outline" onClick={addArrhythmia}>
-              <Plus className="mr-2 h-4 w-4" /> Add Arrhythmia Event
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Comments</CardTitle>
-            <CardDescription>
-              Any notes or comments about this report.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-2 pt-2">
-              <AutocompleteTextarea
-                id="comments"
-                name="comments"
-                value={formData.comments || ""}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, comments: value }))
-                }
-                suggestions={REPORT_COMMENT_SUGGESTIONS}
-                placeholder="Add any relevant comments here... (Start typing to see suggestions)"
-                className="min-h-30"
-              />
-              <p className="text-xs text-muted-foreground">
-                Start typing to see suggestions. Use ↑↓ arrows to navigate,
-                Enter to select, Esc to dismiss.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="isCompleted"
-                name="isCompleted"
-                checked={!!formData.isCompleted}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    isCompleted: !!checked,
-                    ...(checked
-                      ? {}
-                      : {
-                        completedByName: "",
-                        completedBySignature: undefined,
-                      }),
-                  }))
-                }
-              />
-              <Label htmlFor="isCompleted" className="font-normal">
-                Mark as Completed
-              </Label>
-            </div>
-
-            {canComplete && formData.isCompleted && (
-              <div className="space-y-3 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="completedByName">Reviewer Name</Label>
-                  <Input
-                    id="completedByName"
-                    name="completedByName"
-                    value={formData.completedByName || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        completedByName: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter your name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Digital Signature</Label>
+          <Card>
+            <CardHeader>
+              <CardTitle>PDF Attachments</CardTitle>
+              <CardDescription>
+                {isEdit && currentReport?.file_url
+                  ? "View the current PDF or attach new files to merge and replace it."
+                  : "Attach and merge multiple PDF files into a single document."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CardContent>
+                {isEdit && currentReport?.file_url && (
+                  <div className="mb-4 flex gap-2">
                     <Button
                       type="button"
-                      size="sm"
                       variant="outline"
-                      onClick={clearSignature}
+                      onClick={async () => {
+                        try {
+                          const apiPath = currentReport.file_url?.replace(
+                            "/uploads/",
+                            "/files/",
+                          );
+                          if (!apiPath) {
+                            console.error("apiPath is undefined");
+                            return;
+                          }
+                          const response = await api.get(apiPath, {
+                            responseType: "blob",
+                          });
+
+                          // Create a blob URL and open it in a new tab
+                          const blob = new Blob([response.data], {
+                            type: "application/pdf",
+                          });
+                          const url = window.URL.createObjectURL(blob);
+                          window.open(url, "_blank");
+
+                          // Clean up the blob URL after a short delay
+                          setTimeout(
+                            () => window.URL.revokeObjectURL(url),
+                            100,
+                          );
+                        } catch (error) {
+                          console.error("Failed to load PDF:", error);
+                          // Handle error (show notification, etc.)
+                        }
+                      }}
                     >
-                      Clear
+                      <LinkIcon className="mr-2 h-4 w-4" /> View Current PDF
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={async () => {
+                        try {
+                          const apiPath = currentReport.file_url?.replace(
+                            "/uploads/",
+                            "/files/",
+                          );
+                          if (!apiPath) {
+                            console.error("apiPath is undefined");
+                            return;
+                          }
+                          const response = await api.get(apiPath, {
+                            responseType: "blob",
+                          });
+
+                          // Create a blob URL
+                          const blob = new Blob([response.data], {
+                            type: "application/pdf",
+                          });
+                          const url = window.URL.createObjectURL(blob);
+                          setSideBySidePdfUrl(url);
+                        } catch (error) {
+                          console.error(
+                            "Failed to load PDF for side-by-side view:",
+                            error,
+                          );
+                          toast.error("Failed to load PDF");
+                        }
+                      }}
+                    >
+                      <PanelRight className="mr-2 h-4 w-4" /> View Side-by-Side
                     </Button>
                   </div>
-                  <div className="rounded-md border bg-muted/30 p-2">
-                    <canvas
-                      ref={signatureCanvasRef}
-                      width={480}
-                      height={160}
-                      className="w-full bg-white rounded border"
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        const target = e.currentTarget;
-                        target.setPointerCapture?.(e.pointerId);
-                        handleSignaturePointerDown(e);
-                      }}
-                      onPointerMove={handleSignaturePointerMove}
-                      onPointerUp={(e) => {
-                        e.preventDefault();
-                        handleSignaturePointerUp();
-                      }}
-                      onPointerLeave={handleSignaturePointerUp}
-                    />
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-                      <span>
-                        {requireSignature
-                          ? "Signature required for staff doctors."
-                          : "Signature optional for admins."}
-                      </span>
-                      {formData.completedBySignature && <span>Captured</span>}
-                    </div>
-                    {formData.completedBySignature && (
-                      <div className="mt-2">
-                        <img
-                          src={formData.completedBySignature}
-                          alt="Signature preview"
-                          className="h-16 object-contain"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+              <PdfUploader
+                pdfManager={pdfManager}
+                onViewSideBySide={handleViewLocalPdf}
+              />
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>PDF Attachments</CardTitle>
-            <CardDescription>
-              {isEdit && currentReport?.file_url
-                ? "View the current PDF or attach new files to merge and replace it."
-                : "Attach and merge multiple PDF files into a single document."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CardContent>
-              {isEdit && currentReport?.file_url && (
-                <div className="mb-4">
+          <div className="flex justify-end items-center  pt-4">
+            {availableDoctors.length > 0 && (
+              <Popover
+                open={doctorSelectorOpen}
+                onOpenChange={setDoctorSelectorOpen}
+              >
+                <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={async () => {
-                      try {
-                        const apiPath = currentReport.file_url?.replace(
-                          "/uploads/",
-                          "/files/",
-                        );
-                        if (!apiPath) {
-                          console.error("apiPath is undefined");
-                          return;
-                        }
-                        const response = await api.get(apiPath, {
-                          responseType: "blob",
-                        });
-
-                        // Create a blob URL and open it in a new tab
-                        const blob = new Blob([response.data], {
-                          type: "application/pdf",
-                        });
-                        const url = window.URL.createObjectURL(blob);
-                        window.open(url, "_blank");
-
-                        // Clean up the blob URL after a short delay
-                        setTimeout(() => window.URL.revokeObjectURL(url), 100);
-                      } catch (error) {
-                        console.error("Failed to load PDF:", error);
-                        // Handle error (show notification, etc.)
-                      }
-                    }}
+                    className="flex items-center gap-2 mr-4"
                   >
-                    <LinkIcon className="mr-2 h-4 w-4" /> View Current PDF
+                    <User className="h-4 w-4" />
+                    {selectedDoctorForPdf
+                      ? `${selectedDoctorForPdf.doctor?.fullName || selectedDoctorForPdf.fullName}`
+                      : availableDoctors[0]?.doctor?.fullName
+                        ? `${availableDoctors[0].doctor.fullName}`
+                        : "Select Doctor"}
                   </Button>
-                </div>
-              )}
-            </CardContent>
-            <PdfUploader pdfManager={pdfManager} />
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end items-center  pt-4">
-          {availableDoctors.length > 0 && (
-            <Popover
-              open={doctorSelectorOpen}
-              onOpenChange={setDoctorSelectorOpen}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex items-center gap-2 mr-4"
-                >
-                  <User className="h-4 w-4" />
-                  {selectedDoctorForPdf
-                    ? `${selectedDoctorForPdf.doctor?.fullName || selectedDoctorForPdf.fullName}`
-                    : availableDoctors[0]?.doctor?.fullName
-                      ? `${availableDoctors[0].doctor.fullName}`
-                      : "Select Doctor"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-75 p-2" align="end">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium px-2 py-1.5">
-                    Select Doctor for PDF
-                  </p>
-                  <div className="space-y-0.5">
-                    {availableDoctors.map((patientDoctor: any) => (
-                      <button
-                        key={patientDoctor.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDoctorForPdf(patientDoctor);
-                          setDoctorSelectorOpen(false);
-                          toast.success(
-                            `Selected ${patientDoctor.doctor?.fullName} for PDF`,
-                          );
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-accent transition-colors",
-                          (selectedDoctorForPdf?.id === patientDoctor.id ||
-                            (!selectedDoctorForPdf &&
-                              patientDoctor.id === availableDoctors[0]?.id)) &&
-                          "bg-accent",
-                        )}
-                      >
-                        <Check
+                </PopoverTrigger>
+                <PopoverContent className="w-75 p-2" align="end">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium px-2 py-1.5">
+                      Select Doctor for PDF
+                    </p>
+                    <div className="space-y-0.5">
+                      {availableDoctors.map((patientDoctor: any) => (
+                        <button
+                          key={patientDoctor.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDoctorForPdf(patientDoctor);
+                            setDoctorSelectorOpen(false);
+                            toast.success(
+                              `Selected ${patientDoctor.doctor?.fullName} for PDF`,
+                            );
+                          }}
                           className={cn(
-                            "h-4 w-4",
-                            selectedDoctorForPdf?.id === patientDoctor.id ||
+                            "w-full flex items-center gap-2 px-2 py-2 text-sm rounded-md hover:bg-accent transition-colors",
+                            (selectedDoctorForPdf?.id === patientDoctor.id ||
                               (!selectedDoctorForPdf &&
-                                patientDoctor.id === availableDoctors[0]?.id)
-                              ? "opacity-100"
-                              : "opacity-0",
+                                patientDoctor.id ===
+                                  availableDoctors[0]?.id)) &&
+                              "bg-accent",
                           )}
-                        />
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">
-                            {patientDoctor.doctor?.fullName}
+                        >
+                          <Check
+                            className={cn(
+                              "h-4 w-4",
+                              selectedDoctorForPdf?.id === patientDoctor.id ||
+                                (!selectedDoctorForPdf &&
+                                  patientDoctor.id === availableDoctors[0]?.id)
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <div className="flex-1 text-left">
+                            <div className="font-medium">
+                              {patientDoctor.doctor?.fullName}
+                            </div>
+                            {patientDoctor.isPrimary && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs mr-2"
+                              >
+                                Primary
+                              </Badge>
+                            )}
+                            {patientDoctor.doctor?.email && (
+                              <div className="text-xs text-muted-foreground">
+                                {patientDoctor.doctor.email}
+                              </div>
+                            )}
+                            {patientDoctor.address && (
+                              <div className="text-xs text-muted-foreground">
+                                {patientDoctor.address.street},{" "}
+                                {patientDoctor.address.city},{" "}
+                                {patientDoctor.address.state}
+                              </div>
+                            )}
                           </div>
-                          {patientDoctor.isPrimary && (
-                            <Badge variant="secondary" className="text-xs mr-2">
-                              Primary
-                            </Badge>
-                          )}
-                          {patientDoctor.doctor?.email && (
-                            <div className="text-xs text-muted-foreground">
-                              {patientDoctor.doctor.email}
-                            </div>
-                          )}
-                          {patientDoctor.address && (
-                            <div className="text-xs text-muted-foreground">
-                              {patientDoctor.address.street},{" "}
-                              {patientDoctor.address.city},{" "}
-                              {patientDoctor.address.state}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGeneratePdf}
-              disabled={isGenerating}
-              className="flex items-center gap-2"
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="h-4 w-4" />
-              )}
-              {isGenerating ? "Generating Report..." : "Generate PDF Report"}
-            </Button>
+                </PopoverContent>
+              </Popover>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGeneratePdf}
+                disabled={isGenerating}
+                className="flex items-center gap-2"
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
+                {isGenerating ? "Generating Report..." : "Generate PDF Report"}
+              </Button>
 
-            {/* Debug button - remove in production */}
+              {/* Debug button - remove in production */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleDebugFields}
+                className="text-sm"
+              >
+                Debug Fields
+              </Button>
+            </div>
             <Button
-              type="button"
-              variant="ghost"
-              onClick={handleDebugFields}
-              className="text-sm"
+              type="submit"
+              disabled={isSubmitting || pdfManager.isMerging}
+              size="lg"
             >
-              Debug Fields
+              {(isSubmitting || pdfManager.isMerging) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {pdfManager.isMerging
+                ? "Merging PDFs..."
+                : isSubmitting
+                  ? "Submitting..."
+                  : isEdit
+                    ? "Update Report"
+                    : "Save Report"}
             </Button>
           </div>
-          <Button
-            type="submit"
-            disabled={isSubmitting || pdfManager.isMerging}
-            size="lg"
-          >
-            {(isSubmitting || pdfManager.isMerging) && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {pdfManager.isMerging
-              ? "Merging PDFs..."
-              : isSubmitting
-                ? "Submitting..."
-                : isEdit
-                  ? "Update Report"
-                  : "Save Report"}
-          </Button>
+        </form>
+      </div>
+
+      {/* Right Column: PDF Viewer */}
+      {sideBySidePdfUrl && (
+        <div className="w-1/2 h-full border-l border-border bg-muted/20 flex flex-col animate-in slide-in-from-right-8 fade-in">
+          <div className="flex justify-between items-center p-3 border-b bg-background">
+            <h3 className="font-medium text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Source PDF
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => setSideBySidePdfUrl(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 p-0 overflow-hidden">
+            <iframe
+              src={`${sideBySidePdfUrl}#view=FitH`}
+              className="w-full h-full rounded-none border-0 bg-white"
+              title="PDF Viewer"
+            />
+          </div>
         </div>
-      </form>
+      )}
     </div>
   );
 }
