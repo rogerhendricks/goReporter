@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { useReportStore } from "@/stores/reportStore";
@@ -60,12 +60,15 @@ import {
   User,
   PanelRight,
   X,
+  AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import api from "@/utils/axios";
 import { usePdfManager } from "@/hooks/usePdfManager";
 import { PdfUploader } from "@/components/PdfUploader";
 import { toast } from "sonner";
 import { usePdfFormFiller } from "@/hooks/usePdfFormFiller";
+import { evaluateClinicalExceptions } from "@/utils/clinicalRulesEngine";
 // import { useDoctorStore } from '@/stores/doctorStore'
 import { FileImporter } from "@/components/FileImporter";
 import type { ParsedData } from "@/utils/fileParser";
@@ -256,6 +259,18 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [sideBySidePdfUrl, setSideBySidePdfUrl] = useState<string | null>(null);
+  const [pdfVisibility, setPdfVisibility] = useState({
+    exceptions: true,
+    patientInfo: true,
+    deviceInfo: true,
+    bradySettings: true,
+    arrhythmias: true,
+    measurements: true,
+    comments: true,
+    tachySettings: true,
+    pacingPercentages: true,
+    ilrMeasurements: true,
+  });
   // draftKey moved above useState
   const draftToastShownRef = useRef(false);
   const isInitialMount = useRef(true);
@@ -1053,13 +1068,22 @@ export function ReportForm({ patient }: ReportFormProps) {
       (l: any) =>
         String(l?.status || "").toLowerCase() === "active" && !l?.explantedAt,
     );
+
+    // Ensure we have a completedByName if the user is generating a PDF
+    const pdfFormData = { ...formData };
+    if (!pdfFormData.completedByName && user) {
+      pdfFormData.completedByName =
+        user.fullName || user.username || "Authorized User";
+    }
     try {
       const pdfBlob = await fillReportForm(
-        formData,
+        pdfFormData,
         patient,
         activeDevices,
         activeLeads,
         selectedDoctorForPdf,
+        clinicalExceptions,
+        pdfVisibility,
       );
       if (pdfBlob) {
         const url = window.URL.createObjectURL(pdfBlob);
@@ -1521,6 +1545,10 @@ export function ReportForm({ patient }: ReportFormProps) {
     ]);
   }, [patient.id, patient.fname, patient.lname, isEdit, setItems]);
 
+  const clinicalExceptions = useMemo(() => {
+    return evaluateClinicalExceptions(formData, previousReport);
+  }, [formData, previousReport]);
+
   return (
     <div
       className={`flex w-full gap-4 ${sideBySidePdfUrl ? "h-[calc(100vh-4rem)]" : ""}`}
@@ -1625,6 +1653,81 @@ export function ReportForm({ patient }: ReportFormProps) {
             <FileImporter onDataImported={handleDataImported} />
           </div>
         </div>
+
+        {/* Exception Summary */}
+        <Card className="mb-6 border-l-4 border-l-primary shadow-sm bg-muted/20">
+          <CardHeader className="py-4">
+            <div className="flex justify-between items-center w-full">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-primary" />
+                  Clinical Exception Summary
+                </CardTitle>
+                <CardDescription>
+                  Automatically generated based on device parameters and
+                  arrhythmia history.
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="pdf-exceptions"
+                  checked={pdfVisibility.exceptions}
+                  onCheckedChange={(checked) =>
+                    setPdfVisibility((prev) => ({
+                      ...prev,
+                      exceptions: checked === true,
+                    }))
+                  }
+                />
+                <Label htmlFor="pdf-exceptions" className="text-sm font-medium">
+                  Include in PDF
+                </Label>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {clinicalExceptions.length === 0 ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 p-3 rounded-md border border-emerald-200 dark:border-emerald-800">
+                <Check className="h-4 w-4" />
+                All tracked parameters are within normal limits or unchanged.
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {clinicalExceptions.map((exception, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 p-3 rounded-md border ${
+                      exception.severity === "Critical"
+                        ? "bg-destructive/10 border-destructive/20 text-destructive"
+                        : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500"
+                    }`}
+                  >
+                    <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-sm flex items-center gap-2">
+                        {exception.metric}
+                        <Badge
+                          variant={
+                            exception.severity === "Critical"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="text-[10px] h-4 px-1"
+                        >
+                          {exception.severity}
+                        </Badge>
+                      </div>
+                      <p className="text-sm mt-1 text-muted-foreground font-medium">
+                        {exception.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div>
           {/* active implanted device device manufacturer, name, serial and active implanted leads  manufacturer, name, serial */}
           {(() => {
@@ -1712,10 +1815,29 @@ export function ReportForm({ patient }: ReportFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>General Information</CardTitle>
-              <CardDescription>
-                High-level details about this report.
-              </CardDescription>
+              <div className="flex justify-between items-center w-full">
+                <div>
+                  <CardTitle>General Information</CardTitle>
+                  <CardDescription>
+                    High-level details about this report.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdf-patient"
+                    checked={pdfVisibility.patientInfo}
+                    onCheckedChange={(checked) =>
+                      setPdfVisibility((prev) => ({
+                        ...prev,
+                        patientInfo: checked === true,
+                      }))
+                    }
+                  />
+                  <Label htmlFor="pdf-patient" className="text-sm font-medium">
+                    Include in PDF
+                  </Label>
+                </div>
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-2">
@@ -1950,10 +2072,32 @@ export function ReportForm({ patient }: ReportFormProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Bradycardia Settings</CardTitle>
-                  <CardDescription>
-                    Programmed parameters for bradycardia pacing.
-                  </CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <CardTitle>Bradycardia Settings</CardTitle>
+                      <CardDescription>
+                        Programmed parameters for bradycardia pacing.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-brady"
+                        checked={pdfVisibility.bradySettings}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            bradySettings: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="pdf-brady"
+                        className="text-sm font-medium"
+                      >
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2 min-w-0">
@@ -2060,10 +2204,32 @@ export function ReportForm({ patient }: ReportFormProps) {
               {/* tachy settings card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Tachy Settings</CardTitle>
-                  <CardDescription>
-                    Programmed parameters for tachycardia.
-                  </CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <CardTitle>Tachy Settings</CardTitle>
+                      <CardDescription>
+                        Programmed parameters for tachycardia.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-tachy"
+                        checked={pdfVisibility.tachySettings}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            tachySettings: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="pdf-tachy"
+                        className="text-sm font-medium"
+                      >
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-1 gap-4">
                   {hasDefibrillator ? (
@@ -2210,10 +2376,29 @@ export function ReportForm({ patient }: ReportFormProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>ILR Measurements</CardTitle>
-                  <CardDescription>
-                    Battery and sensing measurements only.
-                  </CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <CardTitle>ILR Measurements</CardTitle>
+                      <CardDescription>
+                        Battery and sensing measurements only.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-ilr"
+                        checked={pdfVisibility.ilrMeasurements}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            ilrMeasurements: checked === true,
+                          }))
+                        }
+                      />
+                      <Label htmlFor="pdf-ilr" className="text-sm font-medium">
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -2409,10 +2594,32 @@ export function ReportForm({ patient }: ReportFormProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Pacing Percentages</CardTitle>
-                  <CardDescription>
-                    Enter the percentage of time each chamber was paced.
-                  </CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <CardTitle>Pacing Percentages</CardTitle>
+                      <CardDescription>
+                        Enter the percentage of time each chamber was paced.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-pacing"
+                        checked={pdfVisibility.pacingPercentages}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            pacingPercentages: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="pdf-pacing"
+                        className="text-sm font-medium"
+                      >
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {hasAtrialPacing && (
@@ -2484,10 +2691,32 @@ export function ReportForm({ patient }: ReportFormProps) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Battery & Device Diagnostics</CardTitle>
-                  <CardDescription>
-                    Details about the device's battery and health.
-                  </CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                      <CardTitle>Battery & Device Diagnostics</CardTitle>
+                      <CardDescription>
+                        Details about the device's battery and health.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-device"
+                        checked={pdfVisibility.deviceInfo}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            deviceInfo: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="pdf-device"
+                        className="text-sm font-medium"
+                      >
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -2600,10 +2829,32 @@ export function ReportForm({ patient }: ReportFormProps) {
           {!hasLoopRecorder && (
             <Card>
               <CardHeader>
-                <CardTitle>Lead Measurements</CardTitle>
-                <CardDescription>
-                  Enter the measured values for each lead chamber.
-                </CardDescription>
+                <div className="flex justify-between items-center w-full">
+                  <div>
+                    <CardTitle>Lead Measurements</CardTitle>
+                    <CardDescription>
+                      Enter the measured values for each lead chamber.
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pdf-measurements"
+                      checked={pdfVisibility.measurements}
+                      onCheckedChange={(checked) =>
+                        setPdfVisibility((prev) => ({
+                          ...prev,
+                          measurements: checked === true,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="pdf-measurements"
+                      className="text-sm font-medium"
+                    >
+                      Include in PDF
+                    </Label>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -2939,10 +3190,32 @@ export function ReportForm({ patient }: ReportFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Arrhythmia Events</CardTitle>
-              <CardDescription>
-                Add one or more arrhythmia events observed in this report.
-              </CardDescription>
+              <div className="flex justify-between items-center w-full">
+                <div>
+                  <CardTitle>Arrhythmia Events</CardTitle>
+                  <CardDescription>
+                    Add one or more arrhythmia events observed in this report.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdf-arrhythmias"
+                    checked={pdfVisibility.arrhythmias}
+                    onCheckedChange={(checked) =>
+                      setPdfVisibility((prev) => ({
+                        ...prev,
+                        arrhythmias: checked === true,
+                      }))
+                    }
+                  />
+                  <Label
+                    htmlFor="pdf-arrhythmias"
+                    className="text-sm font-medium"
+                  >
+                    Include in PDF
+                  </Label>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {(formData.arrhythmias || []).map((arr, index) => (
@@ -3076,10 +3349,29 @@ export function ReportForm({ patient }: ReportFormProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Comments</CardTitle>
-              <CardDescription>
-                Any notes or comments about this report.
-              </CardDescription>
+              <div className="flex justify-between items-center w-full">
+                <div>
+                  <CardTitle>Comments</CardTitle>
+                  <CardDescription>
+                    Any notes or comments about this report.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdf-comments"
+                    checked={pdfVisibility.comments}
+                    onCheckedChange={(checked) =>
+                      setPdfVisibility((prev) => ({
+                        ...prev,
+                        comments: checked === true,
+                      }))
+                    }
+                  />
+                  <Label htmlFor="pdf-comments" className="text-sm font-medium">
+                    Include in PDF
+                  </Label>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="space-y-2 pt-2">
