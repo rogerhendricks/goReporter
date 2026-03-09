@@ -63,6 +63,7 @@ export function usePdfFormFiller() {
       tachySettings: true,
       pacingPercentages: true,
       ilrMeasurements: true,
+      episodecount: true,
     };
 
     const currentVisibility = visibility || defaultVisibility;

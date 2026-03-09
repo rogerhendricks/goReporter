@@ -217,7 +217,6 @@ export function ReportForm({ patient }: ReportFormProps) {
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const parsedDraft = JSON.parse(savedDraft);
-        console.log("🎯 INITIALIZING formData from draft:", parsedDraft);
         // Convert date strings back to Date objects
         if (parsedDraft.reportDate) {
           parsedDraft.reportDate = new Date(parsedDraft.reportDate);
@@ -262,15 +261,74 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [pdfVisibility, setPdfVisibility] = useState({
     exceptions: true,
     patientInfo: true,
-    deviceInfo: true,
-    bradySettings: true,
-    arrhythmias: true,
-    measurements: true,
+    bradySettings: false,
+    arrhythmias: false,
+    measurements: false,
+    batteryDiagnostics: true,
     comments: true,
-    tachySettings: true,
-    pacingPercentages: true,
-    ilrMeasurements: true,
+    tachySettings: false,
+    pacingPercentages: false,
+    ilrMeasurements: false,
+    episodecount: false,
   });
+
+  useEffect(() => {
+    const activeDevices = (patient?.devices ?? []).filter(
+      (d: any) =>
+        String(d?.status || "").toLowerCase() === "active" && !d?.explantedAt,
+    );
+
+    console.log("Device type", activeDevices)
+    const hasLoopRecorder = activeDevices.some((d: any) => d?.device?.type === "ICM");
+
+    const hasDefibrillator = activeDevices.some((d: any) => d?.device?.type === "Defibrillator");
+
+    if (hasLoopRecorder) {
+      setPdfVisibility({
+        exceptions: true,
+        patientInfo: true,
+        bradySettings: false,
+        arrhythmias: true,
+        measurements: false,
+        batteryDiagnostics: false,
+        comments: true,
+        tachySettings: false,
+        pacingPercentages: false,
+        ilrMeasurements: true,
+        episodecount: true,
+      });
+    } else if (hasDefibrillator) {
+      setPdfVisibility({
+        exceptions: true,
+        patientInfo: true,
+        bradySettings: true,
+        arrhythmias: true,
+        measurements: true,
+        batteryDiagnostics: true,
+        comments: true,
+        tachySettings: true,
+        pacingPercentages: true,
+        ilrMeasurements: false,
+        episodecount: false,
+      });
+    } else { // Pacemaker
+      setPdfVisibility({
+        exceptions: true,
+        patientInfo: true,
+        bradySettings: true,
+        arrhythmias: true,
+        measurements: true,
+        batteryDiagnostics: true,
+        comments: true,
+        tachySettings: false,
+        pacingPercentages: true,
+        ilrMeasurements: false,
+        episodecount: false,
+      });
+    }
+  }, [patient]);
+
+
   // draftKey moved above useState
   const draftToastShownRef = useRef(false);
   const isInitialMount = useRef(true);
@@ -287,34 +345,34 @@ export function ReportForm({ patient }: ReportFormProps) {
   const [prePopulatedFrom, setPrePopulatedFrom] = useState<number | null>(null);
 
   // Debug: track all formData changes
-  useEffect(() => {
-    console.log("📊 FORMDATA CHANGED:", {
-      reportType: formData.reportType,
-      reportStatus: formData.reportStatus,
-      currentRhythm: formData.currentRhythm,
-      currentDependency: formData.currentDependency,
-      mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
-      mdc_idc_batt_status: formData.mdc_idc_batt_status,
-    });
-    console.trace("📊 Stack trace for formData change");
-  }, [formData]);
+  // useEffect(() => {
+  //   console.log("📊 FORMDATA CHANGED:", {
+  //     reportType: formData.reportType,
+  //     reportStatus: formData.reportStatus,
+  //     currentRhythm: formData.currentRhythm,
+  //     currentDependency: formData.currentDependency,
+  //     mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
+  //     mdc_idc_batt_status: formData.mdc_idc_batt_status,
+  //   });
+  //   console.trace("📊 Stack trace for formData change");
+  // }, [formData]);
 
   // Load draft from localStorage on mount
   useEffect(() => {
-    console.log(
-      "🔍 DRAFT LOAD EFFECT RUNNING - isEdit:",
-      isEdit,
-      "draftToastShownRef:",
-      draftToastShownRef.current,
-      "draftKey:",
-      draftKey,
-    );
+    // console.log(
+    //   "🔍 DRAFT LOAD EFFECT RUNNING - isEdit:",
+    //   isEdit,
+    //   "draftToastShownRef:",
+    //   draftToastShownRef.current,
+    //   "draftKey:",
+    //   draftKey,
+    // );
     if (!isEdit && !draftToastShownRef.current) {
       const savedDraft = localStorage.getItem(draftKey);
-      console.log(
-        "🔍 DRAFT LOAD - Raw saved draft:",
-        savedDraft?.substring(0, 200),
-      );
+      // console.log(
+      //   "🔍 DRAFT LOAD - Raw saved draft:",
+      //   savedDraft?.substring(0, 200),
+      // );
       if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
@@ -363,19 +421,19 @@ export function ReportForm({ patient }: ReportFormProps) {
     // Skip auto-save on initial mount or when in edit mode
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      console.log("🔍 AUTO-SAVE - Skipping initial mount");
+      // console.log("🔍 AUTO-SAVE - Skipping initial mount");
       return;
     }
 
     if (!isEdit) {
-      console.log("🔍 AUTO-SAVE - formData changed, will save in 3s:", {
-        reportType: formData.reportType,
-        reportStatus: formData.reportStatus,
-        currentRhythm: formData.currentRhythm,
-        currentDependency: formData.currentDependency,
-        mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
-        mdc_idc_batt_status: formData.mdc_idc_batt_status,
-      });
+      // console.log("🔍 AUTO-SAVE - formData changed, will save in 3s:", {
+      //   reportType: formData.reportType,
+      //   reportStatus: formData.reportStatus,
+      //   currentRhythm: formData.currentRhythm,
+      //   currentDependency: formData.currentDependency,
+      //   mdc_idc_set_brady_mode: formData.mdc_idc_set_brady_mode,
+      //   mdc_idc_batt_status: formData.mdc_idc_batt_status,
+      // });
       setDraftStatus("unsaved");
 
       // Clear existing timer
@@ -391,20 +449,20 @@ export function ReportForm({ patient }: ReportFormProps) {
             ...formData,
             lastSaved: new Date().toISOString(),
           };
-          console.log("💾 AUTO-SAVE - Saving draft to localStorage:", {
-            reportType: draftData.reportType,
-            reportStatus: draftData.reportStatus,
-            currentRhythm: draftData.currentRhythm,
-            currentDependency: draftData.currentDependency,
-            mdc_idc_set_brady_mode: draftData.mdc_idc_set_brady_mode,
-            mdc_idc_batt_status: draftData.mdc_idc_batt_status,
-          });
+          // console.log("💾 AUTO-SAVE - Saving draft to localStorage:", {
+          //   reportType: draftData.reportType,
+          //   reportStatus: draftData.reportStatus,
+          //   currentRhythm: draftData.currentRhythm,
+          //   currentDependency: draftData.currentDependency,
+          //   mdc_idc_set_brady_mode: draftData.mdc_idc_set_brady_mode,
+          //   mdc_idc_batt_status: draftData.mdc_idc_batt_status,
+          // });
           localStorage.setItem(draftKey, JSON.stringify(draftData));
-          console.log("✅ AUTO-SAVE - Draft saved successfully");
+          // console.log("✅ AUTO-SAVE - Draft saved successfully");
           setDraftStatus("saved");
           setLastSaved(new Date());
         } catch (error) {
-          console.error("Failed to save draft:", error);
+          // console.error("Failed to save draft:", error);
           toast.error("Failed to auto-save draft");
         }
       }, 3000);
@@ -432,7 +490,7 @@ export function ReportForm({ patient }: ReportFormProps) {
         const tags = await tagService.getAll("report");
         setAvailableTags(tags);
       } catch (error) {
-        console.error("Failed to load tags:", error);
+        // console.error("Failed to load tags:", error);
         toast.error("Failed to load tags");
       }
     };
@@ -477,7 +535,7 @@ export function ReportForm({ patient }: ReportFormProps) {
 
   // Pre-populate form from previous report
   const loadFromPreviousReport = () => {
-    console.log("🔍 Pre-population - Previous report:", previousReport);
+    // console.log("🔍 Pre-population - Previous report:", previousReport);
     if (!previousReport) return;
 
     // Fields to pre-populate (settings that typically don't change between reports)
@@ -527,10 +585,10 @@ export function ReportForm({ patient }: ReportFormProps) {
       VF_therapy_4_energy: previousReport.VF_therapy_4_energy,
       VF_therapy_4_max_num_shocks: previousReport.VF_therapy_4_max_num_shocks,
     };
-    console.log(
-      "🔍 Pre-population - Fields to pre-populate:",
-      fieldsToPrePopulate,
-    );
+    // console.log(
+    //   "🔍 Pre-population - Fields to pre-populate:",
+    //   fieldsToPrePopulate,
+    // );
     setFormData((prev) => ({
       ...prev,
       ...fieldsToPrePopulate,
@@ -549,7 +607,7 @@ export function ReportForm({ patient }: ReportFormProps) {
     toast.info("Form cleared");
   };
 
-  console.log("Rendering ReportForm with patient:", patient);
+  // console.log("Rendering ReportForm with patient:", patient);
 
   const handleDataImported = (data: ParsedData, file: File) => {
     // Check if the imported serial number matches the patient's active device
@@ -2480,8 +2538,31 @@ export function ReportForm({ patient }: ReportFormProps) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Episode Counts</CardTitle>
-                  <CardDescription>Since last check.</CardDescription>
+                  <div className="flex justify-between items-center w-full">
+                    <div>
+                    <CardTitle>Episode Counts</CardTitle>
+                    <CardDescription>Since last check.</CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="pdf-pacing"
+                        checked={pdfVisibility.episodecount}
+                        onCheckedChange={(checked) =>
+                          setPdfVisibility((prev) => ({
+                            ...prev,
+                            episodecount: checked === true,
+                          }))
+                        }
+                      />
+                      <Label
+                        htmlFor="pdf-pacing"
+                        className="text-sm font-medium"
+                      >
+                        Include in PDF
+                      </Label>
+                    </div>
+                  </div>
+
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -2701,11 +2782,11 @@ export function ReportForm({ patient }: ReportFormProps) {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="pdf-device"
-                        checked={pdfVisibility.deviceInfo}
+                        checked={pdfVisibility.batteryDiagnostics}
                         onCheckedChange={(checked) =>
                           setPdfVisibility((prev) => ({
                             ...prev,
-                            deviceInfo: checked === true,
+                            batteryDiagnostics: checked === true,
                           }))
                         }
                       />

@@ -220,7 +220,7 @@ export default function DeviceForm() {
                   <SelectContent>
                     <SelectItem value="Pacemaker">Pacemaker</SelectItem>
                     <SelectItem value="Defibrillator">Defibrillator</SelectItem>
-                    <SelectItem value="ILR">Loop Recorder</SelectItem>
+                    <SelectItem value="ICM">Cardiac Monitor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

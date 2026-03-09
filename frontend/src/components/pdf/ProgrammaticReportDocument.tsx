@@ -39,7 +39,6 @@ interface PatientDoctor {
 export interface PdfSectionVisibility {
   exceptions: boolean;
   patientInfo: boolean;
-  deviceInfo: boolean;
   bradySettings: boolean;
   arrhythmias: boolean;
   measurements: boolean;
@@ -48,6 +47,7 @@ export interface PdfSectionVisibility {
   tachySettings?: boolean;
   pacingPercentages?: boolean;
   ilrMeasurements?: boolean;
+  episodecount?: boolean;
 }
 
 interface ProgrammaticReportProps {
@@ -271,6 +271,24 @@ export const ProgrammaticReportDocument: React.FC<ProgrammaticReportProps> = ({
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const hasEpisodeCounts = [
+    formData.episode_af_count_since_last_check,
+    formData.episode_tachy_count_since_last_check,
+    formData.episode_pause_count_since_last_check,
+    formData.episode_symptom_all_count_since_last_check,
+    formData.episode_symptom_with_detection_count_since_last_check,
+  ].some(
+    (val) =>
+      val !== undefined &&
+      val !== null &&
+      (typeof val !== "string" || val !== "")
+  );
+
+  const formatCount = (value: any) => {
+    if (value === 0) return "0";
+    return value || "N/A";
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -365,7 +383,7 @@ export const ProgrammaticReportDocument: React.FC<ProgrammaticReportProps> = ({
         )}
 
         {/* DEVICE INFORMATION */}
-        {visibility.deviceInfo && activeDevices && activeDevices.length > 0 && (
+        {activeDevices && activeDevices.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>IMPLANTED SYSTEM</Text>
             <View
@@ -719,6 +737,45 @@ export const ProgrammaticReportDocument: React.FC<ProgrammaticReportProps> = ({
                   {formData.mdc_idc_msmt_rv_sensing
                     ? `${formData.mdc_idc_msmt_rv_sensing} mV`
                     : "N/A"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* EPISODE COUNTS */}
+        {visibility.episodecount !== false && hasEpisodeCounts && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>EPISODE COUNTS (SINCE LAST CHECK)</Text>
+            <View style={styles.gridContainer}>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>AF:</Text>
+                <Text style={styles.gridValue}>
+                  {formatCount(formData.episode_af_count_since_last_check)}
+                </Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>Tachy:</Text>
+                <Text style={styles.gridValue}>
+                  {formatCount(formData.episode_tachy_count_since_last_check)}
+                </Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>Pause:</Text>
+                <Text style={styles.gridValue}>
+                  {formatCount(formData.episode_pause_count_since_last_check)}
+                </Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>Symptom (All):</Text>
+                <Text style={styles.gridValue}>
+                  {formatCount(formData.episode_symptom_all_count_since_last_check)}
+                </Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>Symptom (With Detection):</Text>
+                <Text style={styles.gridValue}>
+                  {formatCount(formData.episode_symptom_with_detection_count_since_last_check)}
                 </Text>
               </View>
             </View>
