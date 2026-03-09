@@ -194,7 +194,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/analytics/reports-summary", handlers.GetReportSummary)
 
 	// Billing Code routes
-	app.Get("/api/billing-codes", middleware.RequireAdmin, handlers.GetBillingCodes)
+	app.Get("/api/billing-codes", middleware.SetUserRole, handlers.GetBillingCodes)
 	app.Put("/api/billing-codes/:category", middleware.RequireAdmin, handlers.UpdateBillingCode)
 	app.Get("/api/billing-codes/export", middleware.RequireAdmin, handlers.ExportBillingCodesCSV)
 
