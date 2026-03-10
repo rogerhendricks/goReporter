@@ -54,7 +54,7 @@ export function usePdfFormFiller() {
     const defaultVisibility: PdfSectionVisibility = {
       exceptions: true,
       patientInfo: true,
-      deviceInfo: true,
+      // deviceInfo: true,
       bradySettings: true,
       arrhythmias: true,
       measurements: true,

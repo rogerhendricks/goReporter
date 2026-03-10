@@ -1,6 +1,5 @@
 ### 1. Design & UX (The "Enterprise" Feel)
 
-*   **Contextual Command Palette (Global Search):** You already have `cmdk` installed! Implement a global `Cmd+K` (or `Ctrl+K`) palette. A clinician shouldn't have to click through menus to find a patient. They should press `Cmd+K`, type "Smith", hit Enter, and instantly jump to John Smith's timeline. You can also add quick actions like "New Report" or "Schedule Appointment" directly in the palette.
 *   **Data Density Toggles ("Compact" vs. "Comfortable"):** Medical professionals often prefer high data density when scanning large lists (like the day's appointments or overdue patients), but need more breathing room when reviewing a complex individual report. A toggle in the table headers to switch between dense and comfortable padding is a hallmark of mature software.
 *   **Skeleton Loading States:** Replace generic spinning circles with "Skeleton" UI loaders for your complex views (like the Patient Detail or Dashboard). When fetching data, showing a shimmering gray outline of the expected text and charts makes the app feel significantly faster and more stable.
 *   **Clinical Urgency Color System:** Standardize a subtle, accessible color palette specifically for clinical urgency. Instead of loud, aggressive reds for everything, use soft backgrounds with distinct border colors (e.g., Amber for "Attention," soft Crimson for "Action Required," Slate for "Routine") across your tables, timeline events, and badges.
@@ -12,10 +11,4 @@
 
 ### 3. Professional Workflow Features
 
-*   **Draft States & Autosave for Clinical Notes:** If a technician or doctor is in the middle of writing a complex patient note or manually entering report data and they accidentally close the tab or lose connection, that data shouldn't be lost. Implement a silent local autosave (using `localStorage` or `Zustand`) that allows them to seamlessly pick up where they left off.
-*   **Role-Tailored Dashboards:** Avoid a "one size fits all" home screen. 
-    *   **Device Techs:** Need a high-speed queue of incoming reports to triage and tasks to complete.
-    *   **Cardiologists:** Need a focused list of "Reports Requiring Signature" and critical patient alerts.
-    *   **Admins:** Need to see clinic capacity, overdue patients, and productivity charts.
-*   **Smart Pre-population (The "Magic" Touch):** If a user types in a device serial number or UDID when creating a manual record, the app should instantly query the database and auto-fill the Manufacturer, Model, and last associated Patient. Eliminating repetitive data entry makes the app feel incredibly smart.
 *   **Keyboard-First Queue Management:** For technicians who process dozens of reports a day, allow them to use keyboard shortcuts to navigate through a queue of reports, approve them, flag them, or add a standard note without ever touching the mouse.
