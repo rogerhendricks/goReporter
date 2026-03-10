@@ -2309,7 +2309,9 @@ export function ReportForm({ patient }: ReportFormProps) {
                           <TableCell className="font-medium">VT1</TableCell>
                           <TableCell>
                             {formData.VT1_detection_interval
-                              ? `${formData.VT1_detection_interval} ms`
+                              ? formData.VT1_detection_interval.includes("ms")
+                                ? formData.VT1_detection_interval
+                                : `${formData.VT1_detection_interval} ms`
                               : ""}
                           </TableCell>
                           <TableCell>
@@ -2347,7 +2349,9 @@ export function ReportForm({ patient }: ReportFormProps) {
                           <TableCell className="font-medium">VT2</TableCell>
                           <TableCell>
                             {formData.VT2_detection_interval
-                              ? `${formData.VT2_detection_interval} ms`
+                              ? formData.VT2_detection_interval.includes("ms")
+                                ? formData.VT2_detection_interval
+                                : `${formData.VT2_detection_interval} ms`
                               : ""}
                           </TableCell>
                           <TableCell>
@@ -2391,7 +2395,9 @@ export function ReportForm({ patient }: ReportFormProps) {
                           <TableCell className="font-medium">VF</TableCell>
                           <TableCell>
                             {formData.VF_detection_interval
-                              ? `${formData.VF_detection_interval} ms`
+                              ? formData.VF_detection_interval.includes("ms")
+                                ? formData.VF_detection_interval
+                                : `${formData.VF_detection_interval} ms`
                               : ""}
                           </TableCell>
                           <TableCell colSpan={2}>
@@ -2403,10 +2409,14 @@ export function ReportForm({ patient }: ReportFormProps) {
                               .join(" • ")}
                           </TableCell>
                           <TableCell>
-                            {[formData.VF_therapy_2_energy]}
+                            {[formData.VF_therapy_2_energy]
+                              .filter(Boolean)
+                              .join(" • ")}
                           </TableCell>
                           <TableCell>
-                            {[formData.VF_therapy_3_energy]}
+                            {[formData.VF_therapy_3_energy]
+                              .filter(Boolean)
+                              .join(" • ")}
                           </TableCell>
                           <TableCell>
                             {[

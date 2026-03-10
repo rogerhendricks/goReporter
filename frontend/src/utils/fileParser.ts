@@ -129,6 +129,38 @@ function convertThreshold(threshold: string | number): number {
   return parseFloat(threshold.toString()) / 1000;
 }
 
+// Convert a bpm value (or range) to cycle length in ms.
+// Examples: "167-240" -> "360-250 ms"; ">240" -> "250 ms"; "207" -> "290 ms".
+function bpmRangeToMs(bpmStr: string): string {
+  const clean = bpmStr.replace(/[^0-9->]/g, "");
+
+  // Range like 167-240
+  const rangeMatch = clean.match(/^(\d+)-(\d+)$/);
+  if (rangeMatch) {
+    const lowBpm = parseInt(rangeMatch[1], 10); // lower rate => longer ms
+    const highBpm = parseInt(rangeMatch[2], 10);
+    const maxMs = Math.round(60000 / lowBpm);
+    const minMs = Math.round(60000 / highBpm);
+    return `${maxMs}-${minMs}`;
+  }
+
+  // Threshold like >240
+  const greaterMatch = clean.match(/^>(\d+)$/);
+  if (greaterMatch) {
+    const bpm = parseInt(greaterMatch[1], 10);
+    return `${Math.round(60000 / bpm)}`;
+  }
+
+  // Single value
+  const singleMatch = clean.match(/^(\d+)$/);
+  if (singleMatch) {
+    const bpm = parseInt(singleMatch[1], 10);
+    return `${Math.round(60000 / bpm)}`;
+  }
+
+  return bpmStr; // fallback to original if unparseable
+}
+
 // function pdfObjToString(obj: any): string {
 //   if (!obj) return ''
 //   const tryFns = ['decodeText', 'asString', 'toString']
@@ -1512,38 +1544,55 @@ function parseMedtronicCaptureThreshold(
 function parseMedtronicSensing(text: string, result: Partial<ParsedData>) {
   const sensingMatch = text.match(/Measured P\/R Wave\s+([^\n]+)/i);
 
-  if (!sensingMatch) {
-    return;
+  // Helper to parse one line of sensing values (supports prefixes like ">20.0 mV")
+  const parseSensingLine = (line: string) => {
+    const valuePattern = /([<>]?\s*\d+(?:\.\d+)?)\s*mV/gi;
+    const values: string[] = [];
+    let m;
+    while ((m = valuePattern.exec(line)) !== null) {
+      const numeric = m[1].replace(/[<>\s]/g, ""); // strip prefixes and spaces
+      if (numeric) values.push(numeric);
+    }
+    return values;
+  };
+
+  if (sensingMatch) {
+    const chambers = findChambers(text, text.indexOf(sensingMatch[0]));
+    const values = parseSensingLine(sensingMatch[1]);
+
+    chambers.forEach((chamber, index) => {
+      if (values[index]) {
+        switch (chamber) {
+          case "ATRIAL":
+            result.mdc_idc_msmt_ra_sensing_mean = values[index];
+            break;
+          case "RV":
+            result.mdc_idc_msmt_rv_sensing_mean = values[index];
+            break;
+          case "LV":
+            result.mdc_idc_msmt_lv_sensing_mean = values[index];
+            break;
+        }
+      }
+    });
   }
 
-  const chambers = findChambers(text, text.indexOf(sensingMatch[0]));
-
-  // Extract sensing values (e.g., "4.3 mV", ">20.0 mV")
-  // Regex to match value with optional > or < prefix
-  const valuePattern = /([<>[\d.]+)\s*mV/g;
-  const values: string[] = [];
-  let match;
-
-  while ((match = valuePattern.exec(sensingMatch[1])) !== null) {
-    values.push(match[1]);
-  }
-
-  // Map chamber names to values
-  chambers.forEach((chamber, index) => {
-    if (values[index]) {
-      switch (chamber) {
-        case "ATRIAL":
-          result.mdc_idc_msmt_ra_sensing_mean = values[index];
-          break;
-        case "RV":
-          result.mdc_idc_msmt_rv_sensing_mean = values[index];
-          break;
-        case "LV":
-          result.mdc_idc_msmt_lv_sensing_mean = values[index];
-          break;
+  // Some reports have a separate "Measured R Wave" line; capture RV if present
+  const rWaveMatch = text.match(/Measured R Wave\s+([^\n]+)/i);
+  if (rWaveMatch) {
+    const chambers = findChambers(text, text.indexOf(rWaveMatch[0]));
+    const values = parseSensingLine(rWaveMatch[1]);
+    const target = chambers[0] || "RV";
+    if (values[0]) {
+      if (target === "RV" || !result.mdc_idc_msmt_rv_sensing_mean) {
+        result.mdc_idc_msmt_rv_sensing_mean = values[0];
+      } else if (target === "ATRIAL" && !result.mdc_idc_msmt_ra_sensing_mean) {
+        result.mdc_idc_msmt_ra_sensing_mean = values[0];
+      } else if (target === "LV" && !result.mdc_idc_msmt_lv_sensing_mean) {
+        result.mdc_idc_msmt_lv_sensing_mean = values[0];
       }
     }
-  });
+  }
 }
 
 // Helper function to parse the Medtronic Session Summary section
@@ -1558,12 +1607,17 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
     result.mdc_idc_dev_serial_number = deviceMatch[2];
   }
 
-  // Session Date
-  const dateMatch = text.match(
-    /(\d{1,2}\/\w+\/\d{4}),\s+\d{1,2}:\d{2}:\d{2}\s+[ap]m/,
+  // Date of Visit (supports both "03/Mar/2026, 10:47:18 am" and "03-Mar-2026")
+  const dateMatchSlash = text.match(
+    /Date of Visit:\s*(\d{1,2}\/[A-Za-z]{3}\/[0-9]{4})[^\n]*/i,
   );
-  if (dateMatch) {
-    result.report_date = convertMedtronicDate(dateMatch[1], "/");
+  if (dateMatchSlash) {
+    result.report_date = convertMedtronicDate(dateMatchSlash[1], "/");
+  } else {
+    const dateMatchDash = text.match(/Date of Visit:\s*(\d{1,2}-\w+-\d{4})/);
+    if (dateMatchDash) {
+      result.report_date = convertMedtronicDate(dateMatchDash[1]);
+    }
   }
 
   // Implant Date
@@ -1604,12 +1658,12 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
   // VF/VT detection rates
   const vfMatch = text.match(/VF\s+On\s+>\s*(\d+)\s+bpm/);
   if (vfMatch) {
-    result.VF_detection_interval = vfMatch[1];
+    result.VF_detection_interval = bpmRangeToMs(vfMatch[1]);
   }
 
   const vtMatch = text.match(/VT\s+On\s+(\d+)-(\d+)\s+bpm/);
   if (vtMatch) {
-    result.VT2_detection_interval = vtMatch[1];
+    result.VT2_detection_interval = bpmRangeToMs(`${vtMatch[1]}-${vtMatch[2]}`);
   }
 
   result.mdc_idc_dev_manufacturer = "Medtronic";
@@ -1629,10 +1683,17 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
     result.mdc_idc_dev_serial_number = deviceMatch[2];
   }
 
-  // Date of Visit
-  const dateMatch = text.match(/Date of Visit:\s*(\d{1,2}-\w+-\d{4})/);
-  if (dateMatch) {
-    result.report_date = convertMedtronicDate(dateMatch[1]);
+  // Date of Visit (handles "03/Mar/2026, 10:47:18 am" and dash format, with or without space after colon)
+  const dateMatchSlash = text.match(
+    /Date of Visit:\s*(\d{1,2}\/[A-Za-z]{3}\/[0-9]{4})[^\n]*/i,
+  );
+  if (dateMatchSlash) {
+    result.report_date = convertMedtronicDate(dateMatchSlash[1], "/");
+  } else {
+    const dateMatchDash = text.match(/Date of Visit:\s*(\d{1,2}-\w+-\d{4})/);
+    if (dateMatchDash) {
+      result.report_date = convertMedtronicDate(dateMatchDash[1]);
+    }
   }
 
   // Implant Date
@@ -1682,7 +1743,7 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
   const vfMatch = text.match(/VF\s+(On|Monitor|Off)\s+>(\d+)\s+bpm\s+(.*)/);
   if (vfMatch) {
     result.VF_active = vfMatch[1];
-    result.VF_detection_interval = vfMatch[2];
+    result.VF_detection_interval = bpmRangeToMs(vfMatch[2]);
     parseMedtronicTherapies(vfMatch[3], "VF", result);
   }
 
@@ -1694,7 +1755,7 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
     const status = fvtMatch[1];
     if (status === "via VF" || status === "On") {
       result.VT2_active = "On";
-      if (fvtMatch[2]) result.VT2_detection_interval = fvtMatch[2];
+      if (fvtMatch[2]) result.VT2_detection_interval = bpmRangeToMs(fvtMatch[2]);
       if (fvtMatch[3]) parseMedtronicTherapies(fvtMatch[3], "VT2", result);
     } else {
       result.VT2_active = status;
@@ -1705,7 +1766,7 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
   const vtMatch = text.match(/VT\s+(On|Monitor|Off)\s+([\d-]+)\s+bpm\s+(.*)/);
   if (vtMatch) {
     result.VT1_active = vtMatch[1];
-    result.VT1_detection_interval = vtMatch[2];
+    result.VT1_detection_interval = bpmRangeToMs(vtMatch[2]);
     parseMedtronicTherapies(vtMatch[3], "VT1", result);
   }
 
@@ -1741,8 +1802,21 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
 // Helper to convert Medtronic date format (e.g., "29-Dec-2020") to ISO format
 function convertMedtronicDate(dateStr: string, separator = "-") {
   const parts = dateStr.split(separator);
-  const formattedDateStr = `${parts[0]}-${parts[1]}-${parts[2]}`;
-  return formatDateToISO(new Date(formattedDateStr));
+  const day = parseInt(parts[0], 10);
+  const rawMonth = parts[1];
+  const year = parseInt(parts[2], 10);
+
+  const month = monthNameToNumber[rawMonth as keyof typeof monthNameToNumber]
+    ? monthNameToNumber[rawMonth as keyof typeof monthNameToNumber]
+    : parseInt(rawMonth, 10);
+
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
+    return dateStr; // fallback
+  }
+
+  // Use Date to normalize, then format without TZ conversion
+  const d = new Date(year, month - 1, day);
+  return formatDateToISO(d);
 }
 
 // Helper to parse Medtronic therapies string
@@ -1754,6 +1828,7 @@ function parseMedtronicTherapies(
   if (!therapyStr || therapyStr.trim() === "All Rx Off") return;
 
   const parts = therapyStr.split(",").map((s) => s.trim());
+  const shockPartsCount = parts.filter((p) => /([\d.]+)\s*J/i.test(p)).length;
   let shockCount = 0;
 
   parts.forEach((part) => {
@@ -1790,6 +1865,16 @@ function parseMedtronicTherapies(
         const numShocks = shockMatch[2] ? shockMatch[2] : "1";
 
         shockCount++;
+
+        // Special case: single shock definition with a multiplier (e.g., "35 J × 6")
+        // should populate only the "nth" column, leaving 1st/2nd shock empty.
+        if (prefix === "VF" && shockPartsCount === 1 && shockMatch[2]) {
+          result[`${prefix}_therapy_2_energy`] = "";
+          result[`${prefix}_therapy_3_energy`] = "";
+          result[`${prefix}_therapy_4_energy`] = energy;
+          result[`${prefix}_therapy_4_max_num_shocks`] = numShocks;
+          return;
+        }
 
         if (prefix === "VT1" || prefix === "VT2") {
           if (shockCount === 1) {
