@@ -191,16 +191,6 @@ function looksLikeBase64Pdf(s: string): boolean {
   return /^\s*JVBERi0/i.test(s.trim());
 }
 
-// Recursively walk sections to collect all <value> nodes
-// function collectAllValues(node: any, out: any[] = []): any[] {
-//   if (!node) return out
-//   const values = node.value
-//   if (values) out.push(...toArr(values))
-//   const sections = node.section
-//   toArr(sections).forEach((child: any) => collectAllValues(child, out))
-//   return out
-// }
-
 export async function parseFileContent(
   file: File,
   serial?: string,
@@ -310,8 +300,8 @@ function parseLogFile(data: string): ParsedData {
     "2721": "mdc_idc_msmt_ra_sensing_mean",
     "1610": "mdc_idc_msmt_ra_pacing_threshold",
     "849": "mdc_idc_msmt_ra_pacing_threshold",
-    "1611": "mdc_idc_msmt_ra_pw",
-    "507": "mdc_idc_msmt_rv_impedance_mean",
+      "1611": "mdc_idc_msmt_ra_pw", // Keep this line for context
+      "507": "mdc_idc_msmt_rv_impedance_mean", // Keep this line for context
     "2722": "mdc_idc_msmt_rv_sensing_mean",
     "1606": "mdc_idc_msmt_rv_pacing_threshold",
     "1620": "mdc_idc_msmt_rv_pacing_threshold",
@@ -1639,10 +1629,12 @@ function parseMedtronicSessionSummary(text: string): Partial<ParsedData> {
 
   // Defibrillation Impedance
   const defibImpedanceMatch = text.match(
-    /Defibrillation Impedance\s+RV=(\d+)\s+ohms/,
+    /Defibrillation Impedance\s+RV\s*=\s*([\d,]+)\s*Ω?/i,
   );
   if (defibImpedanceMatch) {
-    result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
+    const rvImp = defibImpedanceMatch[1]?.replace(/,/g, "");
+    // Store only into HV field; ignore SVC and do not overwrite RV lead measurement
+    result.mdc_idc_msmt_hv_impedance_mean = rvImp || "";
   }
 
   parseMedtronicCaptureThreshold(text, result);
@@ -1712,10 +1704,12 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
 
   // Defibrillation Impedance
   const defibImpedanceMatch = text.match(
-    /Defibrillation Impedance\s+RV=(\d+)\s+ohms/,
+    /Defibrillation Impedance\s+RV\s*=\s*([\d,]+)\s*Ω?/i,
   );
   if (defibImpedanceMatch) {
-    result.mdc_idc_msmt_rv_impedance_mean = defibImpedanceMatch[1];
+    const rvImp = defibImpedanceMatch[1]?.replace(/,/g, "");
+    // Store only into HV field; ignore SVC and do not overwrite RV lead measurement
+    result.mdc_idc_msmt_hv_impedance_mean = rvImp || "";
   }
 
   parseMedtronicCaptureThreshold(text, result);
@@ -1749,11 +1743,11 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
 
   // FVT (VT2)
   const fvtMatch = text.match(
-    /FVT\s+(via VF|On|Monitor|Off)\s+(?:([\d-]+)\s+bpm\s+(.*)|All Rx Off)/,
+    /FVT\s+(via\s+VF|via\s+VT|On|Monitor|Off)\s+(?:([\d-]+)\s+bpm\s+(.*)|All Rx Off)/i,
   );
   if (fvtMatch) {
     const status = fvtMatch[1];
-    if (status === "via VF" || status === "On") {
+    if (status.toLowerCase().includes("via") || status === "On") {
       result.VT2_active = "On";
       if (fvtMatch[2]) result.VT2_detection_interval = bpmRangeToMs(fvtMatch[2]);
       if (fvtMatch[3]) parseMedtronicTherapies(fvtMatch[3], "VT2", result);
