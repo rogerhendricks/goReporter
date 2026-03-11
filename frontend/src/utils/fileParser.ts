@@ -1775,17 +1775,32 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
     result.treated_vt_count = treatedVTMatch[1];
   }
 
-  // Pacing percentages
-  // Matches "Total VP 100.0 %", "VP 99.8 %", "VP <0.1 %", "Total VP* 100.0 %"
-  const vpMatch = text.match(/(?:Total\s+)?VP\*?\s+([<>\d.]+)\s*%/);
+  // Pacing percentages (capture AP/VP anywhere in the text)
+  // Primary patterns for common layouts
+  const vpMatch = text.match(/(?:Total\s+)?VP\*?\s+([<>\d.]+)\s*%/i);
   if (vpMatch) {
     result.mdc_idc_stat_brady_rv_percent_paced = vpMatch[1];
   }
 
-  // Matches "AP 0.1 %", "AP 29.0 %"
-  const apMatch = text.match(/AP\s+([<>\d.]+)\s*%/);
+  const apMatch = text.match(/AP\s+([<>\d.]+)\s*%/i);
   if (apMatch) {
     result.mdc_idc_stat_brady_ra_percent_paced = apMatch[1];
+  }
+
+  // Fallback: scan for any AP/VP percentages in free text (tables or inline rows)
+  if (!result.mdc_idc_stat_brady_ra_percent_paced || !result.mdc_idc_stat_brady_rv_percent_paced) {
+    const apVpRegex = /(AP|VP)\s*([<>\d.]+)\s*%/gi;
+    let m;
+    while ((m = apVpRegex.exec(text)) !== null) {
+      const label = m[1].toUpperCase();
+      const val = m[2];
+      if (label === "AP" && !result.mdc_idc_stat_brady_ra_percent_paced) {
+        result.mdc_idc_stat_brady_ra_percent_paced = val;
+      }
+      if (label === "VP" && !result.mdc_idc_stat_brady_rv_percent_paced) {
+        result.mdc_idc_stat_brady_rv_percent_paced = val;
+      }
+    }
   }
 
   result.mdc_idc_dev_manufacturer = "Medtronic";
