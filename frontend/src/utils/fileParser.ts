@@ -300,8 +300,8 @@ function parseLogFile(data: string): ParsedData {
     "2721": "mdc_idc_msmt_ra_sensing_mean",
     "1610": "mdc_idc_msmt_ra_pacing_threshold",
     "849": "mdc_idc_msmt_ra_pacing_threshold",
-      "1611": "mdc_idc_msmt_ra_pw", // Keep this line for context
-      "507": "mdc_idc_msmt_rv_impedance_mean", // Keep this line for context
+    "1611": "mdc_idc_msmt_ra_pw", // Keep this line for context
+    "507": "mdc_idc_msmt_rv_impedance_mean", // Keep this line for context
     "2722": "mdc_idc_msmt_rv_sensing_mean",
     "1606": "mdc_idc_msmt_rv_pacing_threshold",
     "1620": "mdc_idc_msmt_rv_pacing_threshold",
@@ -1749,7 +1749,8 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
     const status = fvtMatch[1];
     if (status.toLowerCase().includes("via") || status === "On") {
       result.VT2_active = "On";
-      if (fvtMatch[2]) result.VT2_detection_interval = bpmRangeToMs(fvtMatch[2]);
+      if (fvtMatch[2])
+        result.VT2_detection_interval = bpmRangeToMs(fvtMatch[2]);
       if (fvtMatch[3]) parseMedtronicTherapies(fvtMatch[3], "VT2", result);
     } else {
       result.VT2_active = status;
@@ -1788,7 +1789,10 @@ function parseMedtronicQuickLook(text: string): Partial<ParsedData> {
   }
 
   // Fallback: scan for any AP/VP percentages in free text (tables or inline rows)
-  if (!result.mdc_idc_stat_brady_ra_percent_paced || !result.mdc_idc_stat_brady_rv_percent_paced) {
+  if (
+    !result.mdc_idc_stat_brady_ra_percent_paced ||
+    !result.mdc_idc_stat_brady_rv_percent_paced
+  ) {
     const apVpRegex = /(AP|VP)\s*([<>\d.]+)\s*%/gi;
     let m;
     while ((m = apVpRegex.exec(text)) !== null) {
@@ -1819,7 +1823,11 @@ function convertMedtronicDate(dateStr: string, separator = "-") {
     ? monthNameToNumber[rawMonth as keyof typeof monthNameToNumber]
     : parseInt(rawMonth, 10);
 
-  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
+  if (
+    !Number.isFinite(day) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(year)
+  ) {
     return dateStr; // fallback
   }
 
